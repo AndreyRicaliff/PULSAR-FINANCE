@@ -226,7 +226,7 @@ público sem login — decisão consciente do Ricalfiff; service_role só server
 
 **Consequências:** edição feita numa máquina aparece em todas. Dívida assumida:
 sem login, qualquer um com a URL pode editar o estado compartilhado — mitigar depois
-com Google OAuth (`hd=agconsultorialtda.com`) antes de divulgar a URL. DDL aplicado
+com Google OAuth (`hd=example.com`) antes de divulgar a URL. DDL aplicado
 via conexão direta IPv6 (`scripts/supabase-schema.ts`), não via CLI.
 
 **Como explicar em entrevista (30s):** "Separei dado imutável de estado mutável
