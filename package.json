@@ -1,0 +1,46 @@
+{
+  "name": "pulsar-finance",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Painel AG — base própria (BPO financeiro). Reflete dados de Nibo/Omie.",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "deploy:pages": "PAGES_BASE=/ag-painel/ npm run build && cp dist/index.html dist/404.html && touch dist/.nojekyll && npx --yes gh-pages@6 -d dist -b gh-pages --dotfiles -m 'deploy: pages'",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "sync:categorias": "tsx scripts/sync-categorias.ts",
+    "sync:movimentos": "tsx scripts/sync-movimentos.ts",
+    "sync:clientes": "tsx scripts/sync-clientes.ts",
+    "sync:departamentos": "tsx scripts/sync-departamentos.ts",
+    "sync:titulos": "tsx scripts/sync-titulos.ts",
+    "supabase:schema": "tsx scripts/supabase-schema.ts",
+    "supabase:seed": "tsx scripts/supabase-seed.ts",
+    "supabase:purge-users": "tsx scripts/supabase-purge-users.ts"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.108.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.7.4",
+    "@types/pg": "^8.20.0",
+    "@types/react": "^18.3.5",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.1",
+    "autoprefixer": "^10.4.20",
+    "dotenv": "^16.4.5",
+    "pg": "^8.21.0",
+    "playwright-core": "^1.60.0",
+    "postcss": "^8.4.45",
+    "tailwindcss": "^3.4.10",
+    "tsx": "^4.19.1",
+    "typescript": "^5.6.2",
+    "vite": "^5.4.3",
+    "vitest": "^4.1.8",
+    "zod": "^3.23.8"
+  }
+}

@@ -1,0 +1,353 @@
+<!doctype html>
+<html lang="pt-BR" class="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Lúmen Finance — Mockup visual (dados de exemplo)</title>
+    <!--
+      MOCKUP DE DESIGN — todos os números são EXEMPLO (mock), não dados reais.
+      Tokens, animações e componentes espelham o app real (Lúmen Finance / ag-painel).
+      Objetivo: iterar o visual no Claude Design. Mudanças voltam para os componentes React.
+    -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            fontFamily: { sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'] },
+            borderRadius: { card: '12px' },
+            colors: {
+              primary: 'rgb(var(--c-primary) / <alpha-value>)',
+              secondary: 'rgb(var(--c-secondary) / <alpha-value>)',
+              accent: 'rgb(var(--c-accent) / <alpha-value>)',
+              danger: 'rgb(var(--c-danger) / <alpha-value>)',
+              warn: 'rgb(var(--c-warn) / <alpha-value>)',
+              bg: 'rgb(var(--c-bg) / <alpha-value>)',
+              surface: 'rgb(var(--c-surface) / <alpha-value>)',
+              surface2: 'rgb(var(--c-surface2) / <alpha-value>)',
+              surface3: 'rgb(var(--c-surface3) / <alpha-value>)',
+              bd: 'rgb(var(--c-bd) / <alpha-value>)',
+              text: 'rgb(var(--c-text) / <alpha-value>)',
+              muted: 'rgb(var(--c-muted) / <alpha-value>)',
+            },
+          },
+        },
+      }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+    <style>
+      /* === Tokens Claude Design (AG) em canais RGB → habilitam bg-primary/40 === */
+      :root {
+        --c-primary: 112 72 232;
+        --c-secondary: 155 110 255;
+        --c-accent: 8 193 106;
+        --c-danger: 255 92 92;
+        --c-warn: 255 188 125;
+        --c-bg: 10 15 26;
+        --c-surface: 15 24 41;
+        --c-surface2: 24 34 54;
+        --c-surface3: 30 45 71;
+        --c-bd: 26 45 71;
+        --c-text: 232 238 255;
+        --c-muted: 122 155 196;
+        color-scheme: dark;
+      }
+      .light {
+        --c-bg: 243 238 255;
+        --c-surface: 253 251 255;
+        --c-surface2: 234 226 255;
+        --c-surface3: 216 204 255;
+        --c-bd: 192 176 236;
+        --c-text: 28 19 56;
+        --c-muted: 110 94 166;
+        color-scheme: light;
+      }
+      body { font-family: 'Inter', sans-serif; }
+      body, body * { transition: background-color .25s ease, border-color .25s ease, color .2s ease; }
+
+      @keyframes fade-up { from { opacity:0; transform:translateY(8px);} to { opacity:1; transform:none;} }
+      @keyframes fade-in { from { opacity:0;} to { opacity:1;} }
+      @keyframes grow-y { from { transform:scaleY(0);} to { transform:scaleY(1);} }
+      @keyframes grow-x { from { transform:scaleX(0);} to { transform:scaleX(1);} }
+      @keyframes pop { from { opacity:0; transform:scale(.96);} to { opacity:1; transform:scale(1);} }
+      .anim-fade-up { animation: fade-up .32s cubic-bezier(.22,1,.36,1) both; }
+      .anim-fade-in { animation: fade-in .25s ease both; }
+      .anim-grow-y { animation: grow-y .55s cubic-bezier(.22,1,.36,1) both; transform-origin: bottom; }
+      .anim-grow-x { animation: grow-x .6s cubic-bezier(.22,1,.36,1) both; transform-origin: left; }
+      .anim-pop { animation: pop .3s cubic-bezier(.22,1,.36,1) both; }
+      .card-hover { transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease; }
+      .card-hover:hover { transform: translateY(-2px); box-shadow: 0 10px 30px -12px rgb(var(--c-primary)/.4); border-color: rgb(var(--c-primary)/.4); }
+    </style>
+  </head>
+  <body class="bg-bg text-text antialiased">
+    <!-- ================= LOGIN (oculto por padrão; botão "Ver login" no topbar) ================= -->
+    <div id="login" class="fixed inset-0 z-50 hidden items-center justify-center bg-bg/90 backdrop-blur">
+      <div class="anim-pop w-[360px] rounded-card border border-bd bg-surface p-7">
+        <div class="mb-6 flex items-center gap-2.5">
+          <span class="grid h-9 w-9 place-items-center rounded-lg bg-gradient-to-br from-primary to-secondary text-lg">✦</span>
+          <span class="text-lg font-extrabold">Lúmen <span class="text-muted font-semibold">Finance</span></span>
+        </div>
+        <label class="mb-1 block text-xs font-medium uppercase tracking-wide text-muted">E-mail</label>
+        <input class="mb-4 w-full rounded-lg border border-bd bg-surface2 px-3 py-2.5 text-sm outline-none focus:border-primary" value="contato@example.com" />
+        <label class="mb-1 block text-xs font-medium uppercase tracking-wide text-muted">Senha</label>
+        <input type="password" class="mb-5 w-full rounded-lg border border-bd bg-surface2 px-3 py-2.5 text-sm outline-none focus:border-primary" value="••••••••••" />
+        <button class="w-full rounded-lg bg-gradient-to-r from-primary to-secondary py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90">Entrar</button>
+        <button onclick="toggleLogin()" class="mt-3 w-full text-center text-xs text-muted hover:text-text">Fechar prévia</button>
+      </div>
+    </div>
+
+    <div class="flex min-h-screen">
+      <!-- ================= SIDEBAR ================= -->
+      <aside class="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-r border-bd bg-surface px-3 py-5 md:flex">
+        <div class="mb-7 flex items-center gap-2.5 px-2">
+          <span class="grid h-9 w-9 place-items-center rounded-lg bg-gradient-to-br from-primary to-secondary text-lg shadow-lg shadow-primary/30">✦</span>
+          <span class="text-[17px] font-extrabold leading-none">Lúmen<br /><span class="text-xs font-semibold text-muted">Finance</span></span>
+        </div>
+        <nav class="flex flex-1 flex-col gap-0.5 text-sm">
+          <div class="px-3 pb-1 pt-3 text-[10px] font-bold uppercase tracking-wider text-muted/70">Relatórios</div>
+          <a class="flex items-center gap-2.5 rounded-lg bg-gradient-to-r from-primary/20 to-transparent px-3 py-2 font-semibold text-primary">📊 Dashboard</a>
+          <a class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-muted hover:bg-surface2 hover:text-text">📈 Relatórios</a>
+          <div class="px-3 pb-1 pt-4 text-[10px] font-bold uppercase tracking-wider text-muted/70">Clientes</div>
+          <a class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-muted hover:bg-surface2 hover:text-text">👥 Cadastro</a>
+          <div class="px-3 pb-1 pt-4 text-[10px] font-bold uppercase tracking-wider text-muted/70">Fonte · Omie</div>
+          <a class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-muted hover:bg-surface2 hover:text-text">🗂️ Plano de contas</a>
+          <a class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-muted hover:bg-surface2 hover:text-text">💳 Valores</a>
+          <div class="px-3 pb-1 pt-4 text-[10px] font-bold uppercase tracking-wider text-muted/70">Modelagem</div>
+          <a class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-muted hover:bg-surface2 hover:text-text">🧩 Modelo AG</a>
+          <div class="px-3 pb-1 pt-4 text-[10px] font-bold uppercase tracking-wider text-muted/70">Configurações</div>
+          <a class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-muted hover:bg-surface2 hover:text-text">🔄 Sincronizar</a>
+        </nav>
+        <div class="mt-4 rounded-lg border border-bd bg-surface2/60 px-3 py-2 text-[11px] text-muted">
+          Mockup visual · dados de <strong class="text-text">exemplo</strong>
+        </div>
+      </aside>
+
+      <!-- ================= CONTEÚDO ================= -->
+      <div class="flex min-w-0 flex-1 flex-col">
+        <!-- TOPBAR -->
+        <header class="sticky top-0 z-30 flex items-center gap-3 border-b border-bd bg-surface/80 px-5 py-3 backdrop-blur">
+          <div class="text-sm text-muted">Relatórios · <span class="font-semibold text-text">Dashboard</span></div>
+          <div class="ml-auto flex items-center gap-2">
+            <button class="flex items-center gap-2 rounded-lg border border-bd bg-surface2 px-3 py-1.5 text-sm hover:border-primary">
+              <span class="h-2 w-2 rounded-full bg-accent"></span> Acme <span class="text-muted">▾</span>
+            </button>
+            <button onclick="toggleTema()" class="rounded-lg border border-bd bg-surface2 px-3 py-1.5 text-sm hover:border-primary" id="btnTema">🌙 Escuro</button>
+            <button onclick="toggleLogin()" class="rounded-lg border border-bd bg-surface2 px-3 py-1.5 text-sm hover:border-primary">Ver login</button>
+            <span class="grid h-8 w-8 place-items-center rounded-full bg-gradient-to-br from-primary to-secondary text-xs font-bold text-white">R</span>
+          </div>
+        </header>
+
+        <main class="anim-fade-up flex flex-col gap-6 p-5">
+          <div>
+            <h1 class="text-2xl font-extrabold">Dashboard</h1>
+            <p class="text-sm text-muted">Visão geral do período · <span class="text-warn">números de exemplo (mock)</span></p>
+          </div>
+
+          <!-- KPI CARDS -->
+          <section class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4" id="kpis"></section>
+
+          <!-- LINHA 1: fluxo de caixa + transações -->
+          <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+            <div class="card-hover anim-fade-up rounded-card border border-bd bg-surface p-5 lg:col-span-2">
+              <div class="mb-4 flex items-center justify-between">
+                <h2 class="text-sm font-semibold uppercase tracking-wide text-muted">Fluxo de caixa</h2>
+                <span class="rounded-full bg-accent/15 px-2 py-0.5 text-[11px] font-semibold text-accent">▲ 12%</span>
+              </div>
+              <div id="area"></div>
+            </div>
+            <div class="card-hover anim-fade-up rounded-card border border-bd bg-surface p-5">
+              <h2 class="mb-4 text-sm font-semibold uppercase tracking-wide text-muted">Transações recentes</h2>
+              <ul class="flex flex-col gap-3 text-sm" id="trans"></ul>
+            </div>
+          </div>
+
+          <!-- LINHA 2: donut + barras -->
+          <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <div class="card-hover anim-fade-up rounded-card border border-bd bg-surface p-5">
+              <h2 class="mb-4 text-sm font-semibold uppercase tracking-wide text-muted">Categorias</h2>
+              <div id="donut"></div>
+            </div>
+            <div class="card-hover anim-fade-up rounded-card border border-bd bg-surface p-5">
+              <h2 class="mb-4 text-sm font-semibold uppercase tracking-wide text-muted">Movimentação mensal</h2>
+              <div id="bars"></div>
+            </div>
+          </div>
+
+          <!-- LINHA 3: waterfall + tabela DRE -->
+          <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <div class="card-hover anim-fade-up rounded-card border border-bd bg-surface p-5">
+              <h2 class="mb-4 text-sm font-semibold uppercase tracking-wide text-muted">Fluxo por atividade (waterfall)</h2>
+              <div id="waterfall"></div>
+            </div>
+            <div class="card-hover anim-fade-up overflow-hidden rounded-card border border-bd bg-surface">
+              <h2 class="border-b border-bd px-5 py-4 text-sm font-semibold uppercase tracking-wide text-muted">DRE resumida</h2>
+              <table class="w-full text-sm" id="dre"></table>
+            </div>
+          </div>
+        </main>
+      </div>
+    </div>
+
+    <script>
+      const brl = (c) => (c / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+      const PALETA = ['#7048E8', '#9B6EFF', '#08C16A', '#FFBC7D', '#FF5C5C', '#5B8DEF'];
+
+      // ---- KPI cards (com chip de tendência — MOCK) ----
+      const kpis = [
+        { rotulo: 'Receita', valor: 2026000, cor: 'accent', tend: 12 },
+        { rotulo: 'Despesas', valor: 845000, cor: 'danger', tend: -5 },
+        { rotulo: 'Lucro', valor: 1181000, cor: 'primary', tend: 18 },
+        { rotulo: 'Margem líquida', pct: '58,3%', cor: 'secondary', tend: 4 },
+      ];
+      const glow = { primary: '.18', accent: '.18', danger: '.18', secondary: '.18', warn: '.18' };
+      document.getElementById('kpis').innerHTML = kpis
+        .map((k) => {
+          const v = k.pct ?? brl(k.valor);
+          const pos = k.tend >= 0;
+          const chip = `<span class="rounded-full px-2 py-0.5 text-[11px] font-semibold ${pos ? 'bg-accent/15 text-accent' : 'bg-danger/15 text-danger'}">${pos ? '▲' : '▼'} ${Math.abs(k.tend)}%</span>`;
+          return `<div class="card-hover anim-pop relative overflow-hidden rounded-card border border-bd border-t-[3px] border-t-${k.cor} bg-surface px-5 py-4">
+            <span class="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full blur-2xl" style="background:rgb(var(--c-${k.cor})/${glow[k.cor]})"></span>
+            <div class="relative flex items-start justify-between gap-2"><p class="text-xs font-medium uppercase tracking-wide text-muted">${k.rotulo}</p>${chip}</div>
+            <p class="relative mt-2 text-2xl font-bold tabular-nums">${v}</p>
+            <p class="relative mt-1 text-[11px] text-muted">vs. período anterior</p>
+          </div>`;
+        })
+        .join('');
+
+      // ---- Área (fluxo de caixa) ----
+      const pts = [12, 18, 15, 22, 19, 28, 24, 33, 30, 38];
+      (function () {
+        const W = 560, H = 180, max = Math.max(...pts), min = Math.min(...pts), span = max - min || 1;
+        const x = (i) => (i / (pts.length - 1)) * W;
+        const y = (v) => H - ((v - min) / span) * (H - 20) - 10;
+        const linha = pts.map((v, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
+        const area = `${linha} L${W},${H} L0,${H} Z`;
+        const dots = pts.map((v, i) => `<circle cx="${x(i).toFixed(1)}" cy="${y(v).toFixed(1)}" r="3.5" fill="#08C16A" stroke="rgb(var(--c-surface))" stroke-width="2"/>`).join('');
+        document.getElementById('area').innerHTML = `<svg viewBox="0 0 ${W} ${H}" class="anim-fade-in h-48 w-full">
+          <defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#08C16A" stop-opacity=".35"/><stop offset="100%" stop-color="#08C16A" stop-opacity="0"/></linearGradient></defs>
+          <path d="${area}" fill="url(#g)"/><path d="${linha}" fill="none" stroke="#08C16A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>${dots}
+        </svg>`;
+      })();
+
+      // ---- Transações ----
+      const trans = [
+        { t: 'Venda #1024', v: 150000, ok: true },
+        { t: 'Despesa #555', v: -32000, ok: false },
+        { t: 'Recebimento', v: 75000, ok: true },
+        { t: 'Pagamento', v: -45000, ok: false },
+        { t: 'Venda #1025', v: 98000, ok: true },
+      ];
+      document.getElementById('trans').innerHTML = trans
+        .map(
+          (r) => `<li class="flex items-center gap-3 rounded-lg px-2 py-1.5 transition-colors hover:bg-surface2/60">
+          <span class="grid h-8 w-8 shrink-0 place-items-center rounded-full ${r.ok ? 'bg-accent/15 text-accent' : 'bg-danger/15 text-danger'}">${r.ok ? '✓' : '✕'}</span>
+          <span class="flex-1 truncate">${r.t}</span>
+          <span class="tabular-nums font-medium ${r.ok ? 'text-accent' : 'text-danger'}">${r.v > 0 ? '+' : ''}${brl(r.v)}</span></li>`
+        )
+        .join('');
+
+      // ---- Donut ----
+      (function () {
+        const fatias = [
+          { label: 'Vendas', v: 70 },
+          { label: 'Serviços', v: 20 },
+          { label: 'Outros', v: 10 },
+        ];
+        const R = 70, CIRC = 2 * Math.PI * R, GAP = 2;
+        const total = fatias.reduce((a, f) => a + f.v, 0);
+        let off = 0;
+        const arcs = fatias
+          .map((f, i) => {
+            const seg = (CIRC * f.v) / total, len = Math.max(0, seg - GAP);
+            const c = `<circle cx="90" cy="90" r="${R}" fill="none" stroke="${PALETA[i]}" stroke-width="26" stroke-linecap="round" stroke-dasharray="${len} ${CIRC - len}" stroke-dashoffset="${-off}" class="cursor-pointer transition-opacity duration-200 hover:opacity-75"/>`;
+            off += seg;
+            return c;
+          })
+          .join('');
+        const leg = fatias
+          .map(
+            (f, i) => `<li class="flex items-center justify-between gap-3 rounded-md px-2 py-1 transition-colors hover:bg-surface2/60">
+            <span class="flex items-center gap-2"><span class="h-3 w-3 rounded-sm" style="background:${PALETA[i]}"></span>${f.label}</span>
+            <span class="tabular-nums text-muted">${f.v}%</span></li>`
+          )
+          .join('');
+        document.getElementById('donut').innerHTML = `<div class="flex flex-wrap items-center gap-6">
+          <div class="relative h-44 w-44 shrink-0">
+            <svg viewBox="0 0 180 180" class="anim-fade-in h-44 w-44" style="filter:drop-shadow(0 6px 14px rgb(0 0 0/.3))"><g transform="rotate(-90 90 90)">${arcs}</g></svg>
+            <div class="pointer-events-none absolute inset-0 flex flex-col items-center justify-center"><span class="text-[10px] uppercase tracking-wide text-muted">Total</span><span class="text-sm font-bold">100%</span></div>
+          </div>
+          <ul class="flex flex-1 flex-col gap-0.5 text-sm">${leg}</ul></div>`;
+      })();
+
+      // ---- Barras mensais ----
+      (function () {
+        const dados = [
+          ['Jan', 60, 40], ['Fev', 75, 50], ['Mar', 55, 65], ['Abr', 90, 45], ['Mai', 80, 60], ['Jun', 100, 55],
+        ];
+        const max = Math.max(...dados.flatMap((d) => [d[1], d[2]]));
+        const cols = dados
+          .map(
+            (d) => `<div class="group flex flex-1 flex-col items-center gap-1">
+            <div class="flex h-44 items-end gap-0.5">
+              <div class="anim-grow-y w-3 rounded-t bg-gradient-to-t from-accent/50 to-accent transition-opacity group-hover:opacity-80" style="height:${(d[1] / max) * 100}%"></div>
+              <div class="anim-grow-y w-3 rounded-t bg-gradient-to-t from-danger/50 to-danger transition-opacity group-hover:opacity-80" style="height:${(d[2] / max) * 100}%"></div>
+            </div><span class="text-[10px] text-muted group-hover:text-text">${d[0]}</span></div>`
+          )
+          .join('');
+        document.getElementById('bars').innerHTML = `<div class="flex flex-col gap-3">
+          <div class="flex gap-4 text-xs text-muted"><span class="flex items-center gap-1.5"><span class="h-3 w-3 rounded-sm bg-accent"></span>Entradas</span><span class="flex items-center gap-1.5"><span class="h-3 w-3 rounded-sm bg-danger"></span>Saídas</span></div>
+          <div class="flex h-56 items-end gap-3">${cols}</div></div>`;
+      })();
+
+      // ---- Waterfall ----
+      (function () {
+        const passos = [
+          ['Operacional', 80, 'accent'], ['Investimento', -30, 'danger'], ['Financiamento', 20, 'accent'], ['Variação', 70, 'primary'],
+        ];
+        const H = 200, max = 100;
+        const bars = passos
+          .map((p) => {
+            const h = (Math.abs(p[1]) / max) * H;
+            return `<div class="group relative flex-1" style="height:${H}px">
+            <div class="anim-grow-y absolute bottom-6 w-full rounded bg-gradient-to-t from-${p[2]}/60 to-${p[2]} transition-opacity group-hover:opacity-80" style="height:${h}px"></div>
+            <div class="absolute bottom-0 w-full text-center"><p class="truncate text-[10px] text-muted">${p[0]}</p></div></div>`;
+          })
+          .join('');
+        document.getElementById('waterfall').innerHTML = `<div class="flex items-end gap-2" style="height:${H}px">${bars}</div>`;
+      })();
+
+      // ---- Tabela DRE ----
+      (function () {
+        const linhas = [
+          ['Receita bruta', 2026000, false], ['(–) Deduções', -180000, true], ['= Receita líquida', 1846000, false],
+          ['(–) Custos', -560000, true], ['= Margem de contribuição', 1286000, false], ['(–) Despesas', -285000, true], ['= Resultado líquido', 1001000, false],
+        ];
+        document.getElementById('dre').innerHTML =
+          `<tbody>` +
+          linhas
+            .map(
+              (l) => `<tr class="border-b border-bd/50 last:border-0 ${l[0].startsWith('=') ? 'bg-surface2/50 font-bold' : ''}">
+            <td class="px-5 py-2.5">${l[0]}</td>
+            <td class="px-5 py-2.5 text-right tabular-nums ${l[2] ? 'text-danger' : ''}">${brl(l[1])}</td></tr>`
+            )
+            .join('') +
+          `</tbody>`;
+      })();
+
+      // ---- Toggles ----
+      function toggleTema() {
+        const html = document.documentElement;
+        const dark = html.classList.toggle('dark');
+        html.classList.toggle('light', !dark);
+        document.getElementById('btnTema').textContent = dark ? '🌙 Escuro' : '☀️ Claro';
+      }
+      function toggleLogin() {
+        const el = document.getElementById('login');
+        el.classList.toggle('hidden');
+        el.classList.toggle('flex');
+      }
+    </script>
+  </body>
+</html>

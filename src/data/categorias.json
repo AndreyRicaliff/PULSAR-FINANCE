@@ -1,0 +1,1376 @@
+{
+  "geradoEm": "2026-06-05T13:19:06.833Z",
+  "relatorio": {
+    "total": 151,
+    "porNatureza": {
+      "receita": 36,
+      "despesa": 111,
+      "transferencia": 4,
+      "outra": 0
+    },
+    "agrupadoras": 18,
+    "analiticas": 133,
+    "inativas": 36
+  },
+  "categorias": [
+    {
+      "codigo": "0",
+      "descricao": "Transferências",
+      "natureza": "transferencia",
+      "paiCodigo": null,
+      "agrupadora": true,
+      "ativa": true,
+      "entraNoDre": false
+    },
+    {
+      "codigo": "1",
+      "descricao": "Receitas",
+      "natureza": "receita",
+      "paiCodigo": null,
+      "agrupadora": true,
+      "ativa": true,
+      "entraNoDre": false
+    },
+    {
+      "codigo": "2",
+      "descricao": "Despesas",
+      "natureza": "despesa",
+      "paiCodigo": null,
+      "agrupadora": true,
+      "ativa": true,
+      "entraNoDre": false
+    },
+    {
+      "codigo": "0.01",
+      "descricao": "Transferência",
+      "natureza": "transferencia",
+      "paiCodigo": "0",
+      "agrupadora": true,
+      "ativa": true,
+      "entraNoDre": false
+    },
+    {
+      "codigo": "0.01.01",
+      "descricao": "Entrada de Transferência",
+      "natureza": "transferencia",
+      "paiCodigo": "0.01",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": false
+    },
+    {
+      "codigo": "0.01.02",
+      "descricao": "Saída de Transferência",
+      "natureza": "transferencia",
+      "paiCodigo": "0.01",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": false
+    },
+    {
+      "codigo": "1.01",
+      "descricao": "Receitas Diretas",
+      "natureza": "receita",
+      "paiCodigo": "1",
+      "agrupadora": true,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "1.01.01",
+      "descricao": "Clientes - Venda de Mercadoria Fabricadas",
+      "natureza": "receita",
+      "paiCodigo": "1.01",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "1.01.02",
+      "descricao": "Clientes - Serviços Prestados",
+      "natureza": "receita",
+      "paiCodigo": "1.01",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "1.01.03",
+      "descricao": "Clientes - Revenda de Mercadoria",
+      "natureza": "receita",
+      "paiCodigo": "1.01",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "1.01.95",
+      "descricao": "<Disponível>",
+      "natureza": "receita",
+      "paiCodigo": "1.01",
+      "agrupadora": false,
+      "ativa": false,
+      "entraNoDre": false
+    },
+    {
+      "codigo": "1.01.96",
+      "descricao": "<Disponível>",
+      "natureza": "receita",
+      "paiCodigo": "1.01",
+      "agrupadora": false,
+      "ativa": false,
+      "entraNoDre": false
+    },
+    {
+      "codigo": "1.01.97",
+      "descricao": "<Disponível>",
+      "natureza": "receita",
+      "paiCodigo": "1.01",
+      "agrupadora": false,
+      "ativa": false,
+      "entraNoDre": false
+    },
+    {
+      "codigo": "1.01.98",
+      "descricao": "<Disponível>",
+      "natureza": "receita",
+      "paiCodigo": "1.01",
+      "agrupadora": false,
+      "ativa": false,
+      "entraNoDre": false
+    },
+    {
+      "codigo": "1.01.99",
+      "descricao": "<Disponível>",
+      "natureza": "receita",
+      "paiCodigo": "1.01",
+      "agrupadora": false,
+      "ativa": false,
+      "entraNoDre": false
+    },
+    {
+      "codigo": "1.02",
+      "descricao": "Receitas Indiretas",
+      "natureza": "receita",
+      "paiCodigo": "1",
+      "agrupadora": true,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "1.02.01",
+      "descricao": "Dividendos Recebidos",
+      "natureza": "receita",
+      "paiCodigo": "1.02",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "1.02.02",
+      "descricao": "Rendimentos de Aplicações",
+      "natureza": "receita",
+      "paiCodigo": "1.02",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "1.02.95",
+      "descricao": "<Disponível>",
+      "natureza": "receita",
+      "paiCodigo": "1.02",
+      "agrupadora": false,
+      "ativa": false,
+      "entraNoDre": false
+    },
+    {
+      "codigo": "1.02.96",
+      "descricao": "<Disponível>",
+      "natureza": "receita",
+      "paiCodigo": "1.02",
+      "agrupadora": false,
+      "ativa": false,
+      "entraNoDre": false
+    },
+    {
+      "codigo": "1.02.97",
+      "descricao": "<Disponível>",
+      "natureza": "receita",
+      "paiCodigo": "1.02",
+      "agrupadora": false,
+      "ativa": false,
+      "entraNoDre": false
+    },
+    {
+      "codigo": "1.02.98",
+      "descricao": "<Disponível>",
+      "natureza": "receita",
+      "paiCodigo": "1.02",
+      "agrupadora": false,
+      "ativa": false,
+      "entraNoDre": false
+    },
+    {
+      "codigo": "1.02.99",
+      "descricao": "<Disponível>",
+      "natureza": "receita",
+      "paiCodigo": "1.02",
+      "agrupadora": false,
+      "ativa": false,
+      "entraNoDre": false
+    },
+    {
+      "codigo": "1.03",
+      "descricao": "Devoluções",
+      "natureza": "receita",
+      "paiCodigo": "1",
+      "agrupadora": true,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "1.03.01",
+      "descricao": "Devoluções de Compra de Mercadoria de Revenda",
+      "natureza": "receita",
+      "paiCodigo": "1.03",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "1.03.02",
+      "descricao": "Devoluções de Compra de Material de Consumo",
+      "natureza": "receita",
+      "paiCodigo": "1.03",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "1.03.03",
+      "descricao": "Devoluções de Compra de Matéria Prima",
+      "natureza": "receita",
+      "paiCodigo": "1.03",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "1.03.04",
+      "descricao": "Devoluções de Compra de Ativo",
+      "natureza": "receita",
+      "paiCodigo": "1.03",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "1.03.26",
+      "descricao": "Devoluções de Compra de Serviços",
+      "natureza": "receita",
+      "paiCodigo": "1.03",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "1.04",
+      "descricao": "Outras Entradas",
+      "natureza": "receita",
+      "paiCodigo": "1",
+      "agrupadora": true,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "1.04.01",
+      "descricao": "Adiantamento de Clientes",
+      "natureza": "receita",
+      "paiCodigo": "1.04",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "1.04.02",
+      "descricao": "Reembolso de Despesas",
+      "natureza": "receita",
+      "paiCodigo": "1.04",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "1.04.03",
+      "descricao": "Empréstimos Tomados",
+      "natureza": "receita",
+      "paiCodigo": "1.04",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "1.04.04",
+      "descricao": "OUTRAS RECEITAS",
+      "natureza": "receita",
+      "paiCodigo": "1.04",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "1.04.05",
+      "descricao": "Venda de Participações",
+      "natureza": "receita",
+      "paiCodigo": "1.04",
+      "agrupadora": false,
+      "ativa": false,
+      "entraNoDre": false
+    },
+    {
+      "codigo": "1.04.06",
+      "descricao": "Vendas de Ativos",
+      "natureza": "receita",
+      "paiCodigo": "1.04",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "1.04.95",
+      "descricao": "Prêmios de Seguros / Sinistros",
+      "natureza": "receita",
+      "paiCodigo": "1.04",
+      "agrupadora": false,
+      "ativa": false,
+      "entraNoDre": false
+    },
+    {
+      "codigo": "1.04.96",
+      "descricao": "<Disponível>",
+      "natureza": "receita",
+      "paiCodigo": "1.04",
+      "agrupadora": false,
+      "ativa": false,
+      "entraNoDre": false
+    },
+    {
+      "codigo": "1.04.97",
+      "descricao": "<Disponível>",
+      "natureza": "receita",
+      "paiCodigo": "1.04",
+      "agrupadora": false,
+      "ativa": false,
+      "entraNoDre": false
+    },
+    {
+      "codigo": "1.04.98",
+      "descricao": "<Disponível>",
+      "natureza": "receita",
+      "paiCodigo": "1.04",
+      "agrupadora": false,
+      "ativa": false,
+      "entraNoDre": false
+    },
+    {
+      "codigo": "1.04.99",
+      "descricao": "<Disponível>",
+      "natureza": "receita",
+      "paiCodigo": "1.04",
+      "agrupadora": false,
+      "ativa": false,
+      "entraNoDre": false
+    },
+    {
+      "codigo": "2.01",
+      "descricao": "Despesas Diretas",
+      "natureza": "despesa",
+      "paiCodigo": "2",
+      "agrupadora": true,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "2.01.01",
+      "descricao": "Compras de Mercadorias e Insumos",
+      "natureza": "despesa",
+      "paiCodigo": "2.01",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "2.01.02",
+      "descricao": "Frete",
+      "natureza": "despesa",
+      "paiCodigo": "2.01",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "2.01.03",
+      "descricao": "Compras de Materia Prima",
+      "natureza": "despesa",
+      "paiCodigo": "2.01",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "2.01.04",
+      "descricao": "Compra de Serviços",
+      "natureza": "despesa",
+      "paiCodigo": "2.01",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "2.01.95",
+      "descricao": "<Disponível>",
+      "natureza": "despesa",
+      "paiCodigo": "2.01",
+      "agrupadora": false,
+      "ativa": false,
+      "entraNoDre": false
+    },
+    {
+      "codigo": "2.01.96",
+      "descricao": "<Disponível>",
+      "natureza": "despesa",
+      "paiCodigo": "2.01",
+      "agrupadora": false,
+      "ativa": false,
+      "entraNoDre": false
+    },
+    {
+      "codigo": "2.01.97",
+      "descricao": "<Disponível>",
+      "natureza": "despesa",
+      "paiCodigo": "2.01",
+      "agrupadora": false,
+      "ativa": false,
+      "entraNoDre": false
+    },
+    {
+      "codigo": "2.01.98",
+      "descricao": "<Disponível>",
+      "natureza": "despesa",
+      "paiCodigo": "2.01",
+      "agrupadora": false,
+      "ativa": false,
+      "entraNoDre": false
+    },
+    {
+      "codigo": "2.01.99",
+      "descricao": "Serviços de terceiros",
+      "natureza": "despesa",
+      "paiCodigo": "2.01",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "2.02",
+      "descricao": "Despesas de Vendas e Marketing",
+      "natureza": "despesa",
+      "paiCodigo": "2",
+      "agrupadora": true,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "2.02.01",
+      "descricao": "Comissões",
+      "natureza": "despesa",
+      "paiCodigo": "2.02",
+      "agrupadora": false,
+      "ativa": false,
+      "entraNoDre": false
+    },
+    {
+      "codigo": "2.02.02",
+      "descricao": "Marketing",
+      "natureza": "despesa",
+      "paiCodigo": "2.02",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "2.02.03",
+      "descricao": "Despesas de Viagens para projetos",
+      "natureza": "despesa",
+      "paiCodigo": "2.02",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "2.02.04",
+      "descricao": "Bonificações",
+      "natureza": "despesa",
+      "paiCodigo": "2.02",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "2.02.95",
+      "descricao": "<Disponível>",
+      "natureza": "despesa",
+      "paiCodigo": "2.02",
+      "agrupadora": false,
+      "ativa": false,
+      "entraNoDre": false
+    },
+    {
+      "codigo": "2.02.96",
+      "descricao": "<Disponível>",
+      "natureza": "despesa",
+      "paiCodigo": "2.02",
+      "agrupadora": false,
+      "ativa": false,
+      "entraNoDre": false
+    },
+    {
+      "codigo": "2.02.97",
+      "descricao": "<Disponível>",
+      "natureza": "despesa",
+      "paiCodigo": "2.02",
+      "agrupadora": false,
+      "ativa": false,
+      "entraNoDre": false
+    },
+    {
+      "codigo": "2.02.98",
+      "descricao": "<Disponível>",
+      "natureza": "despesa",
+      "paiCodigo": "2.02",
+      "agrupadora": false,
+      "ativa": false,
+      "entraNoDre": false
+    },
+    {
+      "codigo": "2.02.99",
+      "descricao": "Brindes funcionários",
+      "natureza": "despesa",
+      "paiCodigo": "2.02",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "2.03",
+      "descricao": "Despesas com Pessoal",
+      "natureza": "despesa",
+      "paiCodigo": "2",
+      "agrupadora": true,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "2.03.01",
+      "descricao": "Salários",
+      "natureza": "despesa",
+      "paiCodigo": "2.03",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "2.03.02",
+      "descricao": "Adiantamento",
+      "natureza": "despesa",
+      "paiCodigo": "2.03",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "2.03.03",
+      "descricao": "Férias",
+      "natureza": "despesa",
+      "paiCodigo": "2.03",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "2.03.04",
+      "descricao": "Rescisões",
+      "natureza": "despesa",
+      "paiCodigo": "2.03",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "2.03.05",
+      "descricao": "13º Salário",
+      "natureza": "despesa",
+      "paiCodigo": "2.03",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "2.03.06",
+      "descricao": "INSS",
+      "natureza": "despesa",
+      "paiCodigo": "2.03",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "2.03.07",
+      "descricao": "FGTS",
+      "natureza": "despesa",
+      "paiCodigo": "2.03",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "2.03.08",
+      "descricao": "IRRF",
+      "natureza": "despesa",
+      "paiCodigo": "2.03",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "2.03.09",
+      "descricao": "Pensão Alimentícia",
+      "natureza": "despesa",
+      "paiCodigo": "2.03",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "2.03.10",
+      "descricao": "Assistência Médica",
+      "natureza": "despesa",
+      "paiCodigo": "2.03",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "2.03.11",
+      "descricao": "Vale Transporte",
+      "natureza": "despesa",
+      "paiCodigo": "2.03",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "2.03.12",
+      "descricao": "Vale Refeição",
+      "natureza": "despesa",
+      "paiCodigo": "2.03",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "2.03.13",
+      "descricao": "Seguro de Vida",
+      "natureza": "despesa",
+      "paiCodigo": "2.03",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "2.03.14",
+      "descricao": "Outros Benefícios",
+      "natureza": "despesa",
+      "paiCodigo": "2.03",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "2.03.95",
+      "descricao": "Processos trabalhistas",
+      "natureza": "despesa",
+      "paiCodigo": "2.03",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "2.03.96",
+      "descricao": "Uso de Funcionários",
+      "natureza": "despesa",
+      "paiCodigo": "2.03",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "2.03.97",
+      "descricao": "Refeição colaboradores",
+      "natureza": "despesa",
+      "paiCodigo": "2.03",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "2.03.98",
+      "descricao": "Saúde ocupacional",
+      "natureza": "despesa",
+      "paiCodigo": "2.03",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "2.03.99",
+      "descricao": "Diária funcionários",
+      "natureza": "despesa",
+      "paiCodigo": "2.03",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "2.04",
+      "descricao": "Despesas Administrativas",
+      "natureza": "despesa",
+      "paiCodigo": "2",
+      "agrupadora": true,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "2.04.01",
+      "descricao": "Aluguel",
+      "natureza": "despesa",
+      "paiCodigo": "2.04",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "2.04.02",
+      "descricao": "Condomínio",
+      "natureza": "despesa",
+      "paiCodigo": "2.04",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "2.04.03",
+      "descricao": "Água e Esgoto",
+      "natureza": "despesa",
+      "paiCodigo": "2.04",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "2.04.04",
+      "descricao": "Energia Elétrica",
+      "natureza": "despesa",
+      "paiCodigo": "2.04",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "2.04.05",
+      "descricao": "Telefonia",
+      "natureza": "despesa",
+      "paiCodigo": "2.04",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "2.04.06",
+      "descricao": "Material de Escritório",
+      "natureza": "despesa",
+      "paiCodigo": "2.04",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "2.04.07",
+      "descricao": "Manutenção de Imobilizado",
+      "natureza": "despesa",
+      "paiCodigo": "2.04",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "2.04.08",
+      "descricao": "Seguros",
+      "natureza": "despesa",
+      "paiCodigo": "2.04",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "2.04.09",
+      "descricao": "IPTU",
+      "natureza": "despesa",
+      "paiCodigo": "2.04",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "2.04.10",
+      "descricao": "Contabilidade",
+      "natureza": "despesa",
+      "paiCodigo": "2.04",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "2.04.11",
+      "descricao": "Jurídico/Advogados",
+      "natureza": "despesa",
+      "paiCodigo": "2.04",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "2.04.12",
+      "descricao": "Auditorias",
+      "natureza": "despesa",
+      "paiCodigo": "2.04",
+      "agrupadora": false,
+      "ativa": false,
+      "entraNoDre": false
+    },
+    {
+      "codigo": "2.04.13",
+      "descricao": "Segurança",
+      "natureza": "despesa",
+      "paiCodigo": "2.04",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "2.04.14",
+      "descricao": "Limpeza",
+      "natureza": "despesa",
+      "paiCodigo": "2.04",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "2.04.92",
+      "descricao": "Dedetização",
+      "natureza": "despesa",
+      "paiCodigo": "2.04",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "2.04.93",
+      "descricao": "Pró Labore",
+      "natureza": "despesa",
+      "paiCodigo": "2.04",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "2.04.94",
+      "descricao": "Depósitos",
+      "natureza": "despesa",
+      "paiCodigo": "2.04",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "2.04.95",
+      "descricao": "Taxas e alvarás",
+      "natureza": "despesa",
+      "paiCodigo": "2.04",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "2.04.96",
+      "descricao": "Compra de material",
+      "natureza": "despesa",
+      "paiCodigo": "2.04",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "2.04.97",
+      "descricao": "Combustível",
+      "natureza": "despesa",
+      "paiCodigo": "2.04",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "2.04.98",
+      "descricao": "Reforma/construção",
+      "natureza": "despesa",
+      "paiCodigo": "2.04",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "2.04.99",
+      "descricao": "Internet",
+      "natureza": "despesa",
+      "paiCodigo": "2.04",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "2.05",
+      "descricao": "Despesas Financeiras / Bancos",
+      "natureza": "despesa",
+      "paiCodigo": "2",
+      "agrupadora": true,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "2.05.01",
+      "descricao": "Juros sobre Empréstimos",
+      "natureza": "despesa",
+      "paiCodigo": "2.05",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "2.05.02",
+      "descricao": "Multas",
+      "natureza": "despesa",
+      "paiCodigo": "2.05",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "2.05.03",
+      "descricao": "Pagamento de Empréstimos",
+      "natureza": "despesa",
+      "paiCodigo": "2.05",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "2.05.04",
+      "descricao": "Tarifas Bancárias",
+      "natureza": "despesa",
+      "paiCodigo": "2.05",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "2.05.95",
+      "descricao": "<Disponível>",
+      "natureza": "despesa",
+      "paiCodigo": "2.05",
+      "agrupadora": false,
+      "ativa": false,
+      "entraNoDre": false
+    },
+    {
+      "codigo": "2.05.96",
+      "descricao": "<Disponível>",
+      "natureza": "despesa",
+      "paiCodigo": "2.05",
+      "agrupadora": false,
+      "ativa": false,
+      "entraNoDre": false
+    },
+    {
+      "codigo": "2.05.97",
+      "descricao": "Reembolsos",
+      "natureza": "despesa",
+      "paiCodigo": "2.05",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "2.05.98",
+      "descricao": "Cartão de crédito",
+      "natureza": "despesa",
+      "paiCodigo": "2.05",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "2.05.99",
+      "descricao": "Aplicações/investimentos",
+      "natureza": "despesa",
+      "paiCodigo": "2.05",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "2.06",
+      "descricao": "Impostos e Taxas",
+      "natureza": "despesa",
+      "paiCodigo": "2",
+      "agrupadora": true,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "2.06.01",
+      "descricao": "ICMS",
+      "natureza": "despesa",
+      "paiCodigo": "2.06",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "2.06.02",
+      "descricao": "IPI",
+      "natureza": "despesa",
+      "paiCodigo": "2.06",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "2.06.03",
+      "descricao": "PIS",
+      "natureza": "despesa",
+      "paiCodigo": "2.06",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "2.06.04",
+      "descricao": "COFINS",
+      "natureza": "despesa",
+      "paiCodigo": "2.06",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "2.06.05",
+      "descricao": "IRPJ",
+      "natureza": "despesa",
+      "paiCodigo": "2.06",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "2.06.06",
+      "descricao": "Contribuição Social",
+      "natureza": "despesa",
+      "paiCodigo": "2.06",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "2.06.07",
+      "descricao": "ISS",
+      "natureza": "despesa",
+      "paiCodigo": "2.06",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "2.06.95",
+      "descricao": "IOF",
+      "natureza": "despesa",
+      "paiCodigo": "2.06",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "2.06.96",
+      "descricao": "<Disponível>",
+      "natureza": "despesa",
+      "paiCodigo": "2.06",
+      "agrupadora": false,
+      "ativa": false,
+      "entraNoDre": false
+    },
+    {
+      "codigo": "2.06.97",
+      "descricao": "<Disponível>",
+      "natureza": "despesa",
+      "paiCodigo": "2.06",
+      "agrupadora": false,
+      "ativa": false,
+      "entraNoDre": false
+    },
+    {
+      "codigo": "2.06.98",
+      "descricao": "CSLL",
+      "natureza": "despesa",
+      "paiCodigo": "2.06",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "2.06.99",
+      "descricao": "Simples Nacional (DAS)",
+      "natureza": "despesa",
+      "paiCodigo": "2.06",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "2.07",
+      "descricao": "Investimento",
+      "natureza": "despesa",
+      "paiCodigo": "2",
+      "agrupadora": true,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "2.07.01",
+      "descricao": "Máquinas e Equipamentos",
+      "natureza": "despesa",
+      "paiCodigo": "2.07",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "2.07.02",
+      "descricao": "Veículos",
+      "natureza": "despesa",
+      "paiCodigo": "2.07",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "2.07.03",
+      "descricao": "Instalações",
+      "natureza": "despesa",
+      "paiCodigo": "2.07",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "2.07.04",
+      "descricao": "Equipamentos de Informática",
+      "natureza": "despesa",
+      "paiCodigo": "2.07",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "2.07.05",
+      "descricao": "Móveis e Utensílios",
+      "natureza": "despesa",
+      "paiCodigo": "2.07",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "2.07.06",
+      "descricao": "Comunicação",
+      "natureza": "despesa",
+      "paiCodigo": "2.07",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "2.07.99",
+      "descricao": "Softwares/sistemas",
+      "natureza": "despesa",
+      "paiCodigo": "2.07",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "2.08",
+      "descricao": "Outras Despesas",
+      "natureza": "despesa",
+      "paiCodigo": "2",
+      "agrupadora": true,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "2.08.01",
+      "descricao": "Adiantamento a Fornecedores",
+      "natureza": "despesa",
+      "paiCodigo": "2.08",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "2.08.02",
+      "descricao": "Demais Despesas",
+      "natureza": "despesa",
+      "paiCodigo": "2.08",
+      "agrupadora": false,
+      "ativa": false,
+      "entraNoDre": false
+    },
+    {
+      "codigo": "2.08.95",
+      "descricao": "<Disponível>",
+      "natureza": "despesa",
+      "paiCodigo": "2.08",
+      "agrupadora": false,
+      "ativa": false,
+      "entraNoDre": false
+    },
+    {
+      "codigo": "2.08.96",
+      "descricao": "Demais/outras despesas",
+      "natureza": "despesa",
+      "paiCodigo": "2.08",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "2.08.97",
+      "descricao": "Cartão de crédito",
+      "natureza": "despesa",
+      "paiCodigo": "2.08",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "2.08.98",
+      "descricao": "saida transferência",
+      "natureza": "despesa",
+      "paiCodigo": "2.08",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "2.08.99",
+      "descricao": "Empréstimos",
+      "natureza": "despesa",
+      "paiCodigo": "2.08",
+      "agrupadora": false,
+      "ativa": false,
+      "entraNoDre": false
+    },
+    {
+      "codigo": "2.09",
+      "descricao": "Devoluções de Vendas",
+      "natureza": "despesa",
+      "paiCodigo": "2",
+      "agrupadora": true,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "2.09.01",
+      "descricao": "Devoluções de Vendas de Mercadoria",
+      "natureza": "despesa",
+      "paiCodigo": "2.09",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "2.09.02",
+      "descricao": "Devoluções de Vendas de Serviços Prestados",
+      "natureza": "despesa",
+      "paiCodigo": "2.09",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "2.09.03",
+      "descricao": "<Disponível>",
+      "natureza": "despesa",
+      "paiCodigo": "2.09",
+      "agrupadora": false,
+      "ativa": false,
+      "entraNoDre": false
+    },
+    {
+      "codigo": "2.09.04",
+      "descricao": "<Disponível>",
+      "natureza": "despesa",
+      "paiCodigo": "2.09",
+      "agrupadora": false,
+      "ativa": false,
+      "entraNoDre": false
+    },
+    {
+      "codigo": "2.09.05",
+      "descricao": "<Disponível>",
+      "natureza": "despesa",
+      "paiCodigo": "2.09",
+      "agrupadora": false,
+      "ativa": false,
+      "entraNoDre": false
+    },
+    {
+      "codigo": "2.10",
+      "descricao": "Despesas Comerciais",
+      "natureza": "despesa",
+      "paiCodigo": "2",
+      "agrupadora": true,
+      "ativa": true,
+      "entraNoDre": true
+    },
+    {
+      "codigo": "2.10.99",
+      "descricao": "Marketing",
+      "natureza": "despesa",
+      "paiCodigo": "2.10",
+      "agrupadora": false,
+      "ativa": true,
+      "entraNoDre": true
+    }
+  ]
+}
