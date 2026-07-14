@@ -2,7 +2,7 @@
 import { useMemo } from 'react'
 import { classeDe } from '@/core/classes'
 import type { No } from '@/core/modelo'
-import type { Movimento } from '@/core/movimento'
+import { chaveContraparte, type Movimento } from '@/core/movimento'
 import { useCadastros } from '@/lib/cadastros'
 import { useFilialSelecao, type FilialSelecaoApi } from '@/lib/filialSelecao'
 import { brl } from '@/lib/money'
@@ -47,7 +47,7 @@ export function TabelaMov({ movimentos }: { movimentos: readonly Movimento[] }) 
               <TituloCelula m={m} />
               {refDe(m) ? <div className="text-[10px] text-muted/70">({refDe(m)})</div> : null}
             </td>
-            <td className="px-6 py-2 text-xs">{resolvedor.contraparte(m.contraparteCodigo).nome}</td>
+            <td className="px-6 py-2 text-xs">{resolvedor.contraparte(chaveContraparte(m)).nome}</td>
             {filial ? (
               <td className="px-6 py-2">
                 <CelulaFilial m={m} api={filial} />

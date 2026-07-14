@@ -1,7 +1,7 @@
 /** @file Contrapartes agregadas (clientes/fornecedores) com drill-down em modal. */
 import { useMemo, useState } from 'react'
-import type { Movimento } from '@/core/movimento'
-import type { ClientesSeed } from '@/core/cliente'
+import { chaveContraparte, type Movimento } from '@/core/movimento'
+import { nomeContraparte, type ClientesSeed } from '@/core/cliente'
 import { useCadastros } from '@/lib/cadastros'
 import { useMovimentos } from '@/lib/movimentos'
 import { brl } from '@/lib/money'
@@ -41,7 +41,7 @@ export function FornecedoresPanel() {
   const visiveis = useMemo(() => filtrarBusca(linhas, busca), [linhas, busca])
 
   const movsAberta = useMemo(
-    () => (aberta ? movs.filter((m) => m.contraparteCodigo === aberta.codigo) : []),
+    () => (aberta ? movs.filter((m) => chaveContraparte(m) === aberta.codigo) : []),
     [aberta, movs],
   )
 
@@ -133,7 +133,7 @@ function filtrarTipo(movimentos: readonly Movimento[], tipo: Tipo): Movimento[] 
 function agrupar(movimentos: readonly Movimento[], clientes: ClientesSeed['clientes']): LinhaParte[] {
   const acc = new Map<string, { quantidade: number; totalCentavos: number }>()
   for (const m of movimentos) {
-    const chave = m.contraparteCodigo || 'SEM'
+    const chave = chaveContraparte(m)
     const atual = acc.get(chave) ?? { quantidade: 0, totalCentavos: 0 }
     atual.quantidade += 1
     atual.totalCentavos += m.valorCentavos
@@ -148,7 +148,7 @@ function montar(codigo: string, v: { quantidade: number; totalCentavos: number }
   const info = clientes[codigo]
   return {
     codigo,
-    nome: info?.nome ?? (codigo === 'SEM' ? 'Sem contraparte' : `Código ${codigo}`),
+    nome: nomeContraparte(codigo, clientes),
     doc: info?.doc ?? '',
     quantidade: v.quantidade,
     totalCentavos: v.totalCentavos,

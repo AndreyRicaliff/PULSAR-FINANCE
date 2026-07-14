@@ -3,6 +3,8 @@
  * Guardamos o detalhe pra permitir drill-down: "por que a categoria X tem tanto valor?".
  * Valor em centavos (inteiro).
  */
+import { codigoContraparte } from './cliente'
+
 export interface Movimento {
   /** nCodTitulo: id interno do título na Omie — chave estável p/ override. */
   readonly idTitulo: string
@@ -54,6 +56,14 @@ export interface Movimento {
 export interface MovimentosSeed {
   readonly geradoEm: string
   readonly movimentos: readonly Movimento[]
+}
+
+/**
+ * Chave de agrupamento/resolução da contraparte: código do cadastro quando existe;
+ * senão o nome cru do movimento (Nibo grava o nome no lançamento e código nulo); senão 'SEM'.
+ */
+export function chaveContraparte(m: Pick<Movimento, 'contraparte' | 'contraparteCodigo'>): string {
+  return codigoContraparte(m.contraparteCodigo) || m.contraparte || 'SEM'
 }
 
 /** Título a vencer (em aberto): não é caixa realizado — fica fora da DFC. */

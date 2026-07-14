@@ -1,5 +1,6 @@
 /** @file Aba unificada "Editar DRE/DFC": edição da estrutura + visão com drill-down, sincronizada por período. */
 import { useMemo, useState } from 'react'
+import { rotuloCategoria } from '@/core/categoria'
 import { arvorePorGrupo, totaisEfetivos } from '@/core/classes'
 import { calcular, demonstracaoPadrao, mapaPadrao, type TipoDemo } from '@/core/demonstracao'
 import { movimentosCaixa } from '@/core/movimento'
@@ -119,7 +120,7 @@ function Conteudo() {
       .filter(([k]) => k.startsWith('sub:') || k.startsWith('cls:'))
       .map(([k, total]) => {
         const ref = k.slice(4)
-        const nome = k.startsWith('sub:') ? noNome.get(ref) ?? ref : `${ref} ${catNome.get(ref) ?? ''}`.trim()
+        const nome = k.startsWith('sub:') ? noNome.get(ref) ?? ref : rotuloCategoria(ref, catNome.get(ref) ?? '')
         return { id: k, nome, totalCentavos: total, qtd: 1, subgrupos: [] }
       })
     return [...espelhoTab, ...pseudo]

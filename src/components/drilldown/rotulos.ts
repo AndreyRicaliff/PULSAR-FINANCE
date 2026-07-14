@@ -1,5 +1,5 @@
 /** @file Eixos de agrupamento disponíveis no drill-down e seus rótulos. */
-import type { Movimento } from '@/core/movimento'
+import { chaveContraparte, type Movimento } from '@/core/movimento'
 import type { Resolvedor } from '@/core/override'
 
 export type Eixo =
@@ -58,8 +58,10 @@ export function classificar(
   resolvedor: Resolvedor,
 ): { chave: string; rotulo: string } {
   switch (eixo) {
-    case 'contraparte':
-      return { chave: m.contraparteCodigo || 'SEM', rotulo: resolvedor.contraparte(m.contraparteCodigo).nome }
+    case 'contraparte': {
+      const chave = chaveContraparte(m)
+      return { chave, rotulo: resolvedor.contraparte(chave).nome }
+    }
     case 'categoria':
       return { chave: m.categoria || 'SEM', rotulo: resolvedor.categoria(m.categoria).nome }
     case 'mes': {

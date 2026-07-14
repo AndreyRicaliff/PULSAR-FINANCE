@@ -1,6 +1,6 @@
 /** @file Plano de contas cru da Omie (árvore de categorias) — fonte read-only do de-para. */
 import { useMemo, useState } from 'react'
-import type { Categoria, Natureza } from '@/core/categoria'
+import { codigoExibivel, type Categoria, type Natureza } from '@/core/categoria'
 import { useCadastros } from '@/lib/cadastros'
 import { COR_NATUREZA, ROTULO_NATUREZA, profundidade } from '@/lib/natureza'
 import { KpiCard } from './KpiCard.tsx'
@@ -88,7 +88,7 @@ function Tabela({ categorias }: { categorias: readonly Categoria[] }) {
 function Linha({ c }: { c: Categoria }) {
   return (
     <tr className="border-b border-bd/60 last:border-0 hover:bg-surface2/50">
-      <td className="px-4 py-2.5 font-mono text-xs tabular-nums text-muted">{c.codigo}</td>
+      <td className="px-4 py-2.5 font-mono text-xs tabular-nums text-muted">{codigoExibivel(c.codigo) || '—'}</td>
       <td className="px-4 py-2.5" style={{ paddingLeft: 16 + profundidade(c.codigo) * 16 }}>
         <span className={c.agrupadora ? 'font-semibold' : ''}>{c.descricao}</span>
       </td>

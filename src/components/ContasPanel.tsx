@@ -5,6 +5,7 @@
  * — vale para todos os títulos e movimentos daquela categoria).
  */
 import { useMemo, useState } from 'react'
+import { codigoContraparte } from '@/core/cliente'
 import { opcoesDaEstrutura } from '@/core/modelo'
 import { isoDeMov } from '@/core/periodo'
 import { grupoDoTitulo } from '@/core/projecao'
@@ -45,7 +46,11 @@ export function ContasReceberPanel() {
 function ContasPanel({ natureza }: { natureza: NaturezaTitulo }) {
   const { titulos, geradoEm, origem } = useTitulos()
   const { modelo, mapear } = useModelo()
-  const { nomesContrapartes } = useCadastros()
+  const { nomesContrapartes, categorias } = useCadastros()
+  const nomesCategorias = useMemo(
+    () => new Map(categorias.categorias.map((c) => [c.codigo, c.descricao])),
+    [categorias],
+  )
   const [vista, setVista] = useState<Vista>('abertos')
   const conc = modelo.contas
 
@@ -99,6 +104,7 @@ function ContasPanel({ natureza }: { natureza: NaturezaTitulo }) {
           titulos={visiveis}
           conc={conc}
           nomes={nomesContrapartes}
+          nomesCategorias={nomesCategorias}
           onConciliar={(categoria, grupoId) => mapear('contas', categoria, grupoId)}
         />
       )}
@@ -114,10 +120,11 @@ interface PropsTabela {
   readonly titulos: readonly Titulo[]
   readonly conc: ReturnType<typeof useModelo>['modelo']['contas']
   readonly nomes: ReadonlyMap<string, string>
+  readonly nomesCategorias: ReadonlyMap<string, string>
   readonly onConciliar: (categoria: string, grupoId: string) => void
 }
 
-function Tabela({ titulos, conc, nomes, onConciliar }: PropsTabela) {
+function Tabela({ titulos, conc, nomes, nomesCategorias, onConciliar }: PropsTabela) {
   const nomesGrupo = useMemo(() => new Map(conc.estrutura.map((n) => [n.id, n.nome])), [conc.estrutura])
   const opcoes = useMemo(() => opcoesDaEstrutura(conc.estrutura), [conc.estrutura])
   const hoje = new Date().toISOString().slice(0, 10)
@@ -143,7 +150,7 @@ function Tabela({ titulos, conc, nomes, onConciliar }: PropsTabela) {
               <tr key={`${t.id}|${t.parcela}`} className="border-t border-bd/50">
                 <td className={`px-4 py-2 tabular-nums ${atrasado ? 'font-semibold text-danger' : ''}`}>{t.dataVencimento || '—'}</td>
                 <td className="px-4 py-2">{t.documento || '—'}{t.parcela && t.parcela !== '001/001' ? <span className="text-xs text-muted"> · {t.parcela}</span> : null}</td>
-                <td className="px-4 py-2">{nomes.get(t.fornecedorCodigo) ?? (t.fornecedorCodigo ? `Código ${t.fornecedorCodigo}` : '—')}</td>
+                <td className="px-4 py-2">{nomeFornecedor(t.fornecedorCodigo, nomes)}</td>
                 <td className="px-4 py-2"><StatusBadge status={t.status} /></td>
                 <td className="px-4 py-2">
                   {grupoId ? (
@@ -153,9 +160,9 @@ function Tabela({ titulos, conc, nomes, onConciliar }: PropsTabela) {
                       defaultValue=""
                       onChange={(e) => e.target.value && onConciliar(t.categoria, e.target.value)}
                       className="rounded-lg border border-warn/50 bg-surface2 px-2 py-1 text-xs text-warn outline-none focus:border-primary"
-                      title={`Concilia a categoria ${t.categoria} inteira (todos os títulos e movimentos dela)`}
+                      title={`Concilia a categoria ${nomesCategorias.get(t.categoria) ?? t.categoria} inteira (todos os títulos e movimentos dela)`}
                     >
-                      <option value="">A conciliar ({t.categoria})</option>
+                      <option value="">A conciliar ({nomesCategorias.get(t.categoria) ?? t.categoria})</option>
                       {opcoes.map((o) => (
                         <option key={o.id} value={o.id}>{o.rotulo}</option>
                       ))}
@@ -170,6 +177,12 @@ function Tabela({ titulos, conc, nomes, onConciliar }: PropsTabela) {
       </table>
     </div>
   )
+}
+
+function nomeFornecedor(codigo: string, nomes: ReadonlyMap<string, string>): string {
+  const cod = codigoContraparte(codigo)
+  if (!cod) return '—'
+  return nomes.get(cod) ?? `Código ${cod}`
 }
 
 function StatusBadge({ status }: { status: string }) {

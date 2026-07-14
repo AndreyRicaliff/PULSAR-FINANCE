@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react'
 import { useCadastros } from '@/lib/cadastros'
 import { useMovimentos } from '@/lib/movimentos'
 import { porCategoria, type LinhaCategoria } from '@/lib/agregar'
+import { codigoExibivel } from '@/core/categoria'
 import { montarArvore, semCancelados, type NoCategoria } from '@/lib/arvore'
 import { brl } from '@/lib/money'
 import { COR_NATUREZA, ROTULO_NATUREZA } from '@/lib/natureza'
@@ -117,7 +118,9 @@ function LinhaFlat({ l, onAbrir }: { l: LinhaCategoria; onAbrir: () => void }) {
   return (
     <tr onClick={onAbrir} className="cursor-pointer border-b border-bd/60 last:border-0 hover:bg-surface2">
       <td className="px-4 py-2.5">
-        <span className="mr-2 font-mono text-xs tabular-nums text-muted">{l.codigo}</span>
+        {codigoExibivel(l.codigo) ? (
+          <span className="mr-2 font-mono text-xs tabular-nums text-muted">{l.codigo}</span>
+        ) : null}
         <NomeEditavel entidade="categoria" codigo={l.codigo} resolvido={resolvedor.categoria(l.codigo)} />
         <span className={`ml-2 rounded-full px-2 py-0.5 text-[10px] font-medium ${COR_NATUREZA[l.natureza]}`}>
           {ROTULO_NATUREZA[l.natureza]}

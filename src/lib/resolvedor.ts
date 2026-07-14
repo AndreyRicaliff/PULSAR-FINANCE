@@ -1,6 +1,6 @@
 /** @file Resolve códigos crus (categoria/contraparte/título) em nomes, aplicando overrides. */
 import type { CategoriasSeed } from '@/core/categoria'
-import type { ClientesSeed } from '@/core/cliente'
+import { nomeContraparte, type ClientesSeed } from '@/core/cliente'
 import type { NomeResolvido, Overrides, Resolvedor } from '@/core/override'
 
 function resolver(original: string, ajustado: string | undefined): NomeResolvido {
@@ -19,10 +19,7 @@ export function criarResolvedor(
     if (!codigo || codigo === 'SEM_CATEGORIA') return 'Sem categoria'
     return descCategoria.get(codigo) ?? codigo
   }
-  const origemContraparte = (codigo: string): string => {
-    if (!codigo || codigo === 'SEM') return 'Sem contraparte'
-    return clientes[codigo]?.nome ?? `Código ${codigo}`
-  }
+  const origemContraparte = (codigo: string): string => nomeContraparte(codigo, clientes)
   return {
     categoria: (c) => resolver(origemCategoria(c), ov.categoria[c]),
     contraparte: (c) => resolver(origemContraparte(c), ov.contraparte[c]),

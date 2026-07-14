@@ -2,9 +2,9 @@
 import { useMemo, useState } from 'react'
 import { sugerirClassificacao } from '@/core/matriz-classificacao'
 import type { Dimensao, RegimeDemo } from '@/core/modelo'
-import type { Movimento } from '@/core/movimento'
+import { chaveContraparte, type Movimento } from '@/core/movimento'
 import type { Resolvedor } from '@/core/override'
-import type { CategoriasSeed } from '@/core/categoria'
+import { codigoExibivel, type CategoriasSeed } from '@/core/categoria'
 import { dataDoMovimento } from '@/core/periodo'
 import { useCadastros } from '@/lib/cadastros'
 import { useMovimentos } from '@/lib/movimentos'
@@ -188,7 +188,7 @@ export function ModeloPanel() {
 
 function movsDaChave(movs: readonly Movimento[], chave: string, dim: Dimensao): Movimento[] {
   if (dim === 'contas') return movs.filter((m) => m.categoria === chave)
-  return movs.filter((m) => (m.contraparteCodigo || 'SEM') === chave)
+  return movs.filter((m) => chaveContraparte(m) === chave)
 }
 
 function tituloDaChave(chave: string, dim: Dimensao, resolvedor: Resolvedor): string {
@@ -213,7 +213,7 @@ function BarraProgresso({ feito, total }: { feito: number; total: number }) {
 function itensDeContas(movs: readonly Movimento[], resolvedor: Resolvedor, categorias: CategoriasSeed['categorias']): ItemConc[] {
   return porCategoria(movs, categorias).map((l) => ({
     chave: l.codigo,
-    titulo: `${l.codigo} · ${resolvedor.categoria(l.codigo).nome}`,
+    titulo: [codigoExibivel(l.codigo), resolvedor.categoria(l.codigo).nome].filter(Boolean).join(' · '),
     valorCentavos: l.totalCentavos,
     qtd: l.quantidade,
   }))
@@ -222,7 +222,7 @@ function itensDeContas(movs: readonly Movimento[], resolvedor: Resolvedor, categ
 function itensDeFornecedores(movs: readonly Movimento[], resolvedor: Resolvedor): ItemConc[] {
   const acc = new Map<string, { valor: number; qtd: number }>()
   for (const m of movs) {
-    const chave = m.contraparteCodigo || 'SEM'
+    const chave = chaveContraparte(m)
     const atual = acc.get(chave) ?? { valor: 0, qtd: 0 }
     atual.valor += m.valorCentavos
     atual.qtd += 1

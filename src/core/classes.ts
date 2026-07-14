@@ -3,7 +3,7 @@
  * movimentação. A "classe" é a agrupadora ancestral da categoria no plano de contas Omie;
  * o subgrupo é o nó da nossa conciliação. Alimenta o drill do editor de DRE/DFC.
  */
-import type { Categoria } from './categoria'
+import { rotuloCategoria, type Categoria } from './categoria'
 import { LINHA_FORA, type Demonstracao, type TipoDemo } from './demonstracao'
 import { entraNaDemonstracao, type Conciliacao, type No } from './modelo'
 import type { Movimento } from './movimento'
@@ -41,9 +41,9 @@ interface Acum {
 
 function chaveClasse(codigo: string, catPorCodigo: ReadonlyMap<string, Categoria>): ClasseNo {
   const classe = classeDe(codigo, catPorCodigo)
-  if (classe) return { codigo: classe.codigo, nome: `${classe.codigo} ${classe.descricao}`, totalCentavos: 0 }
+  if (classe) return { codigo: classe.codigo, nome: rotuloCategoria(classe.codigo, classe.descricao), totalCentavos: 0 }
   const folha = catPorCodigo.get(codigo)
-  return { codigo, nome: folha ? `${codigo} ${folha.descricao}` : codigo, totalCentavos: 0 }
+  return { codigo, nome: folha ? rotuloCategoria(codigo, folha.descricao) : codigo, totalCentavos: 0 }
 }
 
 export const CHAVE_SUB = 'sub:'
