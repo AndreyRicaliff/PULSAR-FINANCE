@@ -1,5 +1,6 @@
 /** @file Árvore recursiva de categorias Omie com totais por nó. */
 import { useState } from 'react'
+import { codigoExibivel } from '@/core/categoria'
 import type { NoCategoria } from '@/lib/arvore'
 import { brl } from '@/lib/money'
 import { COR_NATUREZA } from '@/lib/natureza'
@@ -35,7 +36,9 @@ export function CategoriaTree({ no, depth, onAbrir }: Props) {
             ) : (
               <span className="w-4 shrink-0" />
             )}
-            <span className="font-mono text-xs tabular-nums text-muted">{no.codigo}</span>
+            {codigoExibivel(no.codigo) ? (
+              <span className="font-mono text-xs tabular-nums text-muted">{no.codigo}</span>
+            ) : null}
             <button
               type="button"
               disabled={!temProprios}

@@ -1,0 +1,11 @@
+# Pendências
+
+Itens acordados/latentes com contexto e ponteiro. Resolver = apagar a linha no mesmo commit do fix.
+
+- **[2026-07-14] Fase 2 Nibo — normalização na ingestão:** quando o adapter Nibo existir (`supabase/functions/sync-omie/index.ts:444` hoje fail-closa `provedor !== 'omie'`), avaliar normalizar contraparte/categoria UMA vez (adapter ou `MovimentosProvider`) em vez de rotear por `chaveContraparte` em cada consumidor — a revisão de 2026-07-14 achou `src/core/filial.ts` fora da migração (corrigido, mas o próximo consumidor nasce com o mesmo risco).
+- **[2026-07-14] GUID real sem cadastro vaza como "nome":** `nomeContraparte` (src/core/cliente.ts) devolve a chave crua quando não é numérica — stakeholder Nibo com GUID real fora do cadastro (drift movimentos×cadastros) apareceria como GUID; o nome legível existe em `m.contraparte` mas a função não o recebe. Espelho em `resolvedor.ts` (`descCategoria.get(codigo) ?? codigo`). Decidir na Fase 2: passar o nome do movimento ou reusar `RE_CODIGO_OPACO` com marcador "sem cadastro".
+- **[2026-07-14] CPF/CNPJ no campo `contraparte` (Omie):** o pipeline Omie grava `cCPFCNPJCliente` em `m.contraparte` — se algum dia vier doc sem `nCodCliente` (0/408 no seed atual), o documento vira rótulo/chave via fallback de `chaveContraparte`. Na Fase 2, definir semântica única do campo por provedor (Nibo = nome, Omie = doc) ou mascarar.
+- **[2026-07-14] `RelatorioPrevistoRealizado` infere natureza por prefixo `'1'/'2'` do código** (src/components/relatorios/RelatorioPrevistoRealizado.tsx:100) — quebra com categoria GUID (Nibo): usar a natureza do cadastro, não o shape do código.
+- **[2026-07-14] `HistoricoSync` imprime `m.categoria` cru** (src/components/config/HistoricoSync.tsx:116 e 139) — com Nibo mostraria GUID na tela de conferência pós-sync; rotear por `rotuloCategoria` quando houver acesso a cadastros ali.
+- **[2026-07-14] Edge `sync-omie` não checa `res.ok` dos upserts** (gravações em `Promise.all`, ~linhas 357-363/458-463) — falha parcial de escrita é engolida e gera drift silencioso entre `movimentos-raw` e `cadastros-raw`.
+- **[2026-07-14] Overrides de contraparte keyados por nome cru são instáveis:** quando um stakeholder Nibo ganhar cadastro, a chave flipa nome→GUID e renames/conciliações salvos sob o nome orfanam. Definir migração de chave (ou vínculo nome→GUID) junto com a Fase 2.

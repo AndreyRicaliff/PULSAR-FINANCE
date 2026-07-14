@@ -1,0 +1,15 @@
+# Deploy do PULSAR FINANCE (Vite SPA) no Netlify.
+# As envs VITE_* NÃO vão aqui (são segredo e o arquivo é commitado) — configurar no
+# painel do Netlify: Site settings → Environment variables.
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+# SPA: qualquer rota cai no index.html (espelha public/_redirects — redundância proposital).
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

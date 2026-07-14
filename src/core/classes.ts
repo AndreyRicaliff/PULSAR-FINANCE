@@ -3,7 +3,7 @@
  * movimentação. A "classe" é a agrupadora ancestral da categoria no plano de contas Omie;
  * o subgrupo é o nó da nossa conciliação. Alimenta o drill do editor de DRE/DFC.
  */
-import type { Categoria } from './categoria'
+import { rotuloCategoria, type Categoria } from './categoria'
 import { LINHA_FORA, type Demonstracao, type TipoDemo } from './demonstracao'
 import { entraNaDemonstracao, type Conciliacao, type No } from './modelo'
 import type { Movimento } from './movimento'
@@ -41,9 +41,9 @@ interface Acum {
 
 function chaveClasse(codigo: string, catPorCodigo: ReadonlyMap<string, Categoria>): ClasseNo {
   const classe = classeDe(codigo, catPorCodigo)
-  if (classe) return { codigo: classe.codigo, nome: `${classe.codigo} ${classe.descricao}`, totalCentavos: 0 }
+  if (classe) return { codigo: classe.codigo, nome: rotuloCategoria(classe.codigo, classe.descricao), totalCentavos: 0 }
   const folha = catPorCodigo.get(codigo)
-  return { codigo, nome: folha ? `${codigo} ${folha.descricao}` : codigo, totalCentavos: 0 }
+  return { codigo, nome: folha ? rotuloCategoria(codigo, folha.descricao) : codigo, totalCentavos: 0 }
 }
 
 export const CHAVE_SUB = 'sub:'
@@ -115,6 +115,8 @@ export function arvorePorGrupo(
   const noPorId = new Map<string, No>(conc.estrutura.map((n) => [n.id, n]))
   // grupoId → subgrupoId → Acum
   const porGrupo = new Map<string, Map<string, Acum>>()
+  // O rótulo da classe é determinístico por categoria — sem cache, rotuloCategoria rodaria por movimento.
+  const classePorCategoria = new Map<string, ClasseNo>()
 
   for (const m of movs) {
     const noId = conc.mapa[m.categoria]
@@ -125,7 +127,11 @@ export function arvorePorGrupo(
     const subs = porGrupo.get(grupoId) ?? new Map<string, Acum>()
     const acum = subs.get(subId) ?? { nome: no.nome, total: 0, classes: new Map() }
     acum.total += comSinal(m)
-    const c = chaveClasse(m.categoria, catPorCodigo)
+    let c = classePorCategoria.get(m.categoria)
+    if (!c) {
+      c = chaveClasse(m.categoria, catPorCodigo)
+      classePorCategoria.set(m.categoria, c)
+    }
     const existente = acum.classes.get(c.codigo) ?? { ...c }
     acum.classes.set(c.codigo, { ...existente, totalCentavos: existente.totalCentavos + comSinal(m) })
     subs.set(subId, acum)

@@ -5,6 +5,7 @@
  * distribuído por estimativa — o que não tem dono aparece como "Sem filial".
  */
 import { idDep, SEM_FILIAL } from './centros'
+import { codigoContraparte } from './cliente'
 import type { Conciliacao } from './modelo'
 import type { Movimento } from './movimento'
 import { normalizarTexto } from './texto'
@@ -47,12 +48,14 @@ export function autoPorContraparte(
   const contagem = new Map<string, Map<string, number>>()
   for (const m of movs) {
     // Sem contraparte não há parentesco — herdar aqui espalharia 1 marcação a todos os órfãos.
-    if (!m.contraparteCodigo) continue
+    // codigoContraparte: o GUID nulo Nibo é truthy e agruparia todos os órfãos como UMA contraparte.
+    const cod = codigoContraparte(m.contraparteCodigo)
+    if (!cod) continue
     const id = filialDoMovimento(m, centros)
     if (!id || id === SEM_FILIAL.id) continue
-    const porFilial = contagem.get(m.contraparteCodigo) ?? new Map<string, number>()
+    const porFilial = contagem.get(cod) ?? new Map<string, number>()
     porFilial.set(id, (porFilial.get(id) ?? 0) + 1)
-    contagem.set(m.contraparteCodigo, porFilial)
+    contagem.set(cod, porFilial)
   }
   return new Map([...contagem].map(([c, porFilial]) => [c, predominante(porFilial)]))
 }
@@ -102,7 +105,8 @@ export function resolverFilial(
   if (omie) return { noId: omie, origem: 'omie' }
   const manual = centros.mapa[chaveMovFilial(m)]
   if (manual) return { noId: manual, origem: 'manual' }
-  const herdada = m.contraparteCodigo ? auto.get(m.contraparteCodigo) : undefined
+  const cod = codigoContraparte(m.contraparteCodigo)
+  const herdada = cod ? auto.get(cod) : undefined
   return herdada ? { noId: herdada, origem: 'auto' } : null
 }
 

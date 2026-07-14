@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { aVencer, movimentosCaixa } from './movimento'
+import { aVencer, chaveContraparte, movimentosCaixa } from './movimento'
 import type { Movimento } from './movimento'
+
+const GUID_NULO = '00000000-0000-0000-0000-000000000000'
 
 const mov = (liquidado: string, valor: number, pago: number): Movimento =>
   ({ liquidado, valorCentavos: valor, valorPagoCentavos: pago } as Movimento)
@@ -18,5 +20,24 @@ describe('movimentosCaixa (DFC = caixa pago)', () => {
       mov('', 800, 800), // extrato → conta 800
     ])
     expect(r.map((m) => m.valorCentavos)).toEqual([400, 800])
+  })
+})
+
+describe('chaveContraparte', () => {
+  it('código do cadastro vence o nome cru', () => {
+    expect(chaveContraparte({ contraparteCodigo: '4570157862', contraparte: 'ACME' })).toBe('4570157862')
+  })
+
+  it('GUID nulo Nibo cai no nome cru do lançamento', () => {
+    expect(chaveContraparte({ contraparteCodigo: GUID_NULO, contraparte: 'MARIA SILVA' })).toBe('MARIA SILVA')
+  })
+
+  it('nome cru é normalizado com trim (whitespace do ERP não fragmenta o bucket)', () => {
+    expect(chaveContraparte({ contraparteCodigo: '', contraparte: ' ACME ' })).toBe('ACME')
+  })
+
+  it('sem código e sem nome (ou nome só de espaços) → SEM', () => {
+    expect(chaveContraparte({ contraparteCodigo: '', contraparte: '' })).toBe('SEM')
+    expect(chaveContraparte({ contraparteCodigo: GUID_NULO, contraparte: '   ' })).toBe('SEM')
   })
 })

@@ -1,6 +1,6 @@
 /** @file Contrapartes agregadas (clientes/fornecedores) com drill-down em modal. */
 import { useMemo, useState } from 'react'
-import type { Movimento } from '@/core/movimento'
+import { chaveContraparte, type Movimento } from '@/core/movimento'
 import type { ClientesSeed } from '@/core/cliente'
 import { useCadastros } from '@/lib/cadastros'
 import { useMovimentos } from '@/lib/movimentos'
@@ -36,12 +36,16 @@ export function FornecedoresPanel() {
   const [aberta, setAberta] = useState<LinhaParte | null>(null)
 
   const movs = useMemo(() => filtrarTipo(todos, tipo), [todos, tipo])
-  const linhas = useMemo(() => agrupar(movs, clientes.clientes), [movs, clientes])
+  // Nome pelo resolvedor: busca e título do modal enxergam o mesmo rename que a célula exibe.
+  const linhas = useMemo(
+    () => agrupar(movs, clientes.clientes, (c) => resolvedor.contraparte(c).nome),
+    [movs, clientes, resolvedor],
+  )
   const totalCentavos = useMemo(() => linhas.reduce((a, l) => a + l.totalCentavos, 0), [linhas])
   const visiveis = useMemo(() => filtrarBusca(linhas, busca), [linhas, busca])
 
   const movsAberta = useMemo(
-    () => (aberta ? movs.filter((m) => m.contraparteCodigo === aberta.codigo) : []),
+    () => (aberta ? movs.filter((m) => chaveContraparte(m) === aberta.codigo) : []),
     [aberta, movs],
   )
 
@@ -130,29 +134,28 @@ function filtrarTipo(movimentos: readonly Movimento[], tipo: Tipo): Movimento[] 
   return movimentos.filter((m) => m.natureza.toUpperCase() === nat)
 }
 
-function agrupar(movimentos: readonly Movimento[], clientes: ClientesSeed['clientes']): LinhaParte[] {
+function agrupar(
+  movimentos: readonly Movimento[],
+  clientes: ClientesSeed['clientes'],
+  nomeDe: (codigo: string) => string,
+): LinhaParte[] {
   const acc = new Map<string, { quantidade: number; totalCentavos: number }>()
   for (const m of movimentos) {
-    const chave = m.contraparteCodigo || 'SEM'
+    const chave = chaveContraparte(m)
     const atual = acc.get(chave) ?? { quantidade: 0, totalCentavos: 0 }
     atual.quantidade += 1
     atual.totalCentavos += m.valorCentavos
     acc.set(chave, atual)
   }
   return [...acc.entries()]
-    .map(([codigo, v]) => montar(codigo, v, clientes))
+    .map(([codigo, v]) => ({
+      codigo,
+      nome: nomeDe(codigo),
+      doc: clientes[codigo]?.doc ?? '',
+      quantidade: v.quantidade,
+      totalCentavos: v.totalCentavos,
+    }))
     .sort((a, b) => b.totalCentavos - a.totalCentavos)
-}
-
-function montar(codigo: string, v: { quantidade: number; totalCentavos: number }, clientes: ClientesSeed['clientes']): LinhaParte {
-  const info = clientes[codigo]
-  return {
-    codigo,
-    nome: info?.nome ?? (codigo === 'SEM' ? 'Sem contraparte' : `Código ${codigo}`),
-    doc: info?.doc ?? '',
-    quantidade: v.quantidade,
-    totalCentavos: v.totalCentavos,
-  }
 }
 
 function filtrarBusca(linhas: readonly LinhaParte[], busca: string): LinhaParte[] {

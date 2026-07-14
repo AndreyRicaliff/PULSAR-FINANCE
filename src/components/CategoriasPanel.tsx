@@ -1,8 +1,8 @@
 /** @file Plano de contas cru da Omie (árvore de categorias) — fonte read-only do de-para. */
 import { useMemo, useState } from 'react'
-import type { Categoria, Natureza } from '@/core/categoria'
+import { codigoExibivel, mapaProfundidade, type Categoria, type Natureza } from '@/core/categoria'
 import { useCadastros } from '@/lib/cadastros'
-import { COR_NATUREZA, ROTULO_NATUREZA, profundidade } from '@/lib/natureza'
+import { COR_NATUREZA, ROTULO_NATUREZA } from '@/lib/natureza'
 import { KpiCard } from './KpiCard.tsx'
 import { Segmento, type OpcaoSeg } from './Segmento.tsx'
 
@@ -21,6 +21,8 @@ export function CategoriasPanel() {
   const { relatorio, categorias, geradoEm } = useCadastros().categorias
 
   const visiveis = useMemo(() => filtrar(categorias, filtro, busca), [categorias, filtro, busca])
+  // Por paiCodigo, não por pontos do código — GUID Nibo não tem pontos e achataria a hierarquia.
+  const profundidades = useMemo(() => mapaProfundidade(categorias), [categorias])
 
   return (
     <div className="flex flex-col gap-6">
@@ -49,13 +51,13 @@ export function CategoriasPanel() {
         />
       </div>
 
-      <Tabela categorias={visiveis} />
+      <Tabela categorias={visiveis} profundidades={profundidades} />
     </div>
   )
 }
 
 
-function Tabela({ categorias }: { categorias: readonly Categoria[] }) {
+function Tabela({ categorias, profundidades }: { categorias: readonly Categoria[]; profundidades: ReadonlyMap<string, number> }) {
   return (
     <div className="overflow-hidden rounded-card border border-bd bg-surface">
       <table className="w-full text-sm">
@@ -70,7 +72,7 @@ function Tabela({ categorias }: { categorias: readonly Categoria[] }) {
         </thead>
         <tbody>
           {categorias.map((c) => (
-            <Linha key={c.codigo} c={c} />
+            <Linha key={c.codigo} c={c} nivel={profundidades.get(c.codigo) ?? 0} />
           ))}
           {categorias.length === 0 ? (
             <tr>
@@ -85,11 +87,11 @@ function Tabela({ categorias }: { categorias: readonly Categoria[] }) {
   )
 }
 
-function Linha({ c }: { c: Categoria }) {
+function Linha({ c, nivel }: { c: Categoria; nivel: number }) {
   return (
     <tr className="border-b border-bd/60 last:border-0 hover:bg-surface2/50">
-      <td className="px-4 py-2.5 font-mono text-xs tabular-nums text-muted">{c.codigo}</td>
-      <td className="px-4 py-2.5" style={{ paddingLeft: 16 + profundidade(c.codigo) * 16 }}>
+      <td className="px-4 py-2.5 font-mono text-xs tabular-nums text-muted">{codigoExibivel(c.codigo) || '—'}</td>
+      <td className="px-4 py-2.5" style={{ paddingLeft: 16 + nivel * 16 }}>
         <span className={c.agrupadora ? 'font-semibold' : ''}>{c.descricao}</span>
       </td>
       <td className="px-4 py-2.5">
