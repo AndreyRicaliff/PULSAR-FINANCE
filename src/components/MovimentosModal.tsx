@@ -1,6 +1,7 @@
 /** @file Modal de drill-down de movimentos: KPIs, agrupamento por eixos encadeados e seleção de filial. */
 import { useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { codigoExibivel } from '@/core/categoria'
 import type { Movimento } from '@/core/movimento'
 import { FilialSelecaoProvider } from '@/lib/filialSelecao'
 import { brl } from '@/lib/money'
@@ -115,7 +116,10 @@ function Cabecalho({
   return (
     <header className="flex items-start justify-between border-b border-bd px-6 py-4">
       <div>
-        {codigo ? <p className="font-mono text-xs text-muted">{codigo}</p> : null}
+        {/* Código opaco (GUID Nibo) ou igual ao título (chave = nome cru) não agrega — só ruído. */}
+        {codigo && codigoExibivel(codigo) && codigo !== titulo ? (
+          <p className="font-mono text-xs text-muted">{codigo}</p>
+        ) : null}
         <h2 className="text-lg font-bold">{titulo}</h2>
         <p className="text-sm text-muted">{subtitulo}</p>
       </div>

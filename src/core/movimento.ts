@@ -63,7 +63,8 @@ export interface MovimentosSeed {
  * senão o nome cru do movimento (Nibo grava o nome no lançamento e código nulo); senão 'SEM'.
  */
 export function chaveContraparte(m: Pick<Movimento, 'contraparte' | 'contraparteCodigo'>): string {
-  return codigoContraparte(m.contraparteCodigo) || m.contraparte || 'SEM'
+  // trim: nome digitado no ERP vem com whitespace variável — sem ele, 'ACME' e 'ACME ' viram duas linhas.
+  return codigoContraparte(m.contraparteCodigo) || m.contraparte.trim() || 'SEM'
 }
 
 /** Título a vencer (em aberto): não é caixa realizado — fica fora da DFC. */

@@ -14,8 +14,3 @@ export const COR_NATUREZA: Readonly<Record<Natureza, string>> = {
   transferencia: 'bg-secondary/15 text-secondary',
   outra: 'bg-muted/15 text-muted',
 }
-
-/** Profundidade na árvore pelo nº de níveis do código (ex.: "2.01.03" → 2). */
-export function profundidade(codigo: string): number {
-  return Math.max(0, codigo.split('.').length - 1)
-}

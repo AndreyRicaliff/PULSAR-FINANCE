@@ -4,7 +4,7 @@ import { sugerirClassificacao } from '@/core/matriz-classificacao'
 import type { Dimensao, RegimeDemo } from '@/core/modelo'
 import { chaveContraparte, type Movimento } from '@/core/movimento'
 import type { Resolvedor } from '@/core/override'
-import { codigoExibivel, type CategoriasSeed } from '@/core/categoria'
+import { rotuloCategoria, type CategoriasSeed } from '@/core/categoria'
 import { dataDoMovimento } from '@/core/periodo'
 import { useCadastros } from '@/lib/cadastros'
 import { useMovimentos } from '@/lib/movimentos'
@@ -213,7 +213,7 @@ function BarraProgresso({ feito, total }: { feito: number; total: number }) {
 function itensDeContas(movs: readonly Movimento[], resolvedor: Resolvedor, categorias: CategoriasSeed['categorias']): ItemConc[] {
   return porCategoria(movs, categorias).map((l) => ({
     chave: l.codigo,
-    titulo: [codigoExibivel(l.codigo), resolvedor.categoria(l.codigo).nome].filter(Boolean).join(' · '),
+    titulo: rotuloCategoria(l.codigo, resolvedor.categoria(l.codigo).nome, ' · '),
     valorCentavos: l.totalCentavos,
     qtd: l.quantidade,
   }))

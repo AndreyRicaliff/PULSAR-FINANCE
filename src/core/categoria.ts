@@ -25,8 +25,30 @@ export function codigoExibivel(codigo: string): string {
 }
 
 /** Rótulo humano da categoria: 'código descrição' quando o código é legível; só a descrição quando opaco. */
-export function rotuloCategoria(codigo: string, descricao: string): string {
-  return [codigoExibivel(codigo), descricao].filter(Boolean).join(' ').trim() || codigo
+export function rotuloCategoria(codigo: string, descricao: string, separador = ' '): string {
+  // Resolvedores caem no próprio código quando não há descrição — não duplicar ('2.01 2.01').
+  const desc = descricao === codigo ? '' : descricao
+  return [codigoExibivel(codigo), desc].filter(Boolean).join(separador).trim() || codigo
+}
+
+/**
+ * Profundidade hierárquica pela cadeia paiCodigo (vale p/ Omie e Nibo — GUID não tem
+ * pontos, então contar níveis do código achataria o plano Nibo). Pai fora do plano = raiz.
+ */
+export function mapaProfundidade(categorias: readonly Categoria[]): ReadonlyMap<string, number> {
+  const pai = new Map(categorias.map((c) => [c.codigo, c.paiCodigo]))
+  const prof = new Map<string, number>()
+  const resolver = (codigo: string): number => {
+    const memo = prof.get(codigo)
+    if (memo !== undefined) return memo
+    prof.set(codigo, 0) // corta ciclo de paiCodigo corrompido
+    const p = pai.get(codigo)
+    const v = p && pai.has(p) ? resolver(p) + 1 : 0
+    prof.set(codigo, v)
+    return v
+  }
+  for (const c of categorias) resolver(c.codigo)
+  return prof
 }
 
 export interface RelatorioCategorias {
