@@ -13,3 +13,16 @@
   from = "/*"
   to = "/index.html"
   status = 200
+
+# O index.html referencia assets por hash; se ele for cacheado, o browser pede hash que já
+# não existe e a tela só volta com F5. Revalidar sempre o HTML, e cachear os assets pra
+# sempre — o hash no nome já é o cache-buster.
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
