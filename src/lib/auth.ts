@@ -4,8 +4,12 @@ import type { Session } from '@supabase/supabase-js'
 import { supabase } from './supabase'
 import { MODO_APRESENTACAO } from './apresentacaoSnapshot'
 
-/** Login (e-mail/senha) só vale com o flag ligado — e nunca na Apresentação offline. */
-export const AUTH_ATIVO = import.meta.env.VITE_AUTH_ENABLED === 'true' && !MODO_APRESENTACAO
+/**
+ * Auth é fail-closed: só o opt-out EXPLÍCITO (`VITE_AUTH_ENABLED=false`, para dev/local)
+ * desliga o login. Var ausente/vazia ⇒ ligado — perder a env no deploy não pode abrir a porta
+ * em silêncio (revisão 2026-07-16). A Apresentação offline sempre desliga (não tem backend).
+ */
+export const AUTH_ATIVO = import.meta.env.VITE_AUTH_ENABLED !== 'false' && !MODO_APRESENTACAO
 
 // União discriminada: elimina estados impossíveis (CLAUDE.md §TIPAGEM).
 export type Auth =
