@@ -7,3 +7,5 @@ build/
 !.env.example
 *.local
 .vercel/
+.netlify/
+tsconfig.tsbuildinfo
