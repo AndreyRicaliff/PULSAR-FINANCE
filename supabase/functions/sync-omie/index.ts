@@ -15,6 +15,14 @@
 const POR_PAGINA = 100
 const MAX_PAGINAS = 500
 
+// Dado financeiro parcial com cara de completo é o pior modo de falha (revisão 2026-07-16):
+// se a Omie diz que há mais páginas do que o teto, gritar no log em vez de truncar em silêncio.
+function avisarSeTruncado(rotulo, totPaginas) {
+  if (totPaginas > MAX_PAGINAS) {
+    console.error(`[sync-omie] TRUNCADO: ${rotulo} tem ${totPaginas} páginas, buscamos só ${MAX_PAGINAS} (teto MAX_PAGINAS). Dado PARCIAL — aumente o teto.`)
+  }
+}
+
 const cors = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -112,14 +120,11 @@ function entradaHistorico(d, totalRecebidos, primeira) {
   }
 }
 
-async function omiePagina(env, nPagina) {
-  const res = await fetch(`${env.OMIE_BASE_URL}/financas/mf/`, {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ app_key: env.OMIE_APP_KEY, app_secret: env.OMIE_APP_SECRET, call: 'ListarMovimentos', param: [{ nPagina, nRegPorPagina: POR_PAGINA }] }),
-  })
-  const json = await res.json()
-  if (json?.faultstring) throw new Error(`Omie: ${json.faultstring}`)
-  return json
+// Passa pelo omieCall (retry no throttle da Omie): é o loop mais longo — até MAX_PAGINAS
+// páginas sequenciais — logo o mais provável de apanhar rate-limit. Duplicar o fetch aqui
+// deixava só este endpoint sem backoff (revisão 2026-07-16).
+function omiePagina(env, nPagina) {
+  return omieCall(env, 'financas/mf', 'ListarMovimentos', { nPagina, nRegPorPagina: POR_PAGINA })
 }
 
 async function buscarOmie(env) {
@@ -131,6 +136,7 @@ async function buscarOmie(env) {
     for (const m of r.movimentos ?? []) todos.push(extrairMovimento(m))
     pagina++
   } while (pagina <= totPaginas && pagina <= MAX_PAGINAS)
+  avisarSeTruncado('movimentos', totPaginas)
   return todos
 }
 
@@ -169,6 +175,7 @@ async function mapaDepartamentosCC(env) {
     }
     pagina++
   } while (pagina <= totPaginas && pagina <= MAX_PAGINAS)
+  avisarSeTruncado('departamentos (LancCC)', totPaginas)
   return mapa
 }
 
@@ -200,6 +207,7 @@ async function listarPaginado(env, endpoint, call, chaveLista) {
     itens.push(...(r[chaveLista] ?? []))
     pagina++
   } while (pagina <= tot && pagina <= MAX_PAGINAS)
+  avisarSeTruncado(call, tot)
   return itens
 }
 
