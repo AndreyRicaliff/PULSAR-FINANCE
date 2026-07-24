@@ -1,5 +1,6 @@
 /** @file Card de KPI padrão AG (v3 sóbrio): borda superior colorida, tendência, mini-gráfico mensal e análise. */
 import { useState } from 'react'
+import { useContagem } from '@/lib/useContagem'
 import type { PontoIndicador } from '@/lib/indicadores'
 import { AnaliseIndicador } from './AnaliseIndicador.tsx'
 import { MiniSerie } from './charts/MiniSerie.tsx'
@@ -34,6 +35,8 @@ interface Props {
 // serie só são renderizadas quando vier dado real — nunca fabricar.
 export function KpiCard({ rotulo, valor, cor, nota, tendencia, serie }: Props) {
   const e = ESTILO[cor]
+  // Count-up 1x na entrada (§4). Preserva o texto formatado; '—' nao vira 0 contando.
+  const exibido = useContagem(String(valor))
   const [analise, setAnalise] = useState(false)
   const expansivel = serie !== undefined && serie.length >= 2
   return (
@@ -57,7 +60,7 @@ export function KpiCard({ rotulo, valor, cor, nota, tendencia, serie }: Props) {
           ) : null}
         </span>
       </div>
-      <p className={`${e.neon} mk-kpi__valor relative mt-2 break-words`}>{valor}</p>
+      <p className={`${e.neon} mk-kpi__valor relative mt-2 break-words`}>{exibido}</p>
       {serie && serie.length >= 2 ? (
         <div className="relative mt-2">
           <MiniSerie pontos={serie} cor={`rgb(var(--c-${cor}))`} />

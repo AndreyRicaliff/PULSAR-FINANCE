@@ -475,7 +475,7 @@
 
   /* Pressionar (botões/chips): encolhe 2%. */
   .fx-press {
-    transition: transform 0.1s ease;
+    transition: transform 0.08s ease; /* §4: press 80ms */
   }
   .fx-press:active {
     transform: scale(0.98);
