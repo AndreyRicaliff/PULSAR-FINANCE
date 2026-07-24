@@ -7,36 +7,60 @@ interface MarkProps {
   readonly size?: number
 }
 
-// Hexágono pointy-top r=16.5 centrado em (20,20); o stroke grosso com join round arredonda os cantos.
-const HEX = 'M20 3.5 L34.29 11.75 V28.25 L20 36.5 L5.71 28.25 V11.75 Z'
-const HEX_INTERNO = 'M20 7 L31.26 13.5 V26.5 L20 33 L8.74 26.5 V13.5 Z'
-// Batimento: baseline → spike pra cima → vale → recupera — o "pulso" da marca.
-const EKG = 'M9 20 H14 L17 13.5 L21 26.5 L24 15 L26 20 H31'
+/**
+ * Símbolo cardíaco v3.1 (§3): anel + EKG atravessando + anel de pulso emanando.
+ * Sem ponto central — o hexágono da geração anterior saiu com o rebrand.
+ * viewBox 26 para casar exatamente com o traçado canônico do site de apresentação.
+ */
+const EKG = 'M1 13 H8 l1.5 -2.5 l2 4.5 l2 -8 l2.5 10.5 l2 -6 l1 2 H25'
 
-/** Ícone "pulsar" gamer: hexágono com glow + EKG branco cortando o centro. */
-export function LogoMark({ size = 36 }: MarkProps) {
+interface MarcaProps extends MarkProps {
+  /** Splash: o anel se desenha e o EKG se traça antes do batimento assumir. */
+  readonly intro?: boolean
+}
+
+export function LogoMark({ size = 36, intro = false }: MarcaProps) {
   return (
     <svg
       width={size}
       height={size}
-      viewBox="0 0 40 40"
+      viewBox="0 0 26 26"
       fill="none"
       role="img"
       aria-label="Pulsar Finance"
-      className="shrink-0"
-      style={{ filter: 'drop-shadow(0 1px 2px rgb(0 0 0 / 0.25))' }}
+      className={`shrink-0 ${intro ? 'pm-intro' : ''}`}
     >
       <defs>
-        <linearGradient id="pulsar-g" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="rgb(var(--c-primary))" />
-          <stop offset="1" stopColor="rgb(var(--c-secondary))" />
+        <linearGradient id="pulsar-ekg" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stopColor="#7048E8" />
+          <stop offset="1" stopColor="#A55EFF" />
         </linearGradient>
       </defs>
-      <path d={HEX} fill="url(#pulsar-g)" stroke="url(#pulsar-g)" strokeWidth="3" strokeLinejoin="round" />
-      <path d={HEX_INTERNO} stroke="white" strokeOpacity="0.14" strokeWidth="1" strokeLinejoin="round" />
-      <path d={EKG} stroke="white" strokeOpacity="0.35" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round" />
-      <path d={EKG} stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx="21" cy="26.5" r="1.6" fill="white" />
+      {/* anel de contorno */}
+      <circle className="pm-ring" cx="13" cy="13" r="9.5" stroke="var(--c-ring)" strokeOpacity="0.4" strokeWidth="1" />
+      {/* anel de pulso que EMANA (o "lub-dub") */}
+      <circle className="pm-ping" cx="13" cy="13" r="4" stroke="var(--c-ring)" strokeWidth="1" fill="none" />
+      {/* traçado do batimento */}
+      <path
+        className="pm-ekg"
+        d={EKG}
+        stroke="url(#pulsar-ekg)"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        fill="none"
+      />
+      {/* blip claro percorrendo o traçado, como monitor cardíaco */}
+      <path
+        className="pm-ekg2"
+        d={EKG}
+        pathLength={100}
+        stroke="rgb(var(--c-text))"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        fill="none"
+      />
     </svg>
   )
 }
