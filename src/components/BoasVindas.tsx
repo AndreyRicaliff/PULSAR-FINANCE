@@ -1,13 +1,15 @@
 /** @file Overlay de boas-vindas Pulsar: anéis de pulso + marca respirando + thump grave — 1×/sessão. */
 import { useEffect, useState } from 'react'
+import { MODO_ESTATICO } from '@/lib/estatico'
 import { somPulso } from '@/lib/som'
 import { LogoMark, Tagline, Wordmark } from './Logo.tsx'
 
 const CHAVE = 'pulsar-boot-visto'
 
 export function BoasVindas() {
+  // Gate por ?static=1, NUNCA por prefers-reduced-motion (RDP liga sozinho — §4).
   const [visivel, setVisivel] = useState(
-    () => !sessionStorage.getItem(CHAVE) && !window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+    () => !sessionStorage.getItem(CHAVE) && !MODO_ESTATICO,
   )
   const [saindo, setSaindo] = useState(false)
 

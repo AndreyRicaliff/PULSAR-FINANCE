@@ -21,6 +21,23 @@
     --c-muted: 145 135 182;
     color-scheme: dark;
 
+    /* v3.1 — tokens de apoio (§1). Cores-base acima já estavam em v3.1: conferidas
+       hex-a-hex contra a spec (bg #0E0E16, surface #141428, hairline #3C3854…). */
+    --c-soft: 207 203 224; /* #CFCBE0 — corpo de leitura longa */
+    --c-faint: rgba(234, 238, 246, 0.5);
+    /* Energia do pulso. Uso DISCIPLINADO (§1): CTA primário, item ativo de navegação,
+       símbolo da marca e UMA ênfase por tela. É o que faz parecer caro — espalhar mata. */
+    --grad-pulse: linear-gradient(120deg, #7048e8 0%, #a55eff 100%);
+    --c-ring: #8b5cf6; /* traço do anel do símbolo */
+    --c-lilac: #a78bfa; /* lilás vivo — hover de menu, dots, satélites */
+
+    /* Vocabulário de movimento — um só no projeto inteiro (§4). */
+    --ease-soft: cubic-bezier(0.22, 1, 0.36, 1);
+    --ease-expo: cubic-bezier(0.16, 1, 0.3, 1);
+    --t-fast: 0.3s;
+    --t-med: 0.6s;
+    --t-slow: 1s;
+
     /* Design v3 sóbrio: fx neutralizados na origem (neon/edge/sheen/grid a zero). */
     --fx-neon-text: 0 0 0;
     --fx-neon-alpha: 0;
@@ -56,13 +73,24 @@
     @apply bg-bg text-text font-sans antialiased;
   }
 
-  /* Família tipográfica Pulsar: títulos em Chillax; corpo (body acima) em Author. */
+  /* Tipografia v3.1 (§2): display = Space Grotesk (personalidade); corpo/UI = Inter.
+     O comentário anterior citava Chillax/Author, que nunca chegaram a ser carregados. */
+  :root {
+    --f-display: 'Space Grotesk', 'Inter', system-ui, sans-serif;
+  }
+
   h1,
   h2,
   h3 {
-    font-family: 'Inter', system-ui, sans-serif;
-    font-weight: 800;
-    letter-spacing: -0.015em;
+    font-family: var(--f-display);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+
+  /* Número que muda NUNCA dança de largura (§8.3). */
+  .tabular,
+  [class*='tabular-nums'] {
+    font-variant-numeric: tabular-nums;
   }
 
   /* Transição suave ao alternar tema. */
@@ -710,67 +738,7 @@
 }
 
 /* Acessibilidade: colapsa toda animação ao estado final (MOTION_GUIDE). */
-@media (prefers-reduced-motion: reduce) {
-  .anim-fade-up,
-  .anim-fade-in,
-  .anim-pop,
-  .anim-grow-y,
-  .anim-grow-x,
-  .anim-draw,
-  .anim-draw-line,
-  .anim-area-fade,
-  .anim-dot-pop,
-  .anim-donut-fatia,
-  .anim-donut-total,
-  .anim-tab-in,
-  .anim-expand,
-  .anim-flash,
-  .anim-shake,
-  .anim-sparkle,
-  .anim-skeleton,
-  .anim-spin,
-  .anim-pulse,
-  .anim-glow-pulse,
-  .anim-stagger > *,
-  .fx-sheen:hover::after,
-  .pulso-aneis span,
-  .pulso-respira,
-  .pulso-borda::before,
-  .pulso-halo,
-  .pulso-vivo,
-  .pulso-piso span,
-  .orbe,
-  .ekg-ambiente path {
-    animation: none !important;
-  }
-  .tilt-3d {
-    transition: none !important;
-    transform: none !important;
-  }
-  .anim-fade-up,
-  .anim-pop,
-  .anim-grow-y,
-  .anim-grow-x,
-  .anim-tab-in,
-  .anim-expand,
-  .anim-stagger > * {
-    opacity: 1 !important;
-    transform: none !important;
-    filter: none !important;
-  }
-  .anim-draw-line {
-    stroke-dashoffset: 0 !important;
-    opacity: 1 !important;
-  }
-  .anim-area-fade,
-  .anim-dot-pop,
-  .anim-donut-total {
-    opacity: 1 !important;
-  }
-  .anim-donut-fatia {
-    stroke-dasharray: var(--len) var(--circ) !important;
-  }
-}
+
 
 /* ── Console FX (PS5/Xbox): ondas ambientes + tile focus ── */
 .fx-grid-bg { position: relative; }
@@ -789,11 +757,7 @@
 .fx-grid-bg > * { position: relative; z-index: 1; }
 .fx-tile { transition: transform .18s cubic-bezier(.22, 1, .36, 1), box-shadow .18s cubic-bezier(.22, 1, .36, 1); }
 .fx-tile:hover { transform: translateY(-2px) scale(1.01); box-shadow: 0 0 0 1.5px rgb(var(--c-primary) / 0.35), 0 10px 32px rgb(var(--c-primary) / 0.16); }
-@media (prefers-reduced-motion: reduce) {
-  .fx-grid-bg::after { animation: none; }
-  .fx-tile { transition: none; }
-  .fx-tile:hover { transform: none; }
-}
+
 
 /* boot splash Finance removido (Design v3 sóbrio — componente desativado) */
 
@@ -862,3 +826,44 @@ tbody tr:hover {
 .ag-slide-conteudo > div > header { display: none; }
 .ag-slide-conteudo .fx-grid-bg { background: none; }
 .ag-slide-conteudo { color: #1c1338; }
+
+/* ---- Título de seção: eco mínimo do wordmark Pulsar (v3 sóbrio) ----
+   Gradiente texto→roxo sutil (o roxo entra só na cauda, como o "Finance" da marca) + reveal 1x na
+   entrada. Sem glow, repouso parado. Escopo em `main` (não pega Topbar/Login/slideshow). O subtítulo
+   (p logo após o h1) sobe com leve atraso. Colapsa ao estado final em reduced-motion. */
+main h1 {
+  background-image: linear-gradient(96deg, rgb(var(--c-text)) 62%, rgb(var(--c-secondary)));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: fade-up 0.4s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+main h1 + p {
+  animation: fade-up 0.4s 0.05s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+/* ============================================================
+   §4 — ESCAPE EXPLICITO ?static=1  (substitui prefers-reduced-motion)
+   NUNCA gatear animacao em prefers-reduced-motion: no Windows/RDP ele liga
+   SOZINHO e mata o movimento do usuario real (bug pago 2x neste ambiente).
+   Quem quer a tela parada usa ?static=1 -> html[data-static].
+   Regra de ouro: colapsar ao ESTADO FINAL, nunca so `animation:none`
+   (o que nasce em opacity:0 ficaria invisivel).
+   ============================================================ */
+html[data-static] *,
+html[data-static] *::before,
+html[data-static] *::after { animation: none !important; transition: none !important; }
+html[data-static] .anim-fade-up, html[data-static] .anim-fade-in, html[data-static] .anim-pop, html[data-static] .anim-grow-y, html[data-static] .anim-grow-x, html[data-static] .anim-draw, html[data-static] .anim-draw-line, html[data-static] .anim-area-fade, html[data-static] .anim-dot-pop, html[data-static] .anim-donut-fatia, html[data-static] .anim-donut-total, html[data-static] .anim-tab-in, html[data-static] .anim-expand, html[data-static] .anim-flash, html[data-static] .anim-shake, html[data-static] .anim-sparkle, html[data-static] .anim-skeleton, html[data-static] .anim-spin, html[data-static] .anim-pulse, html[data-static] .anim-glow-pulse, html[data-static] .anim-stagger > *, html[data-static] .fx-sheen:hover::after, html[data-static] .pulso-aneis span, html[data-static] .pulso-respira, html[data-static] .pulso-borda::before, html[data-static] .pulso-halo, html[data-static] .pulso-vivo, html[data-static] .pulso-piso span, html[data-static] .orbe, html[data-static] .ekg-ambiente path { animation: none !important; }
+html[data-static] .tilt-3d { transition: none !important;
+    transform: none !important; }
+html[data-static] .anim-fade-up, html[data-static] .anim-pop, html[data-static] .anim-grow-y, html[data-static] .anim-grow-x, html[data-static] .anim-tab-in, html[data-static] .anim-expand, html[data-static] .anim-stagger > * { opacity: 1 !important;
+    transform: none !important;
+    filter: none !important; }
+html[data-static] .anim-draw-line { stroke-dashoffset: 0 !important;
+    opacity: 1 !important; }
+html[data-static] .anim-area-fade, html[data-static] .anim-dot-pop, html[data-static] .anim-donut-total { opacity: 1 !important; }
+html[data-static] .anim-donut-fatia { stroke-dasharray: var(--len) var(--circ) !important; }
+html[data-static] .fx-grid-bg::after { animation: none; }
+html[data-static] .fx-tile { transition: none; }
+html[data-static] .fx-tile:hover { transform: none; }
+html[data-static] main h1, html[data-static] main h1 + p { animation: none; }

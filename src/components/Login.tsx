@@ -4,19 +4,16 @@
  * e acorde de sucesso (AudioContext criado no gesto, antes do await).
  */
 import { useRef, useState, type KeyboardEvent, type MouseEvent, type ReactNode } from 'react'
-import { cadastrar, entrar } from '@/lib/auth'
+import { entrar } from '@/lib/auth'
 import { criarAudio, somSucesso } from '@/lib/som'
 import { CenaPulso } from './LoginCena.tsx'
 import { Logo, Tagline } from './Logo.tsx'
-
-type Modo = 'entrar' | 'criar'
+import { MODO_ESTATICO } from '@/lib/estatico'
 
 export function Login() {
-  const [modo, setModo] = useState<Modo>('entrar')
-  const [email, setEmail] = useState('')
+  const [login, setLogin] = useState('')
   const [senha, setSenha] = useState('')
   const [erro, setErro] = useState('')
-  const [aviso, setAviso] = useState('')
   const [carregando, setCarregando] = useState(false)
   const [mostrarSenha, setMostrarSenha] = useState(false)
   const [capsAtivo, setCapsAtivo] = useState(false)
@@ -26,23 +23,13 @@ export function Login() {
     e.preventDefault()
     setCarregando(true)
     setErro('')
-    setAviso('')
     // AudioContext no GESTO, antes do await — criado depois da rede nasce suspenso (padrão PULSAR-RH).
     const audio = criarAudio()
     try {
-      if (modo === 'entrar') {
-        await entrar(email, senha)
-        somSucesso(audio)
-      } else {
-        const { logado } = await cadastrar(email, senha)
-        if (logado) somSucesso(audio)
-        else {
-          setAviso('Conta criada! Se o login não entrar, a confirmação de e-mail precisa ser desativada no projeto — me avise.')
-          setModo('entrar')
-        }
-      }
+      await entrar(login, senha)
+      somSucesso(audio)
     } catch (err) {
-      setErro(err instanceof Error ? err.message : 'Falha')
+      setErro(err instanceof Error ? err.message : 'Falha ao entrar')
     } finally {
       setCarregando(false)
     }
@@ -52,7 +39,6 @@ export function Login() {
     setCapsAtivo(e.getModifierState('CapsLock'))
   }
 
-  const criando = modo === 'criar'
   return (
     <Centro>
       <div
@@ -67,10 +53,10 @@ export function Login() {
       <Tagline />
       <form onSubmit={submeter} className="mt-2 flex w-full max-w-xs flex-col gap-3">
         <input
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="E-mail"
+          type="text"
+          value={login}
+          onChange={(e) => setLogin(e.target.value)}
+          placeholder="Login"
           autoComplete="username"
           required
           className="rounded-lg border border-bd bg-surface2 px-4 py-2.5 text-sm outline-none focus:border-primary"
@@ -83,7 +69,7 @@ export function Login() {
             onKeyDown={verificarCaps}
             onKeyUp={verificarCaps}
             placeholder="Senha"
-            autoComplete={criando ? 'new-password' : 'current-password'}
+            autoComplete="current-password"
             required
             className="w-full rounded-lg border border-bd bg-surface2 py-2.5 pl-4 pr-11 text-sm outline-none focus:border-primary"
           />
@@ -103,26 +89,14 @@ export function Login() {
           </p>
         ) : null}
         {erro ? <p className="anim-shake text-xs text-danger">{erro}</p> : null}
-        {aviso ? <p className="text-xs text-accent">{aviso}</p> : null}
         <button
           type="submit"
           disabled={carregando}
           className="fx-sheen fx-press rounded-lg bg-gradient-to-r from-primary to-secondary px-5 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
         >
-          {carregando ? '…' : criando ? 'Criar conta' : 'Entrar'}
+          {carregando ? '…' : 'Entrar'}
         </button>
       </form>
-      <button
-        type="button"
-        onClick={() => {
-          setModo(criando ? 'entrar' : 'criar')
-          setErro('')
-          setAviso('')
-        }}
-        className="text-xs text-muted hover:text-text"
-      >
-        {criando ? 'Já tenho conta — Entrar' : 'Criar primeira conta'}
-      </button>
       </div>
     </Centro>
   )
@@ -134,7 +108,7 @@ function useTilt3d() {
 
   function aoMover(e: MouseEvent<HTMLDivElement>) {
     const el = ref.current
-    if (!el || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    if (!el || MODO_ESTATICO) return
     const r = el.getBoundingClientRect()
     const px = (e.clientX - r.left) / r.width - 0.5
     const py = (e.clientY - r.top) / r.height - 0.5
