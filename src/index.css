@@ -815,6 +815,59 @@
 }
 
 /* ============================================================
+   §6 — NAVEGAÇÃO CONVIDATIVA
+   Numeração mono, hover que desliza e acende, ativo com barra-gradiente.
+   Fora de @layer para vencer as utilities sem !important espalhado.
+   ============================================================ */
+.nav-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 7px 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: rgb(var(--c-muted));
+  text-align: left;
+  /* padding-left entra na transição: é o "deslize" do §6 (o texto anda, o item não pula) */
+  transition: color var(--t-fast) var(--ease-soft), padding-left var(--t-fast) var(--ease-soft),
+    background-color var(--t-fast) var(--ease-soft);
+}
+.nav-item__num {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  color: var(--c-ring);
+  font-variant-numeric: tabular-nums;
+  transition: color var(--t-fast) var(--ease-soft);
+}
+.nav-item:hover {
+  color: var(--c-lilac);
+  padding-left: 20px; /* +8px — o deslize */
+  background-color: rgb(var(--c-surface2) / 0.5);
+}
+.nav-item:hover .nav-item__num { color: var(--c-lilac); }
+/* Ativo: barra lateral 3px no gradiente do pulso — a ÚNICA energia vibrante da sidebar. */
+.nav-item--ativo {
+  color: rgb(var(--c-text));
+  background-color: rgb(112 72 232 / 0.16);
+  padding-left: 20px;
+}
+.nav-item--ativo::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 6px;
+  bottom: 6px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--grad-pulse);
+}
+.nav-item--ativo .nav-item__num { color: var(--c-lilac); }
+
+/* ============================================================
    §3 — MARCA VIVA: símbolo cardíaco (anel + EKG + batimento)
    Ciclo 2.6s com delay 1.7s — FASE ÚNICA em todo o produto, para que header,
    splash e favicon batam juntos (é o que faz a transição do splash sumir).

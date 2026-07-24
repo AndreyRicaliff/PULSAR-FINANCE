@@ -1,6 +1,9 @@
 /** @file Navegação lateral fixa do painel (padrão AG 240px) — acordeão por camada. */
 import { useEffect, useState } from 'react'
+import { comProvedor } from '@/core/provedor'
+import { useProvedor } from '@/lib/clientes'
 import { somSelecao, somTick } from '@/lib/som'
+import { IconeNav } from './IconesNav.tsx'
 import { Logo } from './Logo.tsx'
 
 export type Aba =
@@ -15,56 +18,56 @@ export type Aba =
   | 'projecao'
   | 'relatorios'
   | 'apresentacao'
+  | 'hud'
+  | 'acessos'
   | 'config'
 
 interface Item {
   readonly id: Aba
   readonly rotulo: string
-  readonly icone: string
   /** Rótulo de divisória renderizado antes deste item (agrupa visualmente dentro da seção). */
   readonly divisorAntes?: string
 }
 
 interface Secao {
   readonly titulo: string
-  readonly icone: string
   readonly itens: readonly Item[]
 }
 
 const SECOES: readonly Secao[] = [
   {
     titulo: 'Captura',
-    icone: '↓',
     itens: [
-      { id: 'cadastro', rotulo: 'Cadastro', icone: '☰' },
-      { id: 'plano', rotulo: 'Plano de Contas', icone: '≣', divisorAntes: 'Fonte Omie' },
-      { id: 'valores', rotulo: 'Lançamentos', icone: '◷' },
-      { id: 'fornecedores', rotulo: 'Contrapartes', icone: '◑' },
-      { id: 'pagar', rotulo: 'Títulos a Pagar', icone: '⧖' },
-      { id: 'receber', rotulo: 'Títulos a Receber', icone: '◵' },
+      { id: 'cadastro', rotulo: 'Cadastro' },
+      { id: 'plano', rotulo: 'Plano de Contas', divisorAntes: 'Fonte {provedor}' },
+      { id: 'valores', rotulo: 'Lançamentos' },
+      { id: 'fornecedores', rotulo: 'Contrapartes' },
+      { id: 'pagar', rotulo: 'Títulos a Pagar' },
+      { id: 'receber', rotulo: 'Títulos a Receber' },
     ],
   },
   {
     titulo: 'Camada Semântica',
-    icone: '◈',
     itens: [
-      { id: 'modelo', rotulo: 'Matriz de Classificações', icone: '◈' },
-      { id: 'demonstracoes', rotulo: 'Demonstrações (DRE/DFC)', icone: '✎' },
-      { id: 'projecao', rotulo: 'Projeção', icone: '◬' },
+      { id: 'modelo', rotulo: 'Matriz de Classificações' },
+      { id: 'demonstracoes', rotulo: 'Demonstrações (DRE/DFC)' },
+      { id: 'projecao', rotulo: 'Projeção' },
     ],
   },
   {
     titulo: 'Camada Analítica',
-    icone: '▦',
     itens: [
-      { id: 'relatorios', rotulo: 'Relatórios', icone: '▦' },
-      { id: 'apresentacao', rotulo: 'Apresentação', icone: '◰' },
+      { id: 'relatorios', rotulo: 'Relatórios' },
+      { id: 'apresentacao', rotulo: 'Apresentação' },
+      { id: 'hud', rotulo: 'HUD do Cliente', divisorAntes: 'Visão do cliente' },
     ],
   },
   {
     titulo: 'Configuração',
-    icone: '⚙',
-    itens: [{ id: 'config', rotulo: 'Configurações', icone: '⚙' }],
+    itens: [
+      { id: 'acessos', rotulo: 'Acessos' },
+      { id: 'config', rotulo: 'Configurações' },
+    ],
   },
 ]
 
@@ -83,6 +86,7 @@ interface Props {
 }
 
 export function Sidebar({ ativa, onSelecionar, aberta }: Props) {
+  const { nome: provedor } = useProvedor()
   const [grupoAberto, setGrupoAberto] = useState(() => grupoDaAba(ativa))
   // Mantém aberta a camada da aba ativa quando ela muda por fora (ex.: deep link).
   useEffect(() => setGrupoAberto(grupoDaAba(ativa)), [ativa])
@@ -111,7 +115,7 @@ export function Sidebar({ ativa, onSelecionar, aberta }: Props) {
           ))}
         </nav>
         <p className="mt-auto px-6 py-4 text-xs text-muted">
-          BPO financeiro · dados Omie
+          BPO financeiro · dados {provedor}
           <span className="mt-1 block text-[10px] text-muted/60">build {__BUILD_TIME__}</span>
         </p>
       </div>
@@ -143,14 +147,13 @@ function Camada({
           temAtiva ? 'text-secondary' : 'text-muted/70 hover:text-text'
         }`}
       >
-        <span className="w-5 text-center text-base">{secao.icone}</span>
         <span className="flex-1 text-left">{secao.titulo}</span>
         <span className={`text-[10px] transition-transform duration-200 ${aberta ? 'rotate-90' : ''}`}>▸</span>
       </button>
       {aberta ? (
         <div className="ml-2 flex flex-col gap-0.5 border-l border-bd/60 pb-1 pl-2">
-          {secao.itens.map((item) => (
-            <ItemNav key={item.id} item={item} ativo={item.id === ativa} onSelecionar={onSelecionar} />
+          {secao.itens.map((item, i) => (
+            <ItemNav key={item.id} item={item} ativo={item.id === ativa} indice={i} onSelecionar={onSelecionar} />
           ))}
         </div>
       ) : null}
@@ -158,31 +161,37 @@ function Camada({
   )
 }
 
-function ItemNav({ item, ativo, onSelecionar }: { item: Item; ativo: boolean; onSelecionar: (aba: Aba) => void }) {
+function ItemNav({
+  item,
+  ativo,
+  indice,
+  onSelecionar,
+}: {
+  item: Item
+  ativo: boolean
+  /** Posição dentro da seção — vira o prefixo mono 01..0n (§6). */
+  indice: number
+  onSelecionar: (aba: Aba) => void
+}) {
+  const rotulos = useProvedor()
   return (
     <>
       {item.divisorAntes ? (
         <p className="px-3 pb-0.5 pt-1.5 text-[10px] font-medium uppercase tracking-wider text-muted/50">
-          {item.divisorAntes}
+          {comProvedor(item.divisorAntes, rotulos)}
         </p>
       ) : null}
       <button
         type="button"
         onMouseEnter={somTick}
         onClick={() => { somSelecao(); onSelecionar(item.id) }}
-        className={classe(ativo)}
+        aria-current={ativo ? 'page' : undefined}
+        className={`nav-item ${ativo ? 'nav-item--ativo' : ''}`}
       >
-        <span className="w-5 text-center text-base">{item.icone}</span>
-        {item.rotulo}
+        <span className="nav-item__num">{String(indice + 1).padStart(2, '0')}</span>
+        <IconeNav aba={item.id} />
+        <span className="truncate">{item.rotulo}</span>
       </button>
     </>
   )
-}
-
-function classe(ativo: boolean): string {
-  const base =
-    'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200'
-  return ativo
-    ? `${base} bg-primary text-white`
-    : `${base} text-muted hover:bg-surface2 hover:text-text hover:translate-x-0.5`
 }
