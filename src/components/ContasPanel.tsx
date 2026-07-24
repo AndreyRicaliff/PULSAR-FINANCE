@@ -5,7 +5,7 @@
  * — vale para todos os títulos e movimentos daquela categoria).
  */
 import { useMemo, useState } from 'react'
-import { rotuloCategoria } from '@/core/categoria'
+import { descricoesAmbiguas, rotuloCategoria } from '@/core/categoria'
 import { codigoContraparte } from '@/core/cliente'
 import { opcoesDaEstrutura } from '@/core/modelo'
 import type { Resolvedor } from '@/core/override'
@@ -20,6 +20,8 @@ import {
 } from '@/core/titulo'
 import { dataHora } from '@/lib/datas'
 import { brl } from '@/lib/money'
+import { useProvedor } from '@/lib/clientes'
+import { useCadastros } from '@/lib/cadastros'
 import { useOverrides } from '@/lib/overrides'
 import { useModelo } from '@/lib/useModelo'
 import { useTitulos } from '@/lib/useTitulos'
@@ -46,6 +48,7 @@ export function ContasReceberPanel() {
 }
 
 function ContasPanel({ natureza }: { natureza: NaturezaTitulo }) {
+  const provedor = useProvedor()
   const { titulos, geradoEm, origem } = useTitulos()
   const { modelo, mapear } = useModelo()
   const [vista, setVista] = useState<Vista>('abertos')
@@ -68,7 +71,7 @@ function ContasPanel({ natureza }: { natureza: NaturezaTitulo }) {
       <header>
         <h1 className="text-2xl font-extrabold">{TITULO_MODULO[natureza]}</h1>
         <p className="text-sm text-muted">
-          Títulos da Omie com status do ciclo de vida · conciliação pela mesma matriz dos
+          Títulos {provedor.de} com status do ciclo de vida · conciliação pela mesma matriz dos
           movimentos — classificar aqui vale para a categoria inteira
           {geradoEm ? ` · sincronizado em ${dataHora(geradoEm)}` : ''}
           {origem === 'local' ? ' · foto do build (sincronize para atualizar)' : ''}
@@ -120,6 +123,8 @@ interface PropsTabela {
 function Tabela({ titulos, conc, onConciliar }: PropsTabela) {
   // Resolvedor = caminho único de nomes (cadastro + overrides de rename do usuário).
   const { resolvedor } = useOverrides()
+  const { categorias: cad } = useCadastros()
+  const ambiguas = useMemo(() => descricoesAmbiguas(cad.categorias), [cad])
   const nomesGrupo = useMemo(() => new Map(conc.estrutura.map((n) => [n.id, n.nome])), [conc.estrutura])
   const opcoes = useMemo(() => opcoesDaEstrutura(conc.estrutura), [conc.estrutura])
   const hoje = new Date().toISOString().slice(0, 10)
@@ -141,7 +146,7 @@ function Tabela({ titulos, conc, onConciliar }: PropsTabela) {
             const grupoId = grupoDoTitulo(t, conc)
             const vencIso = isoDeMov(t.dataVencimento)
             const atrasado = estaAberto(t) && vencIso !== null && vencIso < hoje
-            const rotuloCat = rotuloCategoria(t.categoria, resolvedor.categoria(t.categoria).nome)
+            const rotuloCat = rotuloCategoria(t.categoria, resolvedor.categoria(t.categoria).nome, ambiguas)
             return (
               <tr key={`${t.id}|${t.parcela}`} className="border-t border-bd/50">
                 <td className={`px-4 py-2 tabular-nums ${atrasado ? 'font-semibold text-danger' : ''}`}>{t.dataVencimento || '—'}</td>

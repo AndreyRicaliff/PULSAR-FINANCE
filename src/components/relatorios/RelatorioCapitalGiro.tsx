@@ -4,10 +4,12 @@ import { diasDoPeriodo } from '@/core/periodo'
 import { brl } from '@/lib/money'
 import { aging, prazosMedios, totalAberto, type FaixaAging, type PrazosMedios } from '@/lib/relatorios'
 import { separarNeutros } from '@/core/neutros'
+import { useProvedor } from '@/lib/clientes'
 import { useResultado, valorLinha } from '@/lib/useResultado'
 import { KpiCard } from '../KpiCard.tsx'
 
 export function RelatorioCapitalGiro() {
+  const provedor = useProvedor()
   const { movimentos: todosMovs, dre, grupos, periodo, conc } = useResultado()
   const movimentos = useMemo(() => separarNeutros(todosMovs, conc).operacionais, [todosMovs, conc])
   const hoje = useMemo(() => new Date(), [])
@@ -27,7 +29,7 @@ export function RelatorioCapitalGiro() {
       <header>
         <h1 className="text-2xl font-extrabold">Painel de Capital de Giro</h1>
         <p className="text-sm text-muted">
-          Títulos em aberto, aging e prazos médios · cru da Omie · denominadores seguem o período
+          Títulos em aberto, aging e prazos médios · cru {provedor.de} · denominadores seguem o período
           filtrado ({prazos.dias} dias)
         </p>
       </header>
@@ -92,11 +94,12 @@ function Aging({ titulo, faixas }: { titulo: string; faixas: readonly FaixaAging
 }
 
 function Pendente() {
+  const provedor = useProvedor()
   return (
     <div className="rounded-card border border-dashed border-bd p-4">
       <p className="text-sm font-semibold">PME · CCC completo</p>
       <p className="mt-1 text-sm text-muted">
-        O <strong>PME</strong> (prazo médio de estoque) exige dado de estoque, que não vem da Omie
+        O <strong>PME</strong> (prazo médio de estoque) exige dado de estoque, que não vem {provedor.de}
         aqui — por isso o ciclo acima é o financeiro (PMR − PMP), sem a parcela de estoque. Com
         fonte de estoque, o CCC completo (PMR + PME − PMP) liga sem mudança de estrutura.
       </p>

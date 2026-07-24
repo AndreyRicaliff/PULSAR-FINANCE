@@ -24,11 +24,42 @@ export function codigoExibivel(codigo: string): string {
   return RE_CODIGO_OPACO.test(codigo) ? '' : codigo
 }
 
-/** Rótulo humano da categoria: 'código descrição' quando o código é legível; só a descrição quando opaco. */
-export function rotuloCategoria(codigo: string, descricao: string, separador = ' '): string {
-  // Resolvedores caem no próprio código quando não há descrição — não duplicar ('2.01 2.01').
-  const desc = descricao === codigo ? '' : descricao
-  return [codigoExibivel(codigo), desc].filter(Boolean).join(separador).trim() || codigo
+/**
+ * Descrições que se repetem em códigos DISTINTOS — precisam do código para desambiguar.
+ * Ex.: no plano Omie "IOF" existe em 2.05.03 e 2.06.95; sem isso as duas viram a mesma linha.
+ * Chave normalizada (trim + lower) para casar "IOF" e "iof " como o mesmo nome.
+ */
+export function descricoesAmbiguas(categorias: readonly Pick<Categoria, 'codigo' | 'descricao'>[]): ReadonlySet<string> {
+  const porDesc = new Map<string, Set<string>>()
+  for (const c of categorias) {
+    const d = c.descricao.trim().toLowerCase()
+    if (!d) continue
+    const cods = porDesc.get(d) ?? new Set<string>()
+    cods.add(c.codigo)
+    porDesc.set(d, cods)
+  }
+  const ambiguas = new Set<string>()
+  for (const [d, cods] of porDesc) if (cods.size > 1) ambiguas.add(d)
+  return ambiguas
+}
+
+/**
+ * Nome humano da categoria: SÓ a descrição. O código (Omie hierárquico '2.03.05' ou GUID
+ * Nibo) é chave interna e NÃO entra no nome — colá-lo dava "2.03.05 13º Salário" na tela
+ * (reclamação de 2026-07-24). Onde o código Omie é útil (Plano de Contas, Lançamentos), ele
+ * aparece como elemento PRÓPRIO via `codigoExibivel`, nunca grudado no nome.
+ *
+ * `ambiguas` (opcional): quando a descrição colide com outra categoria, sufixa o código
+ * legível — "IOF (2.05.03)" — para o financeiro não ver duas linhas idênticas na Matriz.
+ * Sem o set, é sempre nome-puro (caller sem acesso ao cadastro).
+ * Fallback quando não há descrição: código legível (Omie) ou o próprio código (GUID).
+ */
+export function rotuloCategoria(codigo: string, descricao: string, ambiguas?: ReadonlySet<string>): string {
+  const desc = descricao.trim()
+  if (!desc || desc === codigo) return codigoExibivel(codigo) || codigo
+  const cod = codigoExibivel(codigo)
+  if (cod && ambiguas?.has(desc.toLowerCase())) return `${desc} (${cod})`
+  return desc
 }
 
 /**

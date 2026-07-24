@@ -5,6 +5,7 @@ import { movimentacaoMensal } from '@/lib/graficos'
 import { brl, pctVariacao } from '@/lib/money'
 import { fontesReceita } from '@/lib/relatorios'
 import { separarNeutros } from '@/core/neutros'
+import { useProvedor } from '@/lib/clientes'
 import { useResultado, valorLinha } from '@/lib/useResultado'
 import { BarrasMensais } from '../charts/BarrasMensais.tsx'
 import { GraficoExpansivel } from '../charts/GraficoExpansivel.tsx'
@@ -12,6 +13,7 @@ import { KpiCard } from '../KpiCard.tsx'
 import { TabelaValor } from './TabelaValor.tsx'
 
 export function RelatorioReceita() {
+  const provedor = useProvedor()
   const { grupos, dre, movimentos: todosMovs, conc, serie } = useResultado()
   const movimentos = useMemo(() => separarNeutros(todosMovs, conc).operacionais, [todosMovs, conc])
   const rb = valorLinha(dre, 'dre_receita')
@@ -25,7 +27,7 @@ export function RelatorioReceita() {
     <div className="flex flex-col gap-6">
       <header>
         <h1 className="text-2xl font-extrabold">Análise de Receita Líquida</h1>
-        <p className="text-sm text-muted">Evolução, crescimento e fontes de receita · dado real da Omie</p>
+        <p className="text-sm text-muted">Evolução, crescimento e fontes de receita · dado real {provedor.de}</p>
       </header>
 
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
@@ -58,13 +60,14 @@ export function RelatorioReceita() {
 }
 
 function Pendente() {
+  const provedor = useProvedor()
   return (
     <div className="rounded-card border border-dashed border-bd p-4">
       <p className="text-sm font-semibold">Mix por unidade de negócio · Drivers de crescimento</p>
       <p className="mt-1 text-sm text-muted">
-        A arquitetura já lê <strong>departamento</strong> da Omie (campo do movimento + catálogo
+        A arquitetura já lê <strong>departamento</strong> {provedor.de} (campo do movimento + catálogo
         sincronizado), mas hoje quase nenhum título vem preenchido — quando o cliente classificar os
-        títulos por departamento na Omie, o mix por unidade abre aqui sozinho. Drivers (volume, preço,
+        títulos por departamento {provedor.em}, o mix por unidade abre aqui sozinho. Drivers (volume, preço,
         mix, câmbio) seguem dependendo de fonte externa. Sem inventar número.
       </p>
     </div>

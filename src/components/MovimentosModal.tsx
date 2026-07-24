@@ -3,6 +3,8 @@ import { useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { codigoExibivel } from '@/core/categoria'
 import type { Movimento } from '@/core/movimento'
+import { comProvedor } from '@/core/provedor'
+import { useProvedor } from '@/lib/clientes'
 import { FilialSelecaoProvider } from '@/lib/filialSelecao'
 import { brl } from '@/lib/money'
 import { useOverrides } from '@/lib/overrides'
@@ -23,6 +25,7 @@ interface Props {
 
 export function MovimentosModal({ titulo, codigo, subtitulo, movimentos, eixosIniciais, onFechar }: Props) {
   const { resolvedor } = useOverrides()
+  const rotulosProv = useProvedor()
   const [eixos, setEixos] = useState<Eixo[]>(() => [...(eixosIniciais ?? ['contraparte'])])
   const arvore = useMemo(() => ramificar(movimentos, eixos, resolvedor), [movimentos, eixos, resolvedor])
   const ultimo = eixos[eixos.length - 1]
@@ -43,7 +46,7 @@ export function MovimentosModal({ titulo, codigo, subtitulo, movimentos, eixosIn
             {eixos.length > 0 ? (
               <span className="font-semibold text-secondary">{arvore.length} grupos no 1º nível · </span>
             ) : null}
-            {ultimo ? DESCRICAO_EIXO[ultimo] : SEM_AGRUPAR}
+            {ultimo ? comProvedor(DESCRICAO_EIXO[ultimo], rotulosProv) : SEM_AGRUPAR}
           </p>
         </div>
         <div className="overflow-auto">

@@ -4,7 +4,9 @@ import type { Sugestao } from '@/core/matriz-classificacao'
 import { PREMISSAS } from '@/core/matriz-classificacao'
 import type { No } from '@/core/modelo'
 import { brl } from '@/lib/money'
+import { Grip } from '../demonstracao/atomos.tsx'
 import { DropZone } from './DropZone.tsx'
+import { EtiquetaFluxo } from './EtiquetaFluxo.tsx'
 import type { ItemConc } from './tipos'
 import { filtrar, opcoesSelect, totalCentavos, type Opcao } from './util'
 
@@ -121,15 +123,22 @@ function Tabela({ itens, ...resto }: PropsLinha & { itens: readonly ItemConc[] }
 
 function Linha({ item, opcoes, sugerir, nomePorNo, onMapear, onContextItem }: PropsLinha & { item: ItemConc }) {
   const sug = sugerir?.(item.titulo) ?? null
+  // A linha NÃO é draggable: só a alça ⠿ arrasta — se a <tr> inteira fosse draggable, o
+  // <select> abaixo teria o mousedown sequestrado pelo drag e o "conciliar em…" não abriria
+  // (bug relatado pelo financeiro 2026-07-24; padrão já usado em demonstracao/atomos.tsx).
   return (
     <tr
-      draggable
-      onDragStart={(e) => e.dataTransfer.setData('text/plain', item.chave)}
       onContextMenu={(e) => onContextItem(item.chave, e)}
-      className="cursor-grab border-b border-bd/60 last:border-0 hover:bg-surface2/40 active:cursor-grabbing"
+      className="border-b border-bd/60 last:border-0 hover:bg-surface2/40"
     >
+      <td className="px-1 py-2 align-top">
+        <Grip chave={item.chave} />
+      </td>
       <td className="px-3 py-2">
-        <div className="truncate">{item.titulo}</div>
+        <div className="flex items-center gap-2">
+          <span className="truncate">{item.titulo}</span>
+          <EtiquetaFluxo natureza={item.natureza} />
+        </div>
         {item.qtd ? <div className="text-xs text-muted">{item.qtd} mov.</div> : null}
         {sug ? <ChipSugestao sug={sug} nomePorNo={nomePorNo} onAplicar={(noId) => onMapear(item.chave, noId)} /> : null}
       </td>

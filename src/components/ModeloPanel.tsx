@@ -4,9 +4,11 @@ import { sugerirClassificacao } from '@/core/matriz-classificacao'
 import type { Dimensao, RegimeDemo } from '@/core/modelo'
 import { chaveContraparte, type Movimento } from '@/core/movimento'
 import type { Resolvedor } from '@/core/override'
-import { rotuloCategoria, type CategoriasSeed } from '@/core/categoria'
+import { descricoesAmbiguas, rotuloCategoria, type CategoriasSeed } from '@/core/categoria'
 import { dataDoMovimento } from '@/core/periodo'
 import { useCadastros } from '@/lib/cadastros'
+import { orfasDaConciliacao, type Orfa } from '@/core/orfaos'
+import { useProvedor } from '@/lib/clientes'
 import { useMovimentos } from '@/lib/movimentos'
 import { SeletorMeses, type FaixaMeses } from './SeletorMeses.tsx'
 import { porCategoria } from '@/lib/agregar'
@@ -42,6 +44,7 @@ const PLACEHOLDER_DIM: Readonly<Record<Dimensao, string>> = {
 }
 
 export function ModeloPanel() {
+  const provedor = useProvedor()
   const api = useModelo()
   const [dim, setDim] = useState<Dimensao>('contas')
   const [nomeGrupo, setNomeGrupo] = useState('')
@@ -67,9 +70,15 @@ export function ModeloPanel() {
     })
   }, [todos, faixa])
   const movs = useMemo(() => aplicarFiltros(noPeriodo, filtros), [noPeriodo, filtros])
-  const itensContas = useMemo(() => itensDeContas(movs, resolvedor, cad.categorias), [movs, resolvedor, cad])
+  const ambiguas = useMemo(() => descricoesAmbiguas(cad.categorias), [cad])
+  const itensContas = useMemo(() => itensDeContas(movs, resolvedor, cad.categorias, ambiguas), [movs, resolvedor, cad, ambiguas])
   const itensForn = useMemo(() => itensDeFornecedores(movs, resolvedor), [movs, resolvedor])
   const itens = dim === 'contas' ? itensContas : itensForn
+
+  const orfas = useMemo(
+    () => orfasDaConciliacao(api.modelo, cad.categorias, todos),
+    [api.modelo, cad, todos],
+  )
 
   const conc = api.modelo[dim]
   const conciliados = itens.filter((i) => conc.mapa[i.chave])
@@ -92,9 +101,10 @@ export function ModeloPanel() {
           </p>
           {nomesEditados > 0 ? (
             <p className="mt-1 text-xs text-warn">
-              {nomesEditados} nome(s) editado(s) vs Omie (original imutável · clique direito para ver/reverter)
+              {nomesEditados} nome(s) editado(s) vs {provedor.nome} (original imutável · clique direito para ver/reverter)
             </p>
           ) : null}
+          <AvisoOrfas orfas={orfas} resolvedor={resolvedor} onLimpar={(o) => api.desmapear(o.dimensao, o.chave)} />
         </div>
         <button
           type="button"
@@ -176,7 +186,7 @@ export function ModeloPanel() {
         <MovimentosModal
           titulo={tituloDaChave(modalChave, dim, resolvedor)}
           codigo={modalChave}
-          subtitulo="Movimentos da seleção · dados crus da Omie"
+          subtitulo={`Movimentos da seleção · dados crus ${provedor.de}`}
           movimentos={movsDaChave(movs, modalChave, dim)}
           eixosIniciais={dim === 'contas' ? ['contraparte'] : ['categoria']}
           onFechar={() => setModalChave(null)}
@@ -210,12 +220,18 @@ function BarraProgresso({ feito, total }: { feito: number; total: number }) {
   )
 }
 
-function itensDeContas(movs: readonly Movimento[], resolvedor: Resolvedor, categorias: CategoriasSeed['categorias']): ItemConc[] {
+function itensDeContas(
+  movs: readonly Movimento[],
+  resolvedor: Resolvedor,
+  categorias: CategoriasSeed['categorias'],
+  ambiguas: ReadonlySet<string>,
+): ItemConc[] {
   return porCategoria(movs, categorias).map((l) => ({
     chave: l.codigo,
-    titulo: rotuloCategoria(l.codigo, resolvedor.categoria(l.codigo).nome, ' · '),
+    titulo: rotuloCategoria(l.codigo, resolvedor.categoria(l.codigo).nome, ambiguas),
     valorCentavos: l.totalCentavos,
     qtd: l.quantidade,
+    natureza: l.natureza,
   }))
 }
 
@@ -236,4 +252,46 @@ function itensDeFornecedores(movs: readonly Movimento[], resolvedor: Resolvedor)
       qtd: v.qtd,
     }))
     .sort((a, b) => b.valorCentavos - a.valorCentavos)
+}
+
+/**
+ * Classificações apontando para chaves que sumiram do ERP (reestruturação do plano,
+ * cancelamento) — sem este aviso o trabalho orfana em silêncio e o movimento novo volta
+ * ao "a conciliar" sem explicação. Caso real: '2.04.89' órfã no AUTAG 36 (2026-07-23).
+ */
+function AvisoOrfas({
+  orfas,
+  resolvedor,
+  onLimpar,
+}: {
+  orfas: readonly Orfa[]
+  resolvedor: Resolvedor
+  onLimpar: (o: Orfa) => void
+}) {
+  const [aberto, setAberto] = useState(false)
+  if (orfas.length === 0) return null
+  const NOME_DIM: Record<string, string> = { contas: 'Contas', fornecedores: 'Fornecedores', centros: 'Filial/C. Custo' }
+  return (
+    <div className="mt-1 text-xs">
+      <button type="button" onClick={() => setAberto((v) => !v)} className="font-medium text-danger underline-offset-2 hover:underline">
+        {orfas.length} classificação(ões) órfã(s) — a chave sumiu do ERP · {aberto ? 'ocultar' : 'ver'}
+      </button>
+      {aberto ? (
+        <ul className="mt-1 flex flex-col gap-0.5">
+          {orfas.map((o) => (
+            <li key={`${o.dimensao}:${o.chave}`} className="flex items-center gap-2 text-muted">
+              <span className="rounded bg-surface2 px-1.5 py-0.5 text-[10px] uppercase tracking-wide">{NOME_DIM[o.dimensao]}</span>
+              <span className="truncate" title={o.chave}>
+                {o.dimensao === 'contas' ? resolvedor.categoria(o.chave).nome : o.dimensao === 'fornecedores' ? resolvedor.contraparte(o.chave).nome : o.chave}
+              </span>
+              <span className="text-muted/60">→ {o.noId}</span>
+              <button type="button" onClick={() => onLimpar(o)} className="ml-auto text-danger hover:underline">
+                limpar
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </div>
+  )
 }

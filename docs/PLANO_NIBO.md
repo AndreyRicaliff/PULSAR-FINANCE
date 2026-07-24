@@ -1,7 +1,36 @@
 # Integração NIBO — plano e ambiente
 
-Status: **ambiente preparado** (2026-06-19). Falta o adapter NIBO (Fase 2), que depende de
-`apitoken` real + verificação da API oficial.
+Status: **Fase 2 CONCLUÍDA e validada com dado real** (2026-07-22) — 1º cliente NIBO em produção:
+DR PIZZA (MALVINAS), 3.292 agendamentos sincronizados em ~10s.
+
+Implementação: `GET /schedules` (Credit→R / Debit→P; uma varredura alimenta movimentos E títulos),
+`/categories`, `/stakeholders`, `/costcenters`; OData `$orderby/$top/$skip`, 500/pág, header
+`ApiToken`, `{ items, count }`. Datas ISO→BR na ingestão. Orçamento omitido (não há equivalente).
+
+### O que a validação campo-a-campo pegou (só aparece com dado real)
+1. **Plano tem 3 níveis** (`group` → `subgroupId/Name` → categoria), não 2 — agrupadoras sintetizadas
+   nos dois níveis, senão o Plano de Contas perdia o subgrupo.
+2. **`/categories` não devolve categorias arquivadas** que os schedules ainda referenciam (52 de 95
+   na DR PIZZA) — o cadastro é completado com `categoryName/parent` do próprio schedule, senão o
+   GUID cru vazaria como nome (pendência 2026-07-14 fechada para NIBO).
+3. **Natureza de agrupadora pela PREDOMINANTE** das filhas — pela "primeira filha", "Receitas
+   operacionais" era classificada como despesa.
+4. **`paidValue` vem NEGATIVO em débito.** O app usa magnitude + sinal pela natureza, e
+   `movimentosCaixa()` filtra `valorPago > 0` → sem `centAbs` os **727 pagamentos sumiriam da DFC**
+   (fluxo de caixa só com entradas). Este era o bug mais grave e silencioso.
+
+### Provas
+Conciliação preservada **61/61** (as chaves do mapa são os mesmos GUIDs que o adapter produz);
+os 1.531 movimentos do import manual anterior bateram com `atualizados: 0` (mapeamento idêntico);
+2º sync consecutivo = `0/0/0` (idempotente); regressão Omie OK; provedor desconhecido segue
+fail-closed. Schema corrigido: `omie_app_key` era NOT NULL — impedia credencial NIBO
+(migration `2026_07_22_credenciais_nibo_notnull.sql`, com CHECK de completude por provedor).
+
+### Resta refinar
+Data de baixa: o `/schedules` não expõe a data real do pagamento, então pago aproxima
+`dataPagamento = dueDate` (auditado em `campoValor='nibo:baixa~vencimento'`). Afeta só o
+**recorte mensal** da DFC, não os totais. Refinar com o extrato (`/entries`) quando necessário.
+`/costcenters` veio vazio na DR PIZZA — mapeamento de centro de custo ainda não exercitado.
 
 ## Decisão de arquitetura
 

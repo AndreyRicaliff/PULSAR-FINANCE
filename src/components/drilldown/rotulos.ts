@@ -27,18 +27,19 @@ export const EIXOS: readonly { id: Eixo; rotulo: string }[] = [
   { id: 'mes', rotulo: 'Mês' },
 ]
 
-// Detalhamento para o time BPO: o que cada eixo revela. Só reagrupa o dado cru da Omie.
+// Detalhamento para o time BPO: o que cada eixo revela. Só reagrupa o dado cru do ERP.
+// `{provedor}`/`{em}` são interpolados no render (comProvedor) — o ERP varia por cliente.
 export const DESCRICAO_EIXO: Readonly<Record<Eixo, string>> = {
   contraparte:
     'De quem veio / para quem foi. Revela a fonte real de contas genéricas (ex.: "Outras Receitas" que na verdade é resgate de um banco).',
   categoria: 'Em quais categorias do plano de contas esse fornecedor/cliente aparece.',
   origem:
-    'Como entrou na Omie (siglas do ERP, ex.: COMP compra, MANP manual, TRAP/TRAR transferência). Útil para achar transferências e lançamentos manuais.',
+    'Como entrou {em} (siglas do ERP, ex.: COMP compra, MANP manual, TRAP/TRAR transferência). Útil para achar transferências e lançamentos manuais.',
   tipoDocumento: 'Tipo do documento (ex.: NFE, BOL, CTE). Separa o que tem nota fiscal do que não tem.',
   status: 'Situação do título (cancelado, atrasado, pago/recebido). Use para isolar cancelados.',
   natureza: 'Conta a pagar (saída) ou a receber (entrada).',
   liquidado: 'Já foi pago/recebido (caixa) ou ainda está em aberto (competência).',
-  operacao: 'Código de operação da Omie — agrupa lançamentos do mesmo tipo de operação.',
+  operacao: 'Código de operação {de} — agrupa lançamentos do mesmo tipo de operação.',
   contaCorrente: 'Conta bancária por onde passou o lançamento.',
   mes: 'Distribui o valor pelos meses — mostra sazonalidade ou um lançamento pontual fora do padrão.',
 }

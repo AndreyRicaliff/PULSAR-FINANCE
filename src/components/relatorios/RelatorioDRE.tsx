@@ -4,6 +4,7 @@ import { baixarCsv, csvDemonstracao } from '@/lib/exportar'
 import { brl, pct } from '@/lib/money'
 import type { GrupoEspelho } from '@/lib/resultado'
 import { useCadastros } from '@/lib/cadastros'
+import { useProvedor } from '@/lib/clientes'
 import { useResultado, valorLinha } from '@/lib/useResultado'
 import { KpiCard } from '../KpiCard.tsx'
 import { TabelaDemonstracao } from '../TabelaDemonstracao.tsx'
@@ -12,6 +13,7 @@ import { GraficoExpansivel } from '../charts/GraficoExpansivel.tsx'
 import { Waterfall, type PassoWF } from '../charts/Waterfall.tsx'
 
 export function RelatorioDRE({ dre, grupos }: { dre: readonly LinhaCalc[]; grupos: readonly GrupoEspelho[] }) {
+  const provedor = useProvedor()
   const { movimentos, conc, anterior } = useResultado()
   const { categorias } = useCadastros()
   const detalhe = useDetalheDemonstracao(movimentos, conc, categorias.categorias)
@@ -31,7 +33,7 @@ export function RelatorioDRE({ dre, grupos }: { dre: readonly LinhaCalc[]; grupo
         <div>
           <h1 className="text-2xl font-extrabold">DRE — Resultado do Exercício</h1>
           <p className="text-sm text-muted">
-            Cascata da DRE configurada · análise vertical (% da Receita Bruta) · valores crus da Omie, sinal
+            Cascata da DRE configurada · análise vertical (% da Receita Bruta) · valores crus {provedor.de}, sinal
             pela natureza · neutros e não conciliados fora
           </p>
         </div>

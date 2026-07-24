@@ -48,6 +48,20 @@ export function entraNaDemonstracao(meta: MetaContabil | undefined, tipo: 'dre' 
   return r === 'ambos' || r === tipo
 }
 
+/** Demonstrações que um nó (e as categorias sob ele) alimenta — meta própria OU herdada da raiz. */
+export function demonstracoesDoNo(
+  meta: MetaContabil | undefined,
+  metaRaiz: MetaContabil | undefined,
+): { readonly dre: boolean; readonly dfc: boolean; readonly neutra: boolean } {
+  const efetiva = meta ?? metaRaiz
+  const neutra = efetiva?.neutra ?? false
+  return {
+    neutra,
+    dre: !neutra && entraNaDemonstracao(efetiva, 'dre'),
+    dfc: !neutra && entraNaDemonstracao(efetiva, 'dfc'),
+  }
+}
+
 export interface No {
   readonly id: string
   readonly nome: string

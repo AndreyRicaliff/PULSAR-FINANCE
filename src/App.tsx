@@ -2,8 +2,12 @@ import { useEffect, useState } from 'react'
 import { useTema } from './lib/useTema'
 import { useAutoScrollDrag } from './lib/useAutoScrollDrag'
 import { MODO_APRESENTACAO } from './lib/apresentacaoSnapshot'
+import { MODO_HUD } from './lib/hudModo'
 import { Slideshow } from './components/apresentacao/Slideshow.tsx'
+import { HudCliente } from './components/HudCliente.tsx'
 import { sair, useAuth, AUTH_ATIVO } from './lib/auth'
+import { useAcesso } from './lib/useAcesso'
+import { SemAcesso } from './components/SemAcesso.tsx'
 import { CadastrosProvider } from './lib/cadastros'
 import { ClientesProvider } from './lib/clientes'
 import { MovimentosProvider } from './lib/movimentos'
@@ -22,6 +26,7 @@ import { ModeloPanel } from './components/ModeloPanel.tsx'
 import { DemonstracoesPanel } from './components/DemonstracoesPanel.tsx'
 import { RelatoriosPanel } from './components/RelatoriosPanel.tsx'
 import { ConfiguracoesPanel } from './components/ConfiguracoesPanel.tsx'
+import { AcessosPanel } from './components/AcessosPanel.tsx'
 
 const PAINEIS: Readonly<Record<Aba, () => JSX.Element>> = {
   cadastro: CadastroPanel,
@@ -35,18 +40,26 @@ const PAINEIS: Readonly<Record<Aba, () => JSX.Element>> = {
   demonstracoes: DemonstracoesPanel,
   relatorios: () => <RelatoriosPanel inicial="visao" />,
   apresentacao: () => <RelatoriosPanel inicial="apresentacao" />,
+  hud: () => <HudCliente />,
+  acessos: AcessosPanel,
   config: ConfiguracoesPanel,
 }
 
 export function App() {
   const auth = useAuth()
+  const userId = auth.status === 'logado' ? auth.session.user.id : undefined
+  const acesso = useAcesso(userId)
 
   if (AUTH_ATIVO) {
     if (auth.status === 'carregando') return <Carregando />
     if (auth.status === 'deslogado') return <Login />
+    if (acesso.carregando) return <Carregando />
+    if (acesso.papel === 'nenhum') return <SemAcesso email={auth.email} />
   }
 
   const email = auth.status === 'logado' ? auth.email : undefined
+  // Cliente só enxerga o HUD read-only do seu tenant; operador tem o Shell (e o ?hud de preview).
+  const modoCliente = acesso.papel === 'cliente'
   return (
     <>
     <ClientesProvider>
@@ -55,6 +68,10 @@ export function App() {
           {MODO_APRESENTACAO ? (
             <OverridesProvider>
               <Slideshow />
+            </OverridesProvider>
+          ) : modoCliente || MODO_HUD ? (
+            <OverridesProvider>
+              <HudCliente kiosk />
             </OverridesProvider>
           ) : (
             <Shell email={email} />

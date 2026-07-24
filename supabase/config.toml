@@ -1,0 +1,7 @@
+project_id = "lcskkohkkdlwqayxhvfb"
+
+[functions.manage-user]
+verify_jwt = true
+
+[functions.sync-omie]
+verify_jwt = true

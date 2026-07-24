@@ -3,7 +3,7 @@
  * movimentação. A "classe" é a agrupadora ancestral da categoria no plano de contas Omie;
  * o subgrupo é o nó da nossa conciliação. Alimenta o drill do editor de DRE/DFC.
  */
-import { rotuloCategoria, type Categoria } from './categoria'
+import { descricoesAmbiguas, rotuloCategoria, type Categoria } from './categoria'
 import { LINHA_FORA, type Demonstracao, type TipoDemo } from './demonstracao'
 import { entraNaDemonstracao, type Conciliacao, type No } from './modelo'
 import type { Movimento } from './movimento'
@@ -39,11 +39,11 @@ interface Acum {
   classes: Map<string, ClasseNo>
 }
 
-function chaveClasse(codigo: string, catPorCodigo: ReadonlyMap<string, Categoria>): ClasseNo {
+function chaveClasse(codigo: string, catPorCodigo: ReadonlyMap<string, Categoria>, ambiguas: ReadonlySet<string>): ClasseNo {
   const classe = classeDe(codigo, catPorCodigo)
-  if (classe) return { codigo: classe.codigo, nome: rotuloCategoria(classe.codigo, classe.descricao), totalCentavos: 0 }
+  if (classe) return { codigo: classe.codigo, nome: rotuloCategoria(classe.codigo, classe.descricao, ambiguas), totalCentavos: 0 }
   const folha = catPorCodigo.get(codigo)
-  return { codigo, nome: folha ? rotuloCategoria(codigo, folha.descricao) : codigo, totalCentavos: 0 }
+  return { codigo, nome: folha ? rotuloCategoria(codigo, folha.descricao, ambiguas) : codigo, totalCentavos: 0 }
 }
 
 export const CHAVE_SUB = 'sub:'
@@ -112,6 +112,7 @@ export function arvorePorGrupo(
   categorias: readonly Categoria[],
 ): Map<string, SubgrupoArvore[]> {
   const catPorCodigo = new Map(categorias.map((c) => [c.codigo, c]))
+  const ambiguas = descricoesAmbiguas(categorias)
   const noPorId = new Map<string, No>(conc.estrutura.map((n) => [n.id, n]))
   // grupoId → subgrupoId → Acum
   const porGrupo = new Map<string, Map<string, Acum>>()
@@ -129,7 +130,7 @@ export function arvorePorGrupo(
     acum.total += comSinal(m)
     let c = classePorCategoria.get(m.categoria)
     if (!c) {
-      c = chaveClasse(m.categoria, catPorCodigo)
+      c = chaveClasse(m.categoria, catPorCodigo, ambiguas)
       classePorCategoria.set(m.categoria, c)
     }
     const existente = acum.classes.get(c.codigo) ?? { ...c }

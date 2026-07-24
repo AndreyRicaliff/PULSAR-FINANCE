@@ -1,9 +1,10 @@
 /**
- * @file Vistas internas do MenuContexto: renomear item (override Omie), renomear nó da
+ * @file Vistas internas do MenuContexto: renomear item (override do ERP), renomear nó da
  * estrutura e a lista "Conciliar/Mover em…" com filtro. Separadas do menu para manter
  * cada arquivo pequeno e cada vista com uma responsabilidade.
  */
 import { useState } from 'react'
+import { useProvedor } from '@/lib/clientes'
 import { useOverrides } from '@/lib/overrides'
 import type { Opcao } from './util'
 
@@ -16,6 +17,7 @@ export function FormRenomeItem({
   codigo: string
   onFechar: () => void
 }) {
+  const { nome: provedor } = useProvedor()
   const { resolvedor, renomear, restaurar } = useOverrides()
   const resolvido = entidade === 'categoria' ? resolvedor.categoria(codigo) : resolvedor.contraparte(codigo)
   const [valor, setValor] = useState(resolvido.nome)
@@ -30,7 +32,7 @@ export function FormRenomeItem({
       <p className="mb-1 text-xs uppercase tracking-wide text-muted">
         Renomear {entidade === 'categoria' ? 'categoria' : 'fornecedor'}
       </p>
-      {resolvido.editado ? <p className="mb-2 text-[11px] text-muted">Original Omie: {resolvido.original}</p> : null}
+      {resolvido.editado ? <p className="mb-2 text-[11px] text-muted">Original {provedor}: {resolvido.original}</p> : null}
       <CampoNome valor={valor} onValor={setValor} onSalvar={salvar} onFechar={onFechar} />
       <div className="mt-2 flex items-center gap-2">
         <BotaoSalvar onClick={salvar} />

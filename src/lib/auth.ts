@@ -38,9 +38,18 @@ export function useAuth(): Auth {
   return auth
 }
 
-export async function entrar(email: string, senha: string): Promise<void> {
+const DOMINIO_LOGIN = 'agconsultorialtda.com'
+
+/** Login vira e-mail sintético do domínio AG — o trigger de signup exige @agconsultorialtda.com. */
+export function emailDeLogin(login: string): string {
+  const l = login.trim()
+  return l.includes('@') ? l : `${l}@${DOMINIO_LOGIN}`
+}
+
+/** Entra por LOGIN (username) + senha — o e-mail real nunca é digitado. */
+export async function entrar(login: string, senha: string): Promise<void> {
   if (!supabase) throw new Error('Supabase não configurado')
-  const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password: senha })
+  const { error } = await supabase.auth.signInWithPassword({ email: emailDeLogin(login), password: senha })
   if (error) throw new Error(traduzir(error.message))
 }
 
@@ -52,9 +61,21 @@ export async function cadastrar(email: string, senha: string): Promise<{ readonl
   return { logado: Boolean(data.session) }
 }
 
-export function sair(): Promise<unknown> {
+/** O próprio usuário logado define/troca a senha (updateUser). A senha só existe no gesto dele. */
+export async function definirSenha(senha: string): Promise<void> {
+  if (!supabase) throw new Error('Supabase não configurado')
+  const { error } = await supabase.auth.updateUser({ password: senha })
+  if (error) throw new Error(traduzir(error.message))
+}
+
+export async function sair(): Promise<unknown> {
   if (!supabase) return Promise.resolve()
-  return supabase.auth.signOut()
+  const r = await supabase.auth.signOut()
+  // Recarrega para descartar o cache em memória (stores de persistencia.ts) e localStorage do
+  // usuário anterior — senão, em dispositivo compartilhado, o cache do operador (todos os tenants)
+  // sobreviveria ao login de um cliente. Boot limpo = sem resíduo entre sessões.
+  if (typeof window !== 'undefined') window.location.reload()
+  return r
 }
 
 function traduzir(msg: string): string {
@@ -62,5 +83,9 @@ function traduzir(msg: string): string {
   if (/Email not confirmed/i.test(msg)) return 'E-mail ainda não confirmado.'
   if (/already registered|already been registered|User already/i.test(msg)) return 'Esta conta já existe — use Entrar.'
   if (/at least 6|Password should/i.test(msg)) return 'A senha precisa ter ao menos 6 caracteres.'
+  // Trigger de domínio (bloquear_signup_fora_ag) volta como P0001/'Database error' opaco → mostrava {}.
+  if (/Database error saving new user|P0001|fora_ag|restrito ao dom|domínio AG/i.test(msg))
+    return 'Acesso restrito a e-mails @agconsultorialtda.com.'
+  if (!msg.trim() || msg === '{}') return 'Não foi possível entrar. Confira login e senha.'
   return msg
 }

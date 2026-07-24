@@ -1,4 +1,4 @@
-/** @file Barras com eixo zero: positivo sobe, negativo desce — SVG/divs puros, tooltip por barra. */
+/** @file Barras com eixo zero: positivo sobe, negativo desce — marca fina (dataviz), tooltip por barra. */
 import { brl } from '@/lib/money'
 import { TipLinha, TipTitulo, useTooltipGrafico } from '@/lib/tooltipGrafico'
 
@@ -9,6 +9,19 @@ export interface PassoWF {
 }
 
 const H = 240
+// Respiro vertical: as barras não encostam nas bordas, senão o rótulo de valor (acima/abaixo
+// da ponta) é cortado pelo card. O plot vive em [PAD, H-PAD]; o PAD é o espaço do rótulo.
+const PAD = 22
+
+/** Currency compacto p/ rótulo na ponta da barra (o tooltip mostra o valor cheio). */
+function curto(centavos: number): string {
+  const r = centavos / 100
+  const a = Math.abs(r)
+  const s = r < 0 ? '-' : ''
+  if (a >= 1_000_000) return `${s}R$ ${(a / 1_000_000).toFixed(a >= 10_000_000 ? 0 : 1)}M`
+  if (a >= 1_000) return `${s}R$ ${Math.round(a / 1_000)}k`
+  return `${s}R$ ${Math.round(a)}`
+}
 
 /** Cada barra parte do eixo zero: valor positivo sobe (verde), negativo desce (vermelho); total em roxo. */
 export function Waterfall({ passos }: { passos: readonly PassoWF[] }) {
@@ -17,23 +30,25 @@ export function Waterfall({ passos }: { passos: readonly PassoWF[] }) {
   const max = Math.max(0, ...valores)
   const min = Math.min(0, ...valores)
   const span = max - min || 1
-  const y = (v: number) => ((max - v) / span) * H
+  const y = (v: number) => PAD + ((max - v) / span) * (H - 2 * PAD)
   const yZero = y(0)
 
   return (
     <div>
-      <div className="relative flex items-end gap-2" style={{ height: H }}>
-        <div className="absolute left-0 right-0 border-t border-bd/80" style={{ top: yZero }} />
+      <div className="relative flex items-end gap-1.5" style={{ height: H }}>
+        <div className="absolute left-0 right-0 border-t border-bd" style={{ top: yZero }} />
         {passos.map((p, i) => {
           const sobe = p.valor >= 0
           const topo = sobe ? y(p.valor) : yZero
-          const altura = Math.max(2, Math.abs(yZero - y(p.valor)))
+          const altura = Math.max(3, Math.abs(yZero - y(p.valor)))
           const cor =
             p.tipo === 'total'
-              ? 'bg-gradient-to-t from-primary/60 to-primary'
+              ? 'from-primary/70 to-primary'
               : sobe
-                ? 'bg-gradient-to-t from-accent/60 to-accent'
-                : 'bg-gradient-to-b from-danger/60 to-danger'
+                ? 'from-accent/45 to-accent'
+                : 'from-danger/45 to-danger'
+          const arred = sobe ? 'rounded-t-md' : 'rounded-b-md'
+          const labelTop = sobe ? Math.max(1, topo - 15) : Math.min(H - 13, topo + altura + 3)
           const conteudo = (
             <>
               <TipTitulo>{p.rotulo}</TipTitulo>
@@ -48,21 +63,26 @@ export function Waterfall({ passos }: { passos: readonly PassoWF[] }) {
               onMouseMove={(e) => tip.mostrar(e, conteudo)}
               onMouseLeave={tip.esconder}
             >
+              <span
+                className="pointer-events-none absolute left-1/2 -translate-x-1/2 whitespace-nowrap text-[10px] font-medium tabular-nums text-muted"
+                style={{ top: labelTop }}
+              >
+                {curto(p.valor)}
+              </span>
               <div
-                className={`anim-grow-y absolute w-full rounded transition-opacity duration-200 group-hover:opacity-80 ${cor}`}
-                style={{ top: topo, height: altura, animationDelay: `${i * 0.04}s` }}
+                className={`anim-grow-y absolute left-1/2 w-[56%] max-w-[36px] -translate-x-1/2 bg-gradient-to-t ${cor} ${arred} shadow-sm transition-opacity duration-200 group-hover:opacity-80`}
+                style={{ top: topo, height: altura, transformOrigin: sobe ? 'bottom' : 'top', animationDelay: `${i * 0.04}s` }}
               />
             </div>
           )
         })}
       </div>
       {tip.tooltip}
-      <div className="mt-2 flex gap-2">
+      <div className="mt-2 flex gap-1.5">
         {passos.map((p) => (
-          <div key={p.rotulo} className="flex-1 text-center">
-            <p className="truncate text-[10px] text-muted" title={p.rotulo}>{p.rotulo}</p>
-            <p className={`text-[11px] font-semibold tabular-nums ${p.valor < 0 ? 'text-danger' : ''}`}>{brl(p.valor)}</p>
-          </div>
+          <p key={p.rotulo} className="flex-1 truncate text-center text-[11px] font-medium text-muted" title={p.rotulo}>
+            {p.rotulo}
+          </p>
         ))}
       </div>
     </div>

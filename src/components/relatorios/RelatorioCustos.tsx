@@ -2,12 +2,14 @@
 import { useMemo } from 'react'
 import { brl, pct } from '@/lib/money'
 import { custosDetalhe } from '@/lib/relatorios'
+import { useProvedor } from '@/lib/clientes'
 import { useResultado, valorLinha } from '@/lib/useResultado'
 import { Donut } from '../charts/Donut.tsx'
 import { GraficoExpansivel } from '../charts/GraficoExpansivel.tsx'
 import { KpiCard } from '../KpiCard.tsx'
 
 export function RelatorioCustos() {
+  const provedor = useProvedor()
   const { grupos, dre } = useResultado()
   const rl = valorLinha(dre, 'dre_receita_liq')
   const linhas = useMemo(() => custosDetalhe(grupos, rl), [grupos, rl])
@@ -19,7 +21,7 @@ export function RelatorioCustos() {
       <header>
         <h1 className="text-2xl font-extrabold">Análise de Custos e Despesas</h1>
         <p className="text-sm text-muted">
-          Breakdown dos grupos de saída · % sobre a Receita Líquida · valores crus da Omie
+          Breakdown dos grupos de saída · % sobre a Receita Líquida · valores crus {provedor.de}
         </p>
       </header>
 

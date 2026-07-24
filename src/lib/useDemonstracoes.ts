@@ -38,7 +38,7 @@ export function useDemonstracoes(): DemonstracoesApi {
   // Neutro tem default "a conciliar" (mapaPadrao não o aloca), mas é REALOCÁVEL — livre-arbítrio.
   const aplicar = useCallback((tipo: TipoDemo, fn: (d: Demonstracao) => Demonstracao) => {
     setEstado((e) => ({ ...e, [tipo]: fn(e[tipo]) }))
-  }, [])
+  }, [setEstado])
 
   const alocar = useCallback(
     (tipo: TipoDemo, grupoId: string, linhaId: string) => {

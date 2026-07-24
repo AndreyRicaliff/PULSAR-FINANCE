@@ -1,7 +1,8 @@
-/** @file Plano de contas cru da Omie (árvore de categorias) — fonte read-only do de-para. */
+/** @file Plano de contas cru do ERP (árvore de categorias) — fonte read-only do de-para. */
 import { useMemo, useState } from 'react'
 import { codigoExibivel, mapaProfundidade, type Categoria, type Natureza } from '@/core/categoria'
 import { useCadastros } from '@/lib/cadastros'
+import { useProvedor } from '@/lib/clientes'
 import { COR_NATUREZA, ROTULO_NATUREZA } from '@/lib/natureza'
 import { KpiCard } from './KpiCard.tsx'
 import { Segmento, type OpcaoSeg } from './Segmento.tsx'
@@ -16,6 +17,7 @@ const FILTROS: readonly OpcaoSeg<Filtro>[] = [
 ]
 
 export function CategoriasPanel() {
+  const provedor = useProvedor()
   const [filtro, setFiltro] = useState<Filtro>('todas')
   const [busca, setBusca] = useState('')
   const { relatorio, categorias, geradoEm } = useCadastros().categorias
@@ -29,7 +31,7 @@ export function CategoriasPanel() {
       <header>
         <h1 className="text-2xl font-extrabold">Plano de Contas</h1>
         <p className="text-sm text-muted">
-          Espelho das categorias da Omie · {relatorio.total} contas · sincronizado em{' '}
+          Espelho das categorias {provedor.de} · {relatorio.total} contas · sincronizado em{' '}
           {new Date(geradoEm).toLocaleString('pt-BR')}
         </p>
       </header>

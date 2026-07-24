@@ -1,6 +1,6 @@
 /** @file Aba unificada "Editar DRE/DFC": edição da estrutura + visão com drill-down, sincronizada por período. */
 import { useMemo, useState } from 'react'
-import { rotuloCategoria } from '@/core/categoria'
+import { descricoesAmbiguas, rotuloCategoria } from '@/core/categoria'
 import { arvorePorGrupo, totaisEfetivos } from '@/core/classes'
 import { calcular, demonstracaoPadrao, mapaPadrao, type TipoDemo } from '@/core/demonstracao'
 import { movimentosCaixa } from '@/core/movimento'
@@ -116,11 +116,12 @@ function Conteudo() {
     const ef = totaisEfetivos(movsTab, conc, cadCategorias.categorias, demoTipo, tipo)
     const noNome = new Map(conc.estrutura.map((n) => [n.id, n.nome]))
     const catNome = new Map(cadCategorias.categorias.map((c) => [c.codigo, c.descricao]))
+    const ambiguas = descricoesAmbiguas(cadCategorias.categorias)
     const pseudo = [...ef.totalPorChave]
       .filter(([k]) => k.startsWith('sub:') || k.startsWith('cls:'))
       .map(([k, total]) => {
         const ref = k.slice(4)
-        const nome = k.startsWith('sub:') ? noNome.get(ref) ?? ref : rotuloCategoria(ref, catNome.get(ref) ?? '')
+        const nome = k.startsWith('sub:') ? noNome.get(ref) ?? ref : rotuloCategoria(ref, catNome.get(ref) ?? '', ambiguas)
         return { id: k, nome, totalCentavos: total, qtd: 1, subgrupos: [] }
       })
     return [...espelhoTab, ...pseudo]

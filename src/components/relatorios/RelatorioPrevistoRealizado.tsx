@@ -1,11 +1,17 @@
 /**
  * @file Previsto × Realizado mensal — três colunas honestas, cada uma com sua fonte:
- * Previsto (orçamento de caixa da Omie), Realizável (títulos em aberto por vencimento,
- * compromisso contratado) e Realizado (baixas da Omie, auditável 1:1 contra o ERP).
+ * Previsto (orçamento de caixa do ERP), Realizável (títulos em aberto por vencimento,
+ * compromisso contratado) e Realizado (baixas do ERP, auditável 1:1 contra ele).
+ *
+ * Previsto e Realizado saem do doc de orçamento — que só o Omie produz. Para provedor sem
+ * módulo de orçamento (Nibo) as duas colunas ficam vazias por FALTA DE FONTE, não por bug:
+ * a tela diz isso em vez de repetir a copy do Omie.
  */
 import { useMemo } from 'react'
 import type { Movimento } from '@/core/movimento'
 import { isoDeMov } from '@/core/periodo'
+import { temOrcamento, type RotulosProvedor } from '@/core/provedor'
+import { useClientes, useProvedor } from '@/lib/clientes'
 import { dataHora } from '@/lib/datas'
 import { brl, pctVariacao } from '@/lib/money'
 import { useMovimentos } from '@/lib/movimentos'
@@ -29,12 +35,15 @@ const rotuloMes = (mes: string): string => `${mes.slice(5, 7)}/${mes.slice(2, 4)
 const ANO_ATUAL = '2026'
 
 export function RelatorioPrevistoRealizado() {
+  const provedor = useProvedor()
+  const { ativo } = useClientes()
+  const orcamentoNaFonte = temOrcamento(ativo.provedor)
   const orc = useOrcamento()
   const { movimentos } = useMovimentos()
 
   const linhas = useMemo(() => montarLinhas(orc.meses, movimentos), [orc.meses, movimentos])
   const doAno = linhas.filter((l) => l.mes.startsWith(ANO_ATUAL))
-  const temOrcamento = linhas.some((l) => l.previsto.entrada !== 0 || l.previsto.saida !== 0)
+  const temOrc = linhas.some((l) => l.previsto.entrada !== 0 || l.previsto.saida !== 0)
   const temRealizado = linhas.some((l) => l.realizado.entrada !== 0 || l.realizado.saida !== 0)
 
   const totalPrev = soma(doAno.map((l) => l.previsto))
@@ -46,32 +55,39 @@ export function RelatorioPrevistoRealizado() {
       <header>
         <h1 className="text-2xl font-extrabold">Previsto × Realizado</h1>
         <p className="text-sm text-muted">
-          <strong>Previsto</strong> = orçamento de caixa da Omie · <strong>Realizável</strong> = títulos
+          <strong>Previsto</strong> = orçamento de caixa {provedor.de} · <strong>Realizável</strong> = títulos
           em aberto pelo vencimento (compromisso contratado) · <strong>Realizado</strong> = baixas
-          efetivas da Omie (auditável contra o ERP)
+          efetivas {provedor.de} (auditável contra o ERP)
         </p>
         {orc.geradoEm ? (
           <p className="mt-1 text-xs text-muted">
-            Orçamento Omie atualizado em {dataHora(orc.geradoEm)} · cada sincronização varre o ano
+            Orçamento {provedor.nome} atualizado em {dataHora(orc.geradoEm)} · cada sincronização varre o ano
             corrente inteiro (conclui ~5 min após o sync)
           </p>
         ) : null}
       </header>
 
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <KpiCard rotulo={`Previsto ${ANO_ATUAL} (saldo)`} valor={brl(totalPrev.entrada - totalPrev.saida)} cor="warn" nota={temOrcamento ? 'Orçamento de caixa Omie' : 'Orçamento não preenchido na Omie'} />
+        <KpiCard rotulo={`Previsto ${ANO_ATUAL} (saldo)`} valor={brl(totalPrev.entrada - totalPrev.saida)} cor="warn" nota={notaPrevisto(orcamentoNaFonte, temOrc, provedor)} />
         <KpiCard rotulo={`Realizável (em aberto)`} valor={brl(totalRzv.entrada - totalRzv.saida)} cor="secondary" nota="Títulos em aberto, por vencimento" />
-        <KpiCard rotulo={`Realizado ${ANO_ATUAL} (saldo)`} valor={brl(totalReal.entrada - totalReal.saida)} cor={totalReal.entrada - totalReal.saida >= 0 ? 'accent' : 'danger'} nota="Baixas Omie, regime caixa" />
+        <KpiCard rotulo={`Realizado ${ANO_ATUAL} (saldo)`} valor={brl(totalReal.entrada - totalReal.saida)} cor={totalReal.entrada - totalReal.saida >= 0 ? 'accent' : 'danger'} nota={`Baixas ${provedor.nome}, regime caixa`} />
       </section>
 
-      {!temOrcamento ? (
+      {!orcamentoNaFonte ? (
         <p className="rounded-card border border-warn/40 bg-warn/10 p-4 text-sm text-warn">
-          O módulo de orçamento da Omie está vazio — a coluna Previsto fica zerada até o BPO
+          O {provedor.nome} não expõe módulo de orçamento, então <strong>Previsto</strong> e{' '}
+          <strong>Realizado por baixa</strong> ficam sem fonte para este cliente — só{' '}
+          <strong>Realizável</strong> (títulos em aberto) é dado real aqui. O caixa realizado deste
+          cliente está no relatório de <strong>Fluxo de Caixa (DFC)</strong>.
+        </p>
+      ) : !temOrc ? (
+        <p className="rounded-card border border-warn/40 bg-warn/10 p-4 text-sm text-warn">
+          O módulo de orçamento {provedor.de} está vazio — a coluna Previsto fica zerada até o BPO
           preenchê-lo (ou até existir orçamento próprio no Pulsar Finance). Realizável e Realizado
           já são dados reais.
         </p>
       ) : null}
-      {!temRealizado ? (
+      {orcamentoNaFonte && !temRealizado ? (
         <p className="rounded-card border border-dashed border-bd p-6 text-center text-muted">
           Sem dados de orçamento sincronizados ainda — rode a sincronização para popular o
           realizado por baixas.
@@ -81,6 +97,11 @@ export function RelatorioPrevistoRealizado() {
       <Tabela linhas={linhas} />
     </div>
   )
+}
+
+function notaPrevisto(naFonte: boolean, preenchido: boolean, p: RotulosProvedor): string {
+  if (!naFonte) return `${p.nome} não tem módulo de orçamento`
+  return preenchido ? `Orçamento de caixa ${p.nome}` : `Orçamento não preenchido ${p.em}`
 }
 
 function montarLinhas(
@@ -97,6 +118,7 @@ function montarLinhas(
     const alvo = entrada(mes)
     for (const f of folhas) {
       // Natureza pelo prefixo do plano Omie: 1 = receita, 2 = despesa (0/transferência fora).
+      // Só o Omie chega aqui (é o único que produz orçamento), então o código é hierárquico.
       const lado = f.categoria.startsWith('1') ? 'entrada' : f.categoria.startsWith('2') ? 'saida' : null
       if (!lado) continue
       alvo.previsto[lado] += f.previstoCentavos

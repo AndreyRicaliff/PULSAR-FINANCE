@@ -4,6 +4,7 @@ import type { No, RegimeDemo } from '@/core/modelo'
 import { etiquetasContabeis } from '@/core/modelo'
 import { brl } from '@/lib/money'
 import { DropZone } from './DropZone.tsx'
+import { EtiquetaRegime } from './EtiquetaRegime.tsx'
 import { ItensLista } from './ItensLista.tsx'
 import type { ItemConc } from './tipos'
 import { itensDoNo, totalCentavos } from './util'
@@ -32,9 +33,11 @@ export function RaizCard(props: Props) {
   const total = totalCentavos(direto) + dosSubs.reduce((a, l) => a + totalCentavos(l), 0)
   const qtd = direto.length + dosSubs.reduce((a, l) => a + l.length, 0)
 
-  // Classificação só em SUBGRUPO: a raiz não aceita drop (item solto no grupo some dos gráficos).
+  // Drop no GRUPO mapeia direto na raiz (aparece em "direto"); os DropZones dos subgrupos são
+  // internos e dão stopPropagation, então soltar num subgrupo vence. Antes a raiz não aceitava
+  // drop e quem soltava no corpo do grupo não classificava nada (bug do financeiro, 2026-07-24).
   return (
-    <div className="rounded-card border border-bd bg-surface">
+    <DropZone onSoltar={(c) => onMapear(c, raiz.id)} className="rounded-card border border-bd bg-surface">
       <Cabecalho
         raiz={raiz}
         total={total}
@@ -45,7 +48,15 @@ export function RaizCard(props: Props) {
       />
       {recolhido ? null : (
         <>
-          <ItensLista itens={direto} onDesmapear={onDesmapear} onContextItem={props.onContextItem} vazio="" />
+          <ItensLista
+            itens={direto}
+            onDesmapear={onDesmapear}
+            onContextItem={props.onContextItem}
+            vazio=""
+            meta={raiz.meta}
+            metaRaiz={raiz.meta}
+            mostrarRegime={props.permiteRegime}
+          />
           {subgrupos.length === 0 ? (
             <div className="px-4 py-2 text-xs text-warn">
               Crie um subgrupo abaixo para classificar — categorias soltas no grupo não aparecem separadas nos gráficos.
@@ -55,6 +66,8 @@ export function RaizCard(props: Props) {
             <Subgrupo
               key={s.id}
               no={s}
+              raiz={raiz}
+              mostrarRegime={props.permiteRegime}
               itens={dosSubs[idx] ?? []}
               onSoltar={(c) => onMapear(c, s.id)}
               onRemover={() => onRemoveNo(s.id)}
@@ -66,7 +79,7 @@ export function RaizCard(props: Props) {
           <NovoSub onAdd={onAddSub} permiteRegime={props.permiteRegime} />
         </>
       )}
-    </div>
+    </DropZone>
   )
 }
 
@@ -124,6 +137,8 @@ function Etiquetas({ tags }: { tags: readonly string[] }) {
 
 function Subgrupo({
   no,
+  raiz,
+  mostrarRegime,
   itens,
   onSoltar,
   onRemover,
@@ -132,6 +147,8 @@ function Subgrupo({
   onContextNo,
 }: {
   no: No
+  raiz: No
+  mostrarRegime: boolean
   itens: readonly ItemConc[]
   onSoltar: (chave: string) => void
   onRemover: () => void
@@ -148,11 +165,7 @@ function Subgrupo({
       >
         <span className="flex items-center gap-2">
           <span className="text-sm font-medium text-secondary">↳ {no.nome}</span>
-          {no.meta?.regime && no.meta.regime !== 'ambos' ? (
-            <span className="rounded bg-primary/15 px-1.5 py-0.5 text-[10px] font-medium text-secondary">
-              {no.meta.regime === 'dre' ? 'Só DRE' : 'Só DFC'}
-            </span>
-          ) : null}
+          {mostrarRegime ? <EtiquetaRegime meta={no.meta} metaRaiz={raiz.meta} /> : null}
         </span>
         <div className="flex items-center gap-2">
           {itens.length > 0 ? <span className="text-xs text-muted">{itens.length}</span> : null}
@@ -162,7 +175,15 @@ function Subgrupo({
           </button>
         </div>
       </div>
-      <ItensLista itens={itens} onDesmapear={onDesmapear} onContextItem={onContextItem} vazio="" />
+      <ItensLista
+        itens={itens}
+        onDesmapear={onDesmapear}
+        onContextItem={onContextItem}
+        vazio=""
+        meta={no.meta}
+        metaRaiz={raiz.meta}
+        mostrarRegime={mostrarRegime}
+      />
     </DropZone>
   )
 }

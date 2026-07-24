@@ -1,6 +1,7 @@
 /** @file Valores por categoria com drill-down em modal. */
 import { useMemo, useState } from 'react'
 import { useCadastros } from '@/lib/cadastros'
+import { useProvedor } from '@/lib/clientes'
 import { useMovimentos } from '@/lib/movimentos'
 import { porCategoria, type LinhaCategoria } from '@/lib/agregar'
 import { codigoExibivel } from '@/core/categoria'
@@ -22,6 +23,7 @@ const VISTAS: readonly OpcaoSeg<Vista>[] = [
 ]
 
 export function ValoresPanel() {
+  const provedor = useProvedor()
   const { movimentos: todos } = useMovimentos()
   const { categorias: cad } = useCadastros()
   const [vista, setVista] = useState<Vista>('arvore')
@@ -48,7 +50,7 @@ export function ValoresPanel() {
       <header>
         <h1 className="text-2xl font-extrabold">Valores por Categoria</h1>
         <p className="text-sm text-muted">
-          Total movimentado na Omie · {movs.length} movimentos · clique numa conta para ver o detalhe
+          Total movimentado {provedor.em} · {movs.length} movimentos · clique numa conta para ver o detalhe
         </p>
       </header>
 

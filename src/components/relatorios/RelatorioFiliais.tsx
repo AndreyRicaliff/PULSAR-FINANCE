@@ -7,6 +7,7 @@
 import { useMemo } from 'react'
 import { resultadoPorFilial, type FiltroFilial, type LinhaFilial } from '@/core/filial'
 import { useCadastros } from '@/lib/cadastros'
+import { useProvedor } from '@/lib/clientes'
 import { brl } from '@/lib/money'
 import { usePeriodo } from '@/lib/periodo'
 import { useModelo } from '@/lib/useModelo'
@@ -14,6 +15,7 @@ import { useResultado } from '@/lib/useResultado'
 import { KpiCard } from '../KpiCard.tsx'
 
 export function RelatorioFiliais() {
+  const provedor = useProvedor()
   const { movimentos } = useResultado()
   const { modelo } = useModelo()
   const { nomesContrapartes } = useCadastros()
@@ -28,7 +30,7 @@ export function RelatorioFiliais() {
       <header>
         <h2 className="text-xl font-extrabold">Resultado por Filial / Centro de Custo</h2>
         <p className="text-sm text-muted">
-          Receitas e despesas separadas por filial · rateio da Omie entra sozinho no sync; o resto
+          Receitas e despesas separadas por filial · rateio {provedor.de} entra sozinho no sync; o resto
           herda automaticamente a filial da contraparte (marque 1 movimento e os irmãos seguem) —
           tudo editável por movimento no detalhamento
         </p>
@@ -39,7 +41,7 @@ export function RelatorioFiliais() {
 
       {r.linhas.length === 0 ? (
         <p className="rounded-card border border-dashed border-bd p-8 text-center text-muted">
-          Nenhum movimento atribuído a filial ainda. O rateio feito na Omie entra sozinho a cada
+          Nenhum movimento atribuído a filial ainda. O rateio feito {provedor.em} entra sozinho a cada
           sync; para o restante, abra qualquer detalhamento de movimentos (Valores, Fornecedores ou
           "Ver movimentos") e use a coluna "Filial / C. Custo".
         </p>

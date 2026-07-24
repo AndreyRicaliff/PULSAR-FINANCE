@@ -1,10 +1,13 @@
 /**
- * @file Histórico de sincronizações Omie: cada entrada compara a versão recebida com a
+ * @file Histórico de sincronizações do ERP: cada entrada compara a versão recebida com a
  * anterior (diff feito server-side na edge function). Entrada expansível mostra novos,
  * atualizados (campo a campo, de → para) e removidos — truncamento sempre sinalizado.
  */
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
+import { descricoesAmbiguas, rotuloCategoria } from '@/core/categoria'
 import type { EntradaSync, ListaCapada, MovAtualizado, ResumoMov } from '@/core/sync-historico'
+import { useCadastros } from '@/lib/cadastros'
+import { useProvedor } from '@/lib/clientes'
 import { dataHora } from '@/lib/datas'
 import { brl } from '@/lib/money'
 
@@ -17,6 +20,20 @@ const ROTULO_CAMPO: Readonly<Record<string, string>> = {
   descontoCentavos: 'Desconto',
   status: 'Status',
   liquidado: 'Liquidado',
+}
+
+/**
+ * Código de categoria vira nome legível. Omie usa código hierárquico ('2.01.03'), Nibo usa
+ * GUID — imprimir cru deixava a tela de conferência ilegível para tenant Nibo.
+ */
+function useRotuloCategoria(): (codigo: string) => string {
+  const { categorias } = useCadastros()
+  const descricao = useMemo(
+    () => new Map(categorias.categorias.map((c) => [c.codigo, c.descricao])),
+    [categorias],
+  )
+  const ambiguas = useMemo(() => descricoesAmbiguas(categorias.categorias), [categorias])
+  return (codigo) => (codigo ? rotuloCategoria(codigo, descricao.get(codigo) ?? '', ambiguas) : '—')
 }
 
 function valorCampo(campo: string, v: string | number): string {
@@ -101,6 +118,7 @@ function Detalhes({ entrada }: { entrada: EntradaSync }) {
 }
 
 function BlocoMovs({ titulo, cor, lista }: { titulo: string; cor: string; lista: ListaCapada<ResumoMov> }) {
+  const rotuloCat = useRotuloCategoria()
   if (lista.total === 0) return null
   return (
     <div>
@@ -113,7 +131,9 @@ function BlocoMovs({ titulo, cor, lista }: { titulo: string; cor: string; lista:
               <td className="max-w-0 truncate py-1 pr-2" title={`${m.documento} · ${m.contraparte}`}>
                 {m.documento || m.contraparte || 'sem documento'}
               </td>
-              <td className="py-1 pr-2 text-muted">{m.categoria}</td>
+              <td className="max-w-0 truncate py-1 pr-2 text-muted" title={rotuloCat(m.categoria)}>
+                {rotuloCat(m.categoria)}
+              </td>
               <td className={`py-1 text-right tabular-nums ${m.natureza.toUpperCase() === 'R' ? 'text-accent' : 'text-danger'}`}>
                 {brl(m.valorCentavos)}
               </td>
@@ -127,6 +147,7 @@ function BlocoMovs({ titulo, cor, lista }: { titulo: string; cor: string; lista:
 }
 
 function BlocoAtualizados({ lista }: { lista: ListaCapada<MovAtualizado> }) {
+  const rotuloCat = useRotuloCategoria()
   if (lista.total === 0) return null
   return (
     <div>
@@ -136,7 +157,7 @@ function BlocoAtualizados({ lista }: { lista: ListaCapada<MovAtualizado> }) {
           <div key={`${a.mov.documento}-${i}`} className="rounded-lg bg-surface2/40 px-3 py-2">
             <p className="truncate text-xs font-medium" title={a.mov.contraparte}>
               {a.mov.documento || a.mov.contraparte || 'sem documento'}
-              <span className="ml-2 font-normal text-muted">{a.mov.categoria} · {a.mov.data}</span>
+              <span className="ml-2 font-normal text-muted">{rotuloCat(a.mov.categoria)} · {a.mov.data}</span>
             </p>
             {a.mudancas.map((m) => (
               <p key={m.campo} className="mt-0.5 text-xs tabular-nums text-muted">
@@ -153,10 +174,11 @@ function BlocoAtualizados({ lista }: { lista: ListaCapada<MovAtualizado> }) {
 }
 
 function Truncado({ lista }: { lista: ListaCapada<unknown> }) {
+  const provedor = useProvedor()
   if (!lista.truncado) return null
   return (
     <p className="mt-1 text-[11px] text-warn">
-      Mostrando {lista.itens.length} de {lista.total} — detalhe completo fica na Omie.
+      Mostrando {lista.itens.length} de {lista.total} — detalhe completo fica {provedor.em}.
     </p>
   )
 }

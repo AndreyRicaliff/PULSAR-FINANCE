@@ -121,11 +121,17 @@ export function LinhaTempo({ pontos, cor = 'rgb(var(--c-accent))' }: { pontos: r
             style={{ animationDelay: `${(i / (n - 1)) * 0.8}s` }}
           />
         ))}
-        {pontos.map((p, i) => (
-          <text key={`r-${p.rotulo}`} x={x(i)} y={H - 8} textAnchor="middle" className="fill-muted" style={{ fontSize: 9 }}>
-            {p.rotulo}
-          </text>
-        ))}
+        {/* Rótulos esparsos: ~8 no máximo (senão o eixo vira um borrão) — sempre o primeiro e o último. */}
+        {pontos.map((p, i) => {
+          const passo = Math.max(1, Math.round(n / 8))
+          if (i % passo !== 0 && i !== n - 1) return null
+          const anchor = i === 0 ? 'start' : i === n - 1 ? 'end' : 'middle'
+          return (
+            <text key={`r-${p.rotulo}`} x={x(i)} y={H - 8} textAnchor={anchor} className="fill-muted" style={{ fontSize: 9 }}>
+              {p.rotulo}
+            </text>
+          )
+        })}
       </svg>
       {tip.tooltip}
     </>

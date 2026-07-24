@@ -3,6 +3,8 @@
  * Não confundir com `cliente.ts` (ClienteInfo = contraparte da Omie, cliente DO tenant).
  * UI chama isto de "Clientes". Acme tem id fixo para migrar o estado já existente.
  */
+import type { Provedor } from './provedor'
+
 export const ACME_ID = '00000000-0000-4000-8000-000000000036'
 
 export interface Tenant {
@@ -10,10 +12,12 @@ export interface Tenant {
   readonly nome: string
   readonly documento: string | null
   readonly ativo: boolean
+  /** ERP de origem — projeção de painel_credenciais mantida por trigger. NULL = sem integração. */
+  readonly provedor: Provedor | null
   readonly criadoEm?: string
 }
 
-export const ACME: Tenant = { id: ACME_ID, nome: 'Acme', documento: null, ativo: true }
+export const ACME: Tenant = { id: ACME_ID, nome: 'Acme', documento: null, ativo: true, provedor: 'omie' }
 
 /** ACME 27 — segundo tenant em produção (painel_clientes). ACME_ID é o 36. */
 export const ACME_27_ID = '00000000-0000-4000-8000-000000000027'

@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { normalizarHistorico, type EntradaSync } from '@/core/sync-historico'
 import { chaveDoCliente } from '@/core/tenant'
+import { useProvedor } from './clientes'
 import { supabase } from './supabase'
 
 export interface ResumoSync {
@@ -53,6 +54,7 @@ export interface SyncApi extends Estado {
 
 /** Dispara o sync server-side (Edge Function sync-omie) e expõe o histórico de execuções. */
 export function useSync(clienteId: string, nomeCliente: string): SyncApi {
+  const { nome: provedor } = useProvedor()
   const [estado, setEstado] = useState<Estado>({ status: 'idle', etapa: '', historico: [] })
 
   const carregar = useCallback(async (): Promise<Pick<Estado, 'historico' | 'ultimo'>> => {
@@ -77,7 +79,7 @@ export function useSync(clienteId: string, nomeCliente: string): SyncApi {
       setEstado((e) => ({ ...e, status: 'erro', msg: 'Supabase não configurado.' }))
       return
     }
-    setEstado((e) => ({ ...e, status: 'rodando', etapa: 'Conectando à Omie…', msg: undefined }))
+    setEstado((e) => ({ ...e, status: 'rodando', etapa: `Conectando ao ${provedor}…`, msg: undefined }))
     try {
       const { data, error } = await supabase.functions.invoke('sync-omie', {
         body: { clienteId, cliente: nomeCliente },
@@ -90,13 +92,15 @@ export function useSync(clienteId: string, nomeCliente: string): SyncApi {
       const msg = e instanceof Error ? e.message : 'Falha na sincronização'
       setEstado((prev) => ({ ...prev, status: 'erro', etapa: '', msg: traduzir(msg) }))
     }
-  }, [clienteId, nomeCliente, carregar])
+  }, [clienteId, nomeCliente, carregar, provedor])
 
   return { ...estado, sincronizar }
 }
 
 function traduzir(msg: string): string {
-  if (/sem credenciais Omie/i.test(msg)) return 'Este cliente ainda não tem credenciais Omie cadastradas — configure antes de sincronizar.'
+  // A edge devolve 'Cliente sem credenciais configuradas…' — o filtro antigo exigia a
+  // palavra 'Omie' e por isso nunca casava: o usuário via a mensagem crua do servidor.
+  if (/sem credenciais/i.test(msg)) return 'Este cliente ainda não tem credenciais de ERP cadastradas — configure antes de sincronizar.'
   if (/Function not found|404|not found/i.test(msg)) return 'A função de sync ainda não foi publicada no Supabase.'
   if (/Failed to fetch|network/i.test(msg)) return 'Sem conexão com o servidor de sync.'
   return msg

@@ -1,7 +1,11 @@
-/** @file Barra superior: cliente ativo, música ambiente, tema e sessão. */
+/** @file Barra superior: cliente ativo, música ambiente, tema, definir senha e sessão. */
+import { useMemo, useState } from 'react'
+import { rotulosProvedor } from '@/core/provedor'
+import type { Tenant } from '@/core/tenant'
 import { useClientes } from '@/lib/clientes'
 import { useSomMaster } from '@/lib/useMusicaAmbiente'
 import type { Tema } from '@/lib/useTema'
+import { DefinirSenha } from './DefinirSenha.tsx'
 
 interface Props {
   readonly titulo: string
@@ -14,6 +18,7 @@ interface Props {
 }
 
 export function Topbar({ titulo, tema, onAlternarTema, email, onSair, menuAberto, onAlternarMenu }: Props) {
+  const [senhaAberta, setSenhaAberta] = useState(false)
   return (
     <header className="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-bd bg-bg/80 px-8 py-4 backdrop-blur">
       <div className="flex items-center gap-4">
@@ -36,6 +41,14 @@ export function Topbar({ titulo, tema, onAlternarTema, email, onSair, menuAberto
         <ToggleMusica />
         <ToggleTema tema={tema} onAlternar={onAlternarTema} />
         {email ? <span className="hidden text-sm text-muted lg:inline">{email}</span> : null}
+        <button
+          type="button"
+          onClick={() => setSenhaAberta(true)}
+          title="Definir senha"
+          className="grid h-9 w-9 place-items-center rounded-lg border border-bd bg-surface text-base text-muted transition-all duration-200 hover:scale-105 hover:text-primary"
+        >
+          ⚿
+        </button>
         {onSair ? (
           <button
             type="button"
@@ -47,12 +60,22 @@ export function Topbar({ titulo, tema, onAlternarTema, email, onSair, menuAberto
           </button>
         ) : null}
       </div>
+      {senhaAberta ? <DefinirSenha email={email} onFechar={() => setSenhaAberta(false)} /> : null}
     </header>
   )
 }
 
 function SeletorCliente() {
   const { clientes, ativo, selecionar } = useClientes()
+  // Mesma loja pode existir em Omie E Nibo (re-onboarding). Nomes repetidos ganham o provedor
+  // no rótulo da opção — o <select> nativo só aceita texto, então a etiqueta vai no label.
+  const repetidos = useMemo(() => {
+    const cont = new Map<string, number>()
+    for (const c of clientes) cont.set(c.nome, (cont.get(c.nome) ?? 0) + 1)
+    return new Set([...cont].filter(([, n]) => n > 1).map(([nome]) => nome))
+  }, [clientes])
+  const rotulo = (c: Tenant) =>
+    repetidos.has(c.nome) ? `${c.nome} · ${rotulosProvedor(c.provedor).nome}` : c.nome
   return (
     <label className="flex items-center gap-2 rounded-lg border border-bd bg-surface px-3 py-1.5">
       <span className="pulso-vivo h-1.5 w-1.5 rounded-full bg-accent shadow-[0_0_8px_rgb(var(--c-accent)/0.6)]" />
@@ -64,11 +87,23 @@ function SeletorCliente() {
       >
         {clientes.map((c) => (
           <option key={c.id} value={c.id} className="bg-surface text-text">
-            {c.nome}
+            {rotulo(c)}
           </option>
         ))}
       </select>
+      <TagProvedor provedor={ativo.provedor} />
     </label>
+  )
+}
+
+/** Etiqueta sóbria do ERP do cliente ativo (sempre visível — some quando não há integração). */
+function TagProvedor({ provedor }: { provedor: Tenant['provedor'] }) {
+  if (!provedor) return null
+  const cor = provedor === 'nibo' ? 'text-secondary border-secondary/40' : 'text-accent border-accent/40'
+  return (
+    <span className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${cor}`}>
+      {rotulosProvedor(provedor).nome}
+    </span>
   )
 }
 

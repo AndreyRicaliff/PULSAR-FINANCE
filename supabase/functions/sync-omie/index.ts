@@ -370,6 +370,213 @@ async function gravarCadastros(env, chave, cadastros) {
   })
 }
 
+// ── NIBO (Fase 2): adapter → MESMA forma canônica do Omie ─────────────────────
+// Verificado contra a doc oficial (nibo.readme.io, 2026-07-22): base /empresas/v1,
+// header ApiToken, OData $top/$skip/$orderby (orderby obrigatório), teto 500/página,
+// resposta { items, count }. GET /schedules unifica Credit (R) e Debit (P).
+// Pendente de validação campo-a-campo com apitoken real (rito do PLANO_NIBO §2).
+
+const NIBO_TOP = 500
+
+// NIBO devolve paidValue NEGATIVO em débito; o app usa magnitude + sinal pela natureza
+// (R entra / P sai). Sem normalizar, movimentosCaixa() — que filtra valorPago > 0 — jogaria
+// TODO pagamento fora da DFC (fluxo só com entradas). Pego na 1ª carga real, 2026-07-22.
+const centAbs = (v) => Math.abs(cent(v))
+
+const isoParaBR = (s) => {
+  const p = str(s).slice(0, 10).split('-')
+  return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : ''
+}
+
+async function niboGet(env, recurso, params) {
+  const url = new URL(`${env.NIBO_BASE_URL}/${recurso}`)
+  for (const [k, v] of Object.entries(params ?? {})) url.searchParams.set(k, v)
+  for (let tentativa = 1; ; tentativa++) {
+    const res = await fetch(url, { headers: { ApiToken: env.NIBO_APITOKEN, Accept: 'application/json' } })
+    if ((res.status === 429 || res.status >= 500) && tentativa < 3) { await espera(8000); continue }
+    if (!res.ok) throw new Error(`NIBO ${recurso}: HTTP ${res.status} ${(await res.text()).slice(0, 180)}`)
+    return res.json()
+  }
+}
+
+async function niboListar(env, recurso, orderby) {
+  const itens = []
+  for (let pagina = 0; pagina < MAX_PAGINAS; pagina++) {
+    const r = await niboGet(env, recurso, { $orderby: orderby, $top: String(NIBO_TOP), $skip: String(pagina * NIBO_TOP) })
+    const lote = Array.isArray(r?.items) ? r.items : []
+    itens.push(...lote)
+    const total = num(r?.count)
+    if (lote.length === 0 || (total > 0 && itens.length >= total)) return itens
+  }
+  console.error(`[sync] TRUNCADO: NIBO ${recurso} passou de ${MAX_PAGINAS * NIBO_TOP} itens — dado PARCIAL.`)
+  return itens
+}
+
+// Categoria do agendamento: primeira da lista (rateio multi-categoria vira a principal).
+const categoriaDoSchedule = (s) => str(obj((s.categories ?? [])[0]).categoryId)
+
+// Centro de custo de maior peso — espelha departamentoPrincipal do Omie.
+function centroPrincipal(ccs) {
+  if (!Array.isArray(ccs) || ccs.length === 0) return ''
+  const ord = [...ccs].sort((a, b) => (num(obj(b).percent) || num(obj(b).value)) - (num(obj(a).percent) || num(obj(a).value)))
+  return str(obj(ord[0]).costCenterId)
+}
+
+// Rótulos idênticos aos do Omie — os filtros do app listam valores distintos deste campo.
+function statusSchedule(s) {
+  if (s.isPaid) return s.type === 'Credit' ? 'RECEBIDO' : 'PAGO'
+  return s.isDued ? 'ATRASADO' : 'A VENCER'
+}
+
+function extrairMovimentoNibo(s) {
+  const stak = obj(s.stakeholder)
+  const vencBR = isoParaBR(s.dueDate)
+  const compBR = isoParaBR(s.accrualDate)
+  return {
+    idTitulo: str(s.scheduleId), categoria: categoriaDoSchedule(s) || 'SEM_CATEGORIA',
+    valorCentavos: centAbs(s.value),
+    // Auditoria: schedule NIBO não expõe data de baixa na listagem — pago aproxima baixa=vencimento.
+    campoValor: s.isPaid ? 'nibo:baixa~vencimento' : 'nibo:value',
+    data: compBR || vencBR || isoParaBR(s.createDate),
+    dataEmissao: compBR, dataRegistro: isoParaBR(s.createDate), dataPrevisao: isoParaBR(s.scheduleDate),
+    dataVencimento: vencBR, dataPagamento: s.isPaid ? vencBR : '', dataConciliacao: '',
+    status: statusSchedule(s), liquidado: s.isPaid ? 'S' : 'N',
+    documento: str(s.reference), parcela: '',
+    // Semântica NIBO: contraparte = NOME do stakeholder; código = GUID (resolve no cadastro).
+    contraparte: str(stak.name), contraparteCodigo: str(stak.id),
+    natureza: s.type === 'Credit' ? 'R' : 'P', grupo: '', origem: 'NIBO', tipoDocumento: '',
+    operacao: '', contaCorrente: '', departamento: centroPrincipal(s.costCenters), idMovCC: '',
+    jurosCentavos: 0, multaCentavos: 0, descontoCentavos: 0,
+    valorPagoCentavos: centAbs(s.paidValue), valorAbertoCentavos: centAbs(s.openValue),
+  }
+}
+
+function mapearTituloNibo(s) {
+  return {
+    id: str(s.scheduleId), natureza: s.type === 'Credit' ? 'R' : 'P', status: statusSchedule(s),
+    dataEmissao: isoParaBR(s.accrualDate), dataVencimento: isoParaBR(s.dueDate), dataPrevisao: isoParaBR(s.scheduleDate),
+    valorCentavos: centAbs(s.value), documento: str(s.reference), categoria: categoriaDoSchedule(s),
+    fornecedorCodigo: str(obj(s.stakeholder).id), parcela: '', contaCorrente: '',
+  }
+}
+
+const naturezaNibo = (t) => {
+  const s = str(t).toLowerCase()
+  if (s === 'in' || /receita|receb|credit/.test(s)) return 'receita'
+  if (s === 'out' || /despesa|pag|debit/.test(s)) return 'despesa'
+  return 'outra'
+}
+
+// Plano NIBO tem 3 NÍVEIS (validado com dado real 2026-07-22): group → subgroup → categoria.
+// O Omie traz isso embutido no código ('1.01.02'); aqui vem em campos separados, então as
+// agrupadoras são sintetizadas — sem isso o Plano de Contas perderia o nível do subgrupo.
+function mapearCategoriasNibo(brutas) {
+  const grupos = new Map()
+  const subs = new Map()
+  const cats = brutas.map((c) => {
+    const g = obj(c.group)
+    const gid = str(g.id), sid = str(c.subgroupId)
+    const nat = naturezaNibo(c.type)
+    if (gid && !grupos.has(gid)) grupos.set(gid, { nome: str(g.name), nat })
+    if (sid && !subs.has(sid)) subs.set(sid, { nome: str(c.subgroupName), pai: gid || null, nat })
+    return {
+      codigo: str(c.id), descricao: str(c.name), natureza: nat,
+      paiCodigo: sid || gid || null, agrupadora: false, ativa: true, entraNoDre: true,
+    }
+  })
+  const agrupadora = (codigo, descricao, natureza, paiCodigo) => ({
+    codigo, descricao, natureza, paiCodigo, agrupadora: true, ativa: true, entraNoDre: false,
+  })
+  return [
+    ...[...grupos].map(([id, g]) => agrupadora(id, g.nome, g.nat, null)),
+    ...[...subs].map(([id, s]) => agrupadora(id, s.nome, s.nat, s.pai)),
+    ...cats,
+  ]
+}
+
+async function buscarCadastrosNibo(env) {
+  const [cats, stks, ccs] = await Promise.all([
+    niboListar(env, 'categories', 'name'),
+    niboListar(env, 'stakeholders', 'name'),
+    niboListar(env, 'costcenters', 'description'),
+  ])
+  const clientes = {}
+  for (const s of stks) {
+    const id = str(s.id)
+    if (id) clientes[id] = { nome: str(s.name), doc: str(obj(s.document).number) }
+  }
+  const categorias = mapearCategoriasNibo(cats)
+  return {
+    categorias,
+    relatorio: relatorioCategorias(categorias),
+    clientes,
+    departamentos: ccs.map((c) => ({
+      codigo: str(c.id ?? c.costCenterId), descricao: str(c.description ?? c.name), estrutura: '', inativo: false,
+    })),
+  }
+}
+
+// /categories NÃO devolve categorias arquivadas que os schedules ainda referenciam (52 de 95
+// na 1ª carga real). O próprio schedule carrega categoryName/parent — completamos o cadastro
+// AQUI, na ingestão; sem isso o GUID cru vazaria como nome na tela (pendência 2026-07-14).
+function completarCategoriasComSchedules(categorias, schedules) {
+  const existentes = new Set(categorias.map((c) => c.codigo))
+  const extras = new Map(), pais = new Map()
+  for (const s of schedules) {
+    for (const bruta of s.categories ?? []) {
+      const c = obj(bruta)
+      const id = str(c.categoryId)
+      if (!id || existentes.has(id) || extras.has(id)) continue
+      const paiId = str(c.parentId)
+      extras.set(id, {
+        codigo: id, descricao: str(c.categoryName) || id, natureza: naturezaNibo(c.type),
+        paiCodigo: paiId || null, agrupadora: false, ativa: true, entraNoDre: true,
+      })
+      if (paiId && !existentes.has(paiId) && !pais.has(paiId)) {
+        pais.set(paiId, {
+          codigo: paiId, descricao: str(c.parent) || paiId, natureza: naturezaNibo(c.type),
+          paiCodigo: null, agrupadora: true, ativa: true, entraNoDre: false,
+        })
+      }
+    }
+  }
+  return [...categorias, ...pais.values(), ...extras.values()]
+}
+
+// Natureza de agrupadora pela PREDOMINANTE das filhas — pegar a "primeira filha" classificava
+// "Receitas operacionais" como despesa (pego na 1ª carga real). Grupo é cabeçalho: o que vale
+// é o que a maioria das analíticas abaixo dele é.
+function ajustarNaturezaAgrupadoras(categorias) {
+  const porPai = new Map()
+  for (const c of categorias) {
+    if (c.agrupadora || !c.paiCodigo) continue
+    const cont = porPai.get(c.paiCodigo) ?? {}
+    cont[c.natureza] = (cont[c.natureza] ?? 0) + 1
+    porPai.set(c.paiCodigo, cont)
+  }
+  return categorias.map((c) => {
+    if (!c.agrupadora) return c
+    const cont = porPai.get(c.codigo)
+    if (!cont) return c
+    const [predominante] = Object.entries(cont).sort((a, b) => b[1] - a[1])[0]
+    return { ...c, natureza: predominante }
+  })
+}
+
+// Uma varredura de /schedules alimenta movimentos E títulos (mesma fonte no NIBO).
+async function buscarTudoNibo(env) {
+  const [schedules, base] = await Promise.all([
+    niboListar(env, 'schedules', 'dueDate'),
+    buscarCadastrosNibo(env),
+  ])
+  const categorias = ajustarNaturezaAgrupadoras(completarCategoriasComSchedules(base.categorias, schedules))
+  return {
+    movimentos: schedules.map(extrairMovimentoNibo),
+    titulos: schedules.map(mapearTituloNibo),
+    cadastros: { ...base, categorias, relatorio: relatorioCategorias(categorias) },
+  }
+}
+
 // ── Credenciais POR CLIENTE, ciente do PROVEDOR (omie | nibo) ─────────────────
 // painel_credenciais é service-role-only (RLS sem policies). SEM fallback de env:
 // cliente sem credencial PRÓPRIA não sincroniza (erro claro). Devolve { provedor, env }
@@ -447,14 +654,25 @@ Deno.serve(async (req) => {
       // 200 com payload de erro: o supabase-js engole o corpo de respostas non-2xx.
       return new Response(JSON.stringify({ error: e instanceof Error ? e.message : 'credenciais' }), { headers: { ...cors, 'Content-Type': 'application/json' } })
     }
-    // Seam multi-provedor: Omie segue o caminho abaixo; NIBO é reconhecido e recusado
-    // limpo até o adapter existir (fail-closed — nunca grava lixo no painel_estado).
-    if (cred.provedor !== 'omie') return naoImplementado(cred.provedor)
-    const envOmie = cred.env
-    const [atuais, brutos, cadastros, titulos] = await Promise.all([
-      lerDoc(env, chave), buscarOmie(envOmie), buscarCadastros(envOmie), buscarTitulos(envOmie),
-    ])
-    const recebidosTodos = await enriquecerDepartamentos(envOmie, brutos)
+    // Seam multi-provedor: cada provedor produz a MESMA forma canônica; daqui pra baixo
+    // (diff, gravação, histórico) o pipeline não sabe a origem. Desconhecido = fail-closed.
+    if (cred.provedor !== 'omie' && cred.provedor !== 'nibo') return naoImplementado(cred.provedor)
+    const envProv = cred.env
+    let recebidosTodos, cadastros, titulos
+    const atuais = await lerDoc(env, chave)
+    if (cred.provedor === 'nibo') {
+      const nibo = await buscarTudoNibo(envProv)
+      recebidosTodos = nibo.movimentos
+      cadastros = nibo.cadastros
+      titulos = nibo.titulos
+    } else {
+      const [brutos, cads, tits] = await Promise.all([
+        buscarOmie(envProv), buscarCadastros(envProv), buscarTitulos(envProv),
+      ])
+      cadastros = cads
+      titulos = tits
+      recebidosTodos = await enriquecerDepartamentos(envProv, brutos)
+    }
     // Piso de ingestão opcional (ISO 'aaaa-mm-dd'): só grava movimentos a partir desta data.
     // Sem `desde`, comportamento inalterado (outros clientes não são afetados).
     const isoBR = (s: string) => { const p = (s || '').split('/'); return p.length === 3 ? `${p[2]}-${p[1].padStart(2, '0')}-${p[0].padStart(2, '0')}` : '' }
@@ -470,9 +688,12 @@ Deno.serve(async (req) => {
       gravarHistorico(env, chaveHist, entrada),
     ])
     // Orçamento continua em background após a resposta (rate-limit exige ~4,5 min).
-    const tarefaOrcamento = atualizarOrcamento(envOmie, chaveOrc)
-    if (typeof EdgeRuntime !== 'undefined' && EdgeRuntime.waitUntil) EdgeRuntime.waitUntil(tarefaOrcamento)
-    else await tarefaOrcamento
+    // Só Omie: NIBO não expõe orçamento equivalente (PLANO_NIBO — omitir, não inventar).
+    if (cred.provedor === 'omie') {
+      const tarefaOrcamento = atualizarOrcamento(envProv, chaveOrc)
+      if (typeof EdgeRuntime !== 'undefined' && EdgeRuntime.waitUntil) EdgeRuntime.waitUntil(tarefaOrcamento)
+      else await tarefaOrcamento
+    }
     return new Response(
       JSON.stringify({
         novos: d.novos.length, atualizados: d.atualizados.length, removidos: d.removidos.length, total: recebidos.length,

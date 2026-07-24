@@ -1,0 +1,261 @@
+/** @file Painel de Acessos (operador): cria/reseta/remove logins de cliente via edge manage-user. */
+import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from 'react'
+import { useClientes } from '@/lib/clientes'
+import {
+  criarAcesso,
+  listarAcessos,
+  redefinirSenhaAcesso,
+  removerAcesso,
+  type AcessoConta,
+} from '@/lib/acessos'
+import type { Tenant } from '@/core/tenant'
+
+export function AcessosPanel() {
+  const { clientes } = useClientes()
+  const [contas, setContas] = useState<AcessoConta[] | null>(null)
+  const [erro, setErro] = useState('')
+  const [novo, setNovo] = useState(false)
+
+  const recarregar = useCallback(async () => {
+    setErro('')
+    try {
+      setContas(await listarAcessos())
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : 'Falha ao listar acessos')
+      setContas([])
+    }
+  }, [])
+
+  useEffect(() => {
+    void recarregar()
+  }, [recarregar])
+
+  return (
+    <div className="flex flex-col gap-6">
+      <header className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-extrabold">Acessos</h1>
+          <p className="text-sm text-muted">
+            Logins de cliente — <strong className="text-text">login + senha</strong>, sem e-mail. Você cria e
+            reseta aqui; o cliente entra e vê só o HUD do tenant dele.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setNovo(true)}
+          className="fx-press rounded-lg bg-gradient-to-r from-primary to-secondary px-4 py-2 text-sm font-semibold text-white"
+        >
+          Novo acesso
+        </button>
+      </header>
+
+      {erro ? (
+        <p className="rounded-card border border-danger/30 bg-danger/10 px-4 py-2 text-sm text-danger">{erro}</p>
+      ) : null}
+
+      {contas === null ? (
+        <p className="text-sm text-muted">Carregando…</p>
+      ) : contas.length === 0 ? (
+        <p className="rounded-card border border-bd bg-surface p-6 text-sm text-muted">
+          Nenhum acesso ainda — crie o primeiro em “Novo acesso”.
+        </p>
+      ) : (
+        <div className="overflow-hidden rounded-card border border-bd bg-surface">
+          <table className="w-full text-sm">
+            <thead className="border-b border-bd text-left text-xs uppercase tracking-wide text-muted">
+              <tr>
+                <th className="px-4 py-3">Login</th>
+                <th className="px-4 py-3">Papel</th>
+                <th className="px-4 py-3">Empresas</th>
+                <th className="px-4 py-3">Último acesso</th>
+                <th className="px-4 py-3 text-right">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              {contas.map((c) => (
+                <Linha key={c.user_id} conta={c} onMudou={recarregar} />
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {novo ? <ModalNovo clientes={clientes} onFechar={() => setNovo(false)} onCriou={recarregar} /> : null}
+    </div>
+  )
+}
+
+function Linha({ conta, onMudou }: { conta: AcessoConta; onMudou: () => Promise<void> }) {
+  const [resetar, setResetar] = useState(false)
+  const [removendo, setRemovendo] = useState(false)
+
+  async function remover() {
+    if (!confirm(`Remover o acesso "${conta.login}"? A conta de login será excluída.`)) return
+    setRemovendo(true)
+    try {
+      await removerAcesso(conta.user_id)
+      await onMudou()
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Falha ao remover')
+    } finally {
+      setRemovendo(false)
+    }
+  }
+
+  return (
+    <tr className="border-b border-bd/50 last:border-0">
+      <td className="px-4 py-3 font-medium">{conta.login}</td>
+      <td className="px-4 py-3">
+        <span
+          className={`rounded px-2 py-0.5 text-[11px] font-medium ${
+            conta.papel === 'operador' ? 'bg-secondary/15 text-secondary' : 'bg-primary/15 text-primary'
+          }`}
+        >
+          {conta.papel}
+        </span>
+      </td>
+      <td className="px-4 py-3 text-muted">
+        {conta.papel === 'operador' ? 'todas' : conta.empresas.map((e) => e.nome).join(', ') || '—'}
+      </td>
+      <td className="px-4 py-3 text-muted">
+        {conta.last_sign_in_at ? new Date(conta.last_sign_in_at).toLocaleDateString('pt-BR') : 'nunca'}
+      </td>
+      <td className="px-4 py-3 text-right">
+        <div className="flex justify-end gap-2">
+          <button
+            type="button"
+            onClick={() => setResetar(true)}
+            className="rounded-lg border border-bd px-3 py-1 text-xs text-muted hover:border-primary hover:text-text"
+          >
+            Redefinir senha
+          </button>
+          <button
+            type="button"
+            onClick={remover}
+            disabled={removendo}
+            className="rounded-lg border border-bd px-3 py-1 text-xs text-muted hover:border-danger hover:text-danger disabled:opacity-50"
+          >
+            Remover
+          </button>
+        </div>
+        {resetar ? <ModalSenha conta={conta} onFechar={() => setResetar(false)} /> : null}
+      </td>
+    </tr>
+  )
+}
+
+const CLASSE_INPUT =
+  'rounded-lg border border-bd bg-surface2 px-4 py-2.5 text-sm outline-none focus:border-primary'
+
+function ModalSenha({ conta, onFechar }: { conta: AcessoConta; onFechar: () => void }) {
+  const [senha, setSenha] = useState('')
+  const [erro, setErro] = useState('')
+  const [ok, setOk] = useState(false)
+  const [salvando, setSalvando] = useState(false)
+
+  async function salvar(e: FormEvent) {
+    e.preventDefault()
+    if (senha.length < 6) return setErro('A senha precisa ter ao menos 6 caracteres.')
+    setErro('')
+    setSalvando(true)
+    try {
+      await redefinirSenhaAcesso(conta.user_id, senha)
+      setOk(true)
+    } catch (err) {
+      setErro(err instanceof Error ? err.message : 'Falha ao redefinir')
+    } finally {
+      setSalvando(false)
+    }
+  }
+
+  return (
+    <Modal onFechar={onFechar} titulo={`Redefinir senha · ${conta.login}`}>
+      {ok ? (
+        <div className="flex flex-col gap-3">
+          <p className="text-sm text-accent">Senha redefinida ✓ Passe a nova senha ao cliente.</p>
+          <button type="button" onClick={onFechar} className="rounded-lg bg-gradient-to-r from-primary to-secondary px-4 py-2 text-sm font-semibold text-white">
+            Fechar
+          </button>
+        </div>
+      ) : (
+        <form onSubmit={salvar} className="flex flex-col gap-3">
+          <input type="text" value={senha} onChange={(e) => setSenha(e.target.value)} placeholder="Nova senha (mín. 6)" autoFocus required className={CLASSE_INPUT} />
+          {erro ? <p className="text-xs text-danger">{erro}</p> : null}
+          <button type="submit" disabled={salvando} className="rounded-lg bg-gradient-to-r from-primary to-secondary px-4 py-2 text-sm font-semibold text-white disabled:opacity-60">
+            {salvando ? '…' : 'Salvar'}
+          </button>
+        </form>
+      )}
+    </Modal>
+  )
+}
+
+function ModalNovo({ clientes, onFechar, onCriou }: { clientes: readonly Tenant[]; onFechar: () => void; onCriou: () => Promise<void> }) {
+  const [login, setLogin] = useState('')
+  const [senha, setSenha] = useState('')
+  const [ids, setIds] = useState<string[]>([])
+  const [erro, setErro] = useState('')
+  const [salvando, setSalvando] = useState(false)
+
+  function alternar(id: string) {
+    setIds((xs) => (xs.includes(id) ? xs.filter((x) => x !== id) : [...xs, id]))
+  }
+
+  async function salvar(e: FormEvent) {
+    e.preventDefault()
+    if (!login.trim()) return setErro('Informe o login.')
+    if (senha.length < 6) return setErro('A senha precisa ter ao menos 6 caracteres.')
+    if (ids.length === 0) return setErro('Selecione ao menos uma empresa.')
+    setErro('')
+    setSalvando(true)
+    try {
+      await criarAcesso(login.trim(), senha, ids, 'cliente')
+      await onCriou()
+      onFechar()
+    } catch (err) {
+      setErro(err instanceof Error ? err.message : 'Falha ao criar acesso')
+      setSalvando(false)
+    }
+  }
+
+  return (
+    <Modal onFechar={onFechar} titulo="Novo acesso de cliente">
+      <form onSubmit={salvar} className="flex flex-col gap-3">
+        <label className="flex flex-col gap-1 text-xs uppercase tracking-wide text-muted">
+          Login
+          <input type="text" value={login} onChange={(e) => setLogin(e.target.value)} placeholder="ex.: autag" autoComplete="off" autoFocus required className={CLASSE_INPUT} />
+        </label>
+        <label className="flex flex-col gap-1 text-xs uppercase tracking-wide text-muted">
+          Senha
+          <input type="text" value={senha} onChange={(e) => setSenha(e.target.value)} placeholder="mín. 6 caracteres" autoComplete="off" required className={CLASSE_INPUT} />
+        </label>
+        <fieldset className="flex flex-col gap-1">
+          <legend className="mb-1 text-xs uppercase tracking-wide text-muted">Empresas que o cliente vê</legend>
+          <div className="flex max-h-40 flex-col gap-1 overflow-auto rounded-lg border border-bd bg-surface2 p-2">
+            {clientes.map((c) => (
+              <label key={c.id} className="flex cursor-pointer items-center gap-2 rounded px-2 py-1 text-sm hover:bg-surface3">
+                <input type="checkbox" checked={ids.includes(c.id)} onChange={() => alternar(c.id)} />
+                {c.nome}
+              </label>
+            ))}
+          </div>
+        </fieldset>
+        {erro ? <p className="text-xs text-danger">{erro}</p> : null}
+        <button type="submit" disabled={salvando} className="mt-1 rounded-lg bg-gradient-to-r from-primary to-secondary px-4 py-2 text-sm font-semibold text-white disabled:opacity-60">
+          {salvando ? '…' : 'Criar acesso'}
+        </button>
+      </form>
+    </Modal>
+  )
+}
+
+function Modal({ titulo, children, onFechar }: { titulo: string; children: ReactNode; onFechar: () => void }) {
+  return (
+    <div className="anim-fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onFechar}>
+      <div className="anim-pop w-full max-w-sm rounded-card border border-bd bg-surface p-6" onClick={(e) => e.stopPropagation()}>
+        <h2 className="mb-3 text-lg font-bold">{titulo}</h2>
+        {children}
+      </div>
+    </div>
+  )
+}

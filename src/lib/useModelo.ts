@@ -58,9 +58,10 @@ export function useModelo(): ModeloApi {
   const normalizar = useCallback((bruto: unknown) => normalizarCom(bruto, padrao), [padrao])
   const [modelo, setModelo] = useEstadoSincronizado<Modelo>(chave, normalizar)
 
+  // setModelo é ligado à chave do cliente — ver overrides.tsx: [] congela a chave do 1º render.
   const aplicar = useCallback((dim: Dimensao, fn: (c: Conciliacao) => Conciliacao) => {
     setModelo((m) => ({ ...m, [dim]: fn(m[dim]) }))
-  }, [])
+  }, [setModelo])
 
   const addNo = useCallback(
     (dim: Dimensao, nome: string, paiId: string | null, regime?: RegimeDemo) => {

@@ -8,7 +8,9 @@ import {
   useState,
   type ReactNode,
 } from 'react'
+import { rotulosProvedor, type Provedor, type RotulosProvedor } from '@/core/provedor'
 import { ACME, ACME_ID, chaveDoCliente, type Tenant } from '@/core/tenant'
+import { Carregando } from '@/components/Login'
 import { supabase } from './supabase'
 
 const CHAVE_ATIVO = 'lumen-cliente-ativo'
@@ -37,6 +39,7 @@ function mapear(linha: Record<string, unknown>): Tenant {
     nome: String(linha.nome),
     documento: (linha.documento as string | null) ?? null,
     ativo: Boolean(linha.ativo),
+    provedor: (linha.provedor as Provedor | null) ?? null,
     criadoEm: linha.criado_em ? String(linha.criado_em) : undefined,
   }
 }
@@ -59,11 +62,16 @@ export function ClientesProvider({ children }: { children: ReactNode }) {
   const [ativoId, setAtivoId] = useState<string>(() => localStorage.getItem(CHAVE_ATIVO) ?? ACME_ID)
   const [carregando, setCarregando] = useState(true)
 
+  // `finally` é obrigatório: o render está travado em <Carregando/> até `carregando` cair,
+  // então uma exceção aqui (rede fora) deixaria o app preso no spinner para sempre.
   const recarregar = useCallback(async () => {
-    const lista = await buscar()
-    setClientes(lista)
-    setCarregando(false)
-    return lista
+    try {
+      const lista = await buscar()
+      setClientes(lista)
+      return lista
+    } finally {
+      setCarregando(false)
+    }
   }, [])
 
   useEffect(() => {
@@ -118,6 +126,11 @@ export function ClientesProvider({ children }: { children: ReactNode }) {
     [clientes, ativo, carregando, selecionar, criar, editar, deletar],
   )
 
+  // Enquanto a lista não chega, `ativo` é o tenant de fallback — um id que não existe em
+  // produção. Montar a árvore nessa janela faz as chaves de estado (`cliente:<id>:<base>`)
+  // nascerem apontando para um cliente fantasma. Segurar o render fecha a janela na origem.
+  if (carregando) return <Carregando />
+
   return <Ctx.Provider value={valor}>{children}</Ctx.Provider>
 }
 
@@ -125,6 +138,14 @@ export function useClientes(): ClientesCtx {
   const ctx = useContext(Ctx)
   if (!ctx) throw new Error('useClientes precisa estar dentro de <ClientesProvider>')
   return ctx
+}
+
+/**
+ * Rótulos do ERP do cliente ativo. Toda menção ao provedor na UI passa por aqui — texto
+ * fixo "Omie" mente para os tenants Nibo (bug visto em prod na DR PIZZA, 2026-07-22).
+ */
+export function useProvedor(): RotulosProvedor {
+  return rotulosProvedor(useClientes().ativo.provedor)
 }
 
 /** Chave de estado prefixada pelo cliente ativo — isola a camada editada por tenant. */

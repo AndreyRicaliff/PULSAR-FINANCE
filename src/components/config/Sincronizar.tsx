@@ -1,6 +1,6 @@
-/** @file Aba Sincronizar: dispara o sync manual da Omie (edge function) e mostra o histórico de execuções. */
+/** @file Aba Sincronizar: dispara o sync manual do ERP (edge function) e mostra o histórico de execuções. */
 import { useEffect, useRef } from 'react'
-import { useClientes } from '@/lib/clientes'
+import { useClientes, useProvedor } from '@/lib/clientes'
 import { dataHora } from '@/lib/datas'
 import { useCadastros } from '@/lib/cadastros'
 import { useMovimentos } from '@/lib/movimentos'
@@ -10,6 +10,7 @@ import { HistoricoSync } from './HistoricoSync.tsx'
 
 export function Sincronizar() {
   const { ativo } = useClientes()
+  const provedor = useProvedor()
   const sync = useSync(ativo.id, ativo.nome)
   const { recarregar } = useMovimentos()
   const { recarregar: recarregarCadastros } = useCadastros()
@@ -32,7 +33,7 @@ export function Sincronizar() {
       <header>
         <h1 className="text-2xl font-extrabold">Sincronizar</h1>
         <p className="text-sm text-muted">
-          Atualização manual dos dados da Omie para <strong className="text-text">{ativo.nome}</strong>.
+          Atualização manual dos dados {provedor.de} para <strong className="text-text">{ativo.nome}</strong>.
           Atualiza só os valores; classificações e edições da estrutura são preservadas. Registros novos
           entram em “A conciliar”.
         </p>
@@ -41,7 +42,7 @@ export function Sincronizar() {
       <div className="rounded-card border border-bd bg-surface p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="text-sm font-semibold">Dados da Omie</p>
+            <p className="text-sm font-semibold">Dados {provedor.de}</p>
             <p className="text-xs text-muted">
               {sync.ultimo ? `Última sincronização: ${dataHora(sync.ultimo.em)}` : 'Ainda não sincronizado'}
             </p>

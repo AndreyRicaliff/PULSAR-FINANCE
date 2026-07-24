@@ -1,6 +1,7 @@
-/** @file Nome com edição inline que grava override (original Omie imutável). */
+/** @file Nome com edição inline que grava override (original do ERP imutável). */
 import { useState, type MouseEvent, type ReactNode } from 'react'
 import type { EntidadeEditavel, NomeResolvido } from '@/core/override'
+import { useProvedor } from '@/lib/clientes'
 import { useOverrides } from '@/lib/overrides'
 import { BadgeEditado } from './BadgeEditado.tsx'
 
@@ -11,6 +12,7 @@ interface Props {
 }
 
 export function NomeEditavel({ entidade, codigo, resolvido }: Props) {
+  const { nome: provedor } = useProvedor()
   const { renomear, restaurar } = useOverrides()
   const [editando, setEditando] = useState(false)
   const [valor, setValor] = useState(resolvido.nome)
@@ -34,7 +36,7 @@ export function NomeEditavel({ entidade, codigo, resolvido }: Props) {
 
   return (
     <span className="inline-flex items-center gap-2">
-      <span title={resolvido.editado ? `Original Omie: ${resolvido.original}` : undefined}>
+      <span title={resolvido.editado ? `Original ${provedor}: ${resolvido.original}` : undefined}>
         {resolvido.nome}
       </span>
       {resolvido.editado ? <BadgeEditado original={resolvido.original} /> : null}
