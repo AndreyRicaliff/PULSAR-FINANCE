@@ -815,6 +815,79 @@
 }
 
 /* ============================================================
+   §5 — COMPONENTES CANÔNICOS
+   ============================================================ */
+/* KPI-hero: superfície elevada, borda-topo fina na cor do indicador, label pequeno e
+   espaçado, número-mestre em display. A cor da borda continua SEMÂNTICA por indicador
+   (o site tem um acento só; aqui a cor carrega informação e não pode ser jogada fora). */
+.mk-kpi {
+  background: rgb(var(--c-surface2));
+  border-radius: 10px;
+}
+.mk-kpi__label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: rgb(var(--c-muted));
+}
+.mk-kpi__valor {
+  font-family: var(--f-display);
+  font-size: 27px;
+  font-weight: 800;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  color: rgb(var(--c-text));
+}
+
+/* Tabs-pill: pequena, cantos 6, ativa com roxo TRANSLÚCIDO (chapado pesava demais). */
+.mk-tab {
+  padding: 5px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: rgb(var(--c-muted));
+  transition: color var(--t-fast) var(--ease-soft), background-color var(--t-fast) var(--ease-soft);
+}
+.mk-tab:hover { color: rgb(var(--c-text)); }
+.mk-tab--ativa {
+  background: rgb(112 72 232 / 0.2);
+  color: rgb(var(--c-text));
+}
+
+/* Dot que pulsa — usado no aviso de novidades (§7) e reservado para "ao vivo" (§5).
+   O "ao vivo" NÃO está aplicado em lugar nenhum: não há dado realtime neste app ainda,
+   e o §5 manda usá-lo APENAS onde o dado é realtime de verdade. */
+@keyframes mk-beat {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgb(167 139 250 / 0.45); }
+  50%      { opacity: 0.65; box-shadow: 0 0 0 5px rgb(167 139 250 / 0); }
+}
+.mk-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--c-lilac);
+  animation: mk-beat 2s ease-in-out infinite;
+}
+
+/* Badge pill hairline (§5). */
+.mk-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid rgb(var(--c-bd));
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgb(var(--c-muted));
+}
+.mk-badge--novo { background: var(--grad-pulse); border-color: transparent; color: #fff; }
+.mk-badge--melhoria { color: var(--c-lilac); border-color: rgb(167 139 250 / 0.4); }
+
+/* ============================================================
    §6 — NAVEGAÇÃO CONVIDATIVA
    Numeração mono, hover que desliza e acende, ativo com barra-gradiente.
    Fora de @layer para vencer as utilities sem !important espalhado.

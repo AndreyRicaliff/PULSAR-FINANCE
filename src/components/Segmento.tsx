@@ -19,9 +19,8 @@ export function Segmento<T extends string>({ opcoes, valor, onTrocar }: Props<T>
           key={o.id}
           type="button"
           onClick={() => onTrocar(o.id)}
-          className={`rounded px-3 py-1.5 text-sm font-medium transition-colors ${
-            o.id === valor ? 'bg-primary text-white' : 'text-muted hover:text-text'
-          }`}
+          aria-pressed={o.id === valor}
+          className={`mk-tab fx-press ${o.id === valor ? 'mk-tab--ativa' : ''}`}
         >
           {o.rotulo}
         </button>

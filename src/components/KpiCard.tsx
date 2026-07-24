@@ -1,4 +1,4 @@
-/** @file Card de KPI padrão AG: borda colorida, glow, tendência, mini-gráfico mensal e análise profunda. */
+/** @file Card de KPI padrão AG (v3 sóbrio): borda superior colorida, tendência, mini-gráfico mensal e análise. */
 import { useState } from 'react'
 import type { PontoIndicador } from '@/lib/indicadores'
 import { AnaliseIndicador } from './AnaliseIndicador.tsx'
@@ -8,17 +8,16 @@ export type CorKpi = 'primary' | 'accent' | 'danger' | 'secondary' | 'warn'
 
 interface Estilo {
   readonly borda: string
-  readonly glow: string
   readonly neon: string
 }
 
 // Classes fx-neon-* literais (não interpoladas) p/ o Tailwind não tree-shake do @layer utilities.
 const ESTILO: Readonly<Record<CorKpi, Estilo>> = {
-  primary: { borda: 'border-t-primary', glow: 'rgb(var(--c-primary) / 0.18)', neon: 'fx-neon-primary' },
-  accent: { borda: 'border-t-accent', glow: 'rgb(var(--c-accent) / 0.18)', neon: 'fx-neon-accent' },
-  danger: { borda: 'border-t-danger', glow: 'rgb(var(--c-danger) / 0.18)', neon: 'fx-neon-danger' },
-  secondary: { borda: 'border-t-secondary', glow: 'rgb(var(--c-secondary) / 0.18)', neon: 'fx-neon-secondary' },
-  warn: { borda: 'border-t-warn', glow: 'rgb(var(--c-warn) / 0.18)', neon: 'fx-neon-warn' },
+  primary: { borda: 'border-t-primary', neon: 'fx-neon-primary' },
+  accent: { borda: 'border-t-accent', neon: 'fx-neon-accent' },
+  danger: { borda: 'border-t-danger', neon: 'fx-neon-danger' },
+  secondary: { borda: 'border-t-secondary', neon: 'fx-neon-secondary' },
+  warn: { borda: 'border-t-warn', neon: 'fx-neon-warn' },
 }
 
 interface Props {
@@ -38,10 +37,9 @@ export function KpiCard({ rotulo, valor, cor, nota, tendencia, serie }: Props) {
   const [analise, setAnalise] = useState(false)
   const expansivel = serie !== undefined && serie.length >= 2
   return (
-    <div className={`card-hover fx-tile anim-pop relative min-w-0 overflow-hidden rounded-card border border-bd border-t-[3px] ${e.borda} bg-surface px-5 py-4`}>
-      <span className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full blur-2xl" style={{ background: e.glow }} />
+    <div className={`card-hover fx-tile anim-pop mk-kpi relative min-w-0 overflow-hidden border border-bd border-t-2 ${e.borda} px-5 py-4`}>
       <div className="relative flex items-start justify-between gap-2">
-        <p className="text-xs font-medium uppercase tracking-wide text-muted">{rotulo}</p>
+        <p className="mk-kpi__label">{rotulo}</p>
         <span className="flex items-center gap-1.5">
           {tendencia === undefined ? null : <Tendencia valor={tendencia} />}
           {expansivel ? (
@@ -59,7 +57,7 @@ export function KpiCard({ rotulo, valor, cor, nota, tendencia, serie }: Props) {
           ) : null}
         </span>
       </div>
-      <p className={`${e.neon} font-apoio relative mt-2 break-words text-2xl font-semibold tabular-nums`}>{valor}</p>
+      <p className={`${e.neon} mk-kpi__valor relative mt-2 break-words`}>{valor}</p>
       {serie && serie.length >= 2 ? (
         <div className="relative mt-2">
           <MiniSerie pontos={serie} cor={`rgb(var(--c-${cor}))`} />
