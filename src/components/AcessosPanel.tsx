@@ -34,7 +34,7 @@ export function AcessosPanel() {
     <div className="flex flex-col gap-6">
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-extrabold">Acessos</h1>
+          <h1 className="text-[19px] font-semibold">Acessos</h1>
           <p className="text-sm text-muted">
             Logins de cliente — <strong className="text-text">login + senha</strong>, sem e-mail. Você cria e
             reseta aqui; o cliente entra e vê só o HUD do tenant dele.

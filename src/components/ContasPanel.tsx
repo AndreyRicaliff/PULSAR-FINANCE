@@ -69,7 +69,7 @@ function ContasPanel({ natureza }: { natureza: NaturezaTitulo }) {
   return (
     <div className="flex flex-col gap-6">
       <header>
-        <h1 className="text-2xl font-extrabold">{TITULO_MODULO[natureza]}</h1>
+        <h1 className="text-[19px] font-semibold">{TITULO_MODULO[natureza]}</h1>
         <p className="text-sm text-muted">
           Títulos {provedor.de} com status do ciclo de vida · conciliação pela mesma matriz dos
           movimentos — classificar aqui vale para a categoria inteira

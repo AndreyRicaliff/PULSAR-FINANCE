@@ -31,7 +31,7 @@ export function Sincronizar() {
   return (
     <div className="flex max-w-2xl flex-col gap-5">
       <header>
-        <h1 className="text-2xl font-extrabold">Sincronizar</h1>
+        <h1 className="text-[19px] font-semibold">Sincronizar</h1>
         <p className="text-sm text-muted">
           Atualização manual dos dados {provedor.de} para <strong className="text-text">{ativo.nome}</strong>.
           Atualiza só os valores; classificações e edições da estrutura são preservadas. Registros novos
@@ -109,7 +109,7 @@ function Resultado({ novos, atualizados }: { novos: number; atualizados: number 
 function Pastilha({ rotulo, valor, cor }: { rotulo: string; valor: number; cor: string }) {
   return (
     <div className="flex-1 rounded-lg border border-bd bg-bg px-4 py-3">
-      <p className={`text-2xl font-extrabold tabular-nums ${cor}`}>{valor}</p>
+      <p className={`text-[19px] font-semibold tabular-nums ${cor}`}>{valor}</p>
       <p className="text-xs text-muted">{rotulo}</p>
     </div>
   )

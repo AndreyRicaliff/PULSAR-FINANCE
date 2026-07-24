@@ -52,7 +52,7 @@ export function FornecedoresPanel() {
   return (
     <div className="flex flex-col gap-6">
       <header>
-        <h1 className="text-2xl font-extrabold">Fornecedores e Clientes</h1>
+        <h1 className="text-[19px] font-semibold">Fornecedores e Clientes</h1>
         <p className="text-sm text-muted">
           {tipo === 'despesa' ? 'Quem a empresa paga' : 'Quem paga a empresa'} · clique para ver os
           movimentos

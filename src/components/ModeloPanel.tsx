@@ -94,7 +94,7 @@ export function ModeloPanel() {
     <div className="flex flex-col gap-6">
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-extrabold">Matriz de Classificações</h1>
+          <h1 className="text-[19px] font-semibold">Matriz de Classificações</h1>
           <p className="text-sm text-muted">
             Padronização manual · arraste o item para o grupo (2 níveis: grupo → subgrupo) · salvo no
             navegador

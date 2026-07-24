@@ -53,7 +53,7 @@ export function RelatorioPrevistoRealizado() {
   return (
     <div className="flex flex-col gap-6">
       <header>
-        <h1 className="text-2xl font-extrabold">Previsto × Realizado</h1>
+        <h1 className="text-[19px] font-semibold">Previsto × Realizado</h1>
         <p className="text-sm text-muted">
           <strong>Previsto</strong> = orçamento de caixa {provedor.de} · <strong>Realizável</strong> = títulos
           em aberto pelo vencimento (compromisso contratado) · <strong>Realizado</strong> = baixas

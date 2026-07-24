@@ -21,7 +21,7 @@ export function RelatorioNeutros({ neutros, conc }: Props) {
   return (
     <div className="flex flex-col gap-6">
       <header>
-        <h1 className="text-2xl font-extrabold">Movimentos Neutros</h1>
+        <h1 className="text-[19px] font-semibold">Movimentos Neutros</h1>
         <p className="text-sm text-muted">
           Transferências, aportes e estornos classificados como <strong>neutros</strong> (Regra Mãe) ·
           ficam fora de DRE, DFC, gráficos e indicadores — este relatório existe para auditá-los

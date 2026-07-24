@@ -26,7 +26,7 @@ export function RelatorioReceita() {
   return (
     <div className="flex flex-col gap-6">
       <header>
-        <h1 className="text-2xl font-extrabold">Análise de Receita Líquida</h1>
+        <h1 className="text-[19px] font-semibold">Análise de Receita Líquida</h1>
         <p className="text-sm text-muted">Evolução, crescimento e fontes de receita · dado real {provedor.de}</p>
       </header>
 

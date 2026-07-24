@@ -29,7 +29,7 @@ export function CategoriasPanel() {
   return (
     <div className="flex flex-col gap-6">
       <header>
-        <h1 className="text-2xl font-extrabold">Plano de Contas</h1>
+        <h1 className="text-[19px] font-semibold">Plano de Contas</h1>
         <p className="text-sm text-muted">
           Espelho das categorias {provedor.de} · {relatorio.total} contas · sincronizado em{' '}
           {new Date(geradoEm).toLocaleString('pt-BR')}

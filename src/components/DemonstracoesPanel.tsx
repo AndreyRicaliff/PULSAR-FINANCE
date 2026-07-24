@@ -135,7 +135,7 @@ function Conteudo() {
     <div className="flex flex-col gap-6">
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-extrabold">Editar DRE/DFC</h1>
+          <h1 className="text-[19px] font-semibold">Editar DRE/DFC</h1>
           <p className="text-sm text-muted">
             Edite a estrutura e veja o resultado com drill-down — sincronizado por período · neutros e não conciliados fora
           </p>

@@ -107,7 +107,7 @@ export function Slide({
     <section className="mx-auto flex h-screen w-full max-w-[1600px] flex-col bg-white text-[#161616]">
       <Cabecalho cliente={cliente} data={data} />
       <div className="flex-1 overflow-y-auto px-12 py-8">
-        <h2 className="text-2xl font-extrabold">{titulo}</h2>
+        <h2 className="text-[19px] font-semibold">{titulo}</h2>
         <div className="mb-5 mt-1.5 h-1 w-24 rounded" style={{ backgroundColor: AMARELO }} />
         {argumento ? <CaixaArgumento html={argumento} /> : null}
         <div className="ag-slide-conteudo">{children}</div>

@@ -48,7 +48,7 @@ export function ValoresPanel() {
   return (
     <div className="flex flex-col gap-6">
       <header>
-        <h1 className="text-2xl font-extrabold">Valores por Categoria</h1>
+        <h1 className="text-[19px] font-semibold">Valores por Categoria</h1>
         <p className="text-sm text-muted">
           Total movimentado {provedor.em} · {movs.length} movimentos · clique numa conta para ver o detalhe
         </p>

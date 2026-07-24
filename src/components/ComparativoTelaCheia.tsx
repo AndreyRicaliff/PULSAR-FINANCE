@@ -56,7 +56,7 @@ export function ComparativoTelaCheia({ onFechar }: { onFechar: () => void }) {
       <div className="anim-tab-in mx-auto flex max-w-7xl flex-col gap-5">
         <header className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-extrabold">Comparativo lado a lado</h1>
+            <h1 className="text-[19px] font-semibold">Comparativo lado a lado</h1>
             <p className="text-sm text-muted">
               Dois períodos, relatório completo em cada lado · drill-down por linha · mesma estrutura
               configurada

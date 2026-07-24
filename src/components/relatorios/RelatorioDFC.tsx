@@ -46,7 +46,7 @@ export function RelatorioDFC({ dfc }: { dfc: readonly LinhaCalc[] }) {
     <div className="flex flex-col gap-6">
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-extrabold">Fluxo de Caixa</h1>
+          <h1 className="text-[19px] font-semibold">Fluxo de Caixa</h1>
           <p className="text-sm text-muted">
             Variação de caixa por atividade (regime caixa · só liquidado) · operacional, investimento e
             financiamento

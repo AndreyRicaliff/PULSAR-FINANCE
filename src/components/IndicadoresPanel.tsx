@@ -24,7 +24,7 @@ export function IndicadoresPanel({ resumo = false }: { resumo?: boolean } = {}) 
   return (
     <div className="flex flex-col gap-6">
       <header>
-        <h1 className="text-2xl font-extrabold">Indicadores & Gráficos</h1>
+        <h1 className="text-[19px] font-semibold">Indicadores & Gráficos</h1>
         <p className="text-sm text-muted">
           Derivados da DRE/DFC <strong>configurada</strong> em "Editar DRE/DFC" · cada indicador aponta
           sua fórmula · neutros e não conciliados ficam de fora

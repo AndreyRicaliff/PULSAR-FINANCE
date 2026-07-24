@@ -43,7 +43,7 @@ export function RelatorioApresentacao() {
   return (
     <div className="flex flex-col gap-6">
       <header>
-        <h1 className="text-2xl font-extrabold">Apresentação (slideshow)</h1>
+        <h1 className="text-[19px] font-semibold">Apresentação (slideshow)</h1>
         <p className="text-sm text-muted">
           Roteiro de slides de <strong className="text-text">{ativo.nome}</strong> — capa, slides de dado (argumento +
           observação) e slides livres (título + texto em página inteira). Exporta um HTML offline navegável.

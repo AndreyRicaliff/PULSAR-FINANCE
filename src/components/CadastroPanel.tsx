@@ -8,7 +8,7 @@ export function CadastroPanel() {
   return (
     <div className="flex max-w-3xl flex-col gap-6">
       <header>
-        <h1 className="text-2xl font-extrabold">Clientes</h1>
+        <h1 className="text-[19px] font-semibold">Clientes</h1>
         <p className="text-sm text-muted">
           Cada cliente tem sua própria modelagem (conciliação, DRE/DFC). O cliente ativo é{' '}
           <strong className="text-text">{ativo.nome}</strong> — troque no topo.

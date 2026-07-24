@@ -19,7 +19,7 @@ export function RelatorioCustos() {
   return (
     <div className="flex flex-col gap-6">
       <header>
-        <h1 className="text-2xl font-extrabold">Análise de Custos e Despesas</h1>
+        <h1 className="text-[19px] font-semibold">Análise de Custos e Despesas</h1>
         <p className="text-sm text-muted">
           Breakdown dos grupos de saída · % sobre a Receita Líquida · valores crus {provedor.de}
         </p>

@@ -31,7 +31,7 @@ export function RelatorioDRE({ dre, grupos }: { dre: readonly LinhaCalc[]; grupo
     <div className="flex flex-col gap-6">
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-extrabold">DRE — Resultado do Exercício</h1>
+          <h1 className="text-[19px] font-semibold">DRE — Resultado do Exercício</h1>
           <p className="text-sm text-muted">
             Cascata da DRE configurada · análise vertical (% da Receita Bruta) · valores crus {provedor.de}, sinal
             pela natureza · neutros e não conciliados fora

@@ -40,7 +40,7 @@ export function RelatorioEvolucao() {
   return (
     <div className="flex flex-col gap-6">
       <header>
-        <h1 className="text-2xl font-extrabold">Evolução & Projeção</h1>
+        <h1 className="text-[19px] font-semibold">Evolução & Projeção</h1>
         <p className="text-sm text-muted">
           Série mensal contínua (histórico completo, independe do período escolhido para DRE/DFC) · a projeção é <strong>estimativa</strong> (linha
           tracejada), nunca dado real

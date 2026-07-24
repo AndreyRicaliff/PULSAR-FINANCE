@@ -45,7 +45,7 @@ export function Catalogo({ onAbrir }: { onAbrir: (v: VistaRel) => void }) {
   return (
     <div className="flex flex-col gap-6">
       <header>
-        <h1 className="text-2xl font-extrabold">Relatórios</h1>
+        <h1 className="text-[19px] font-semibold">Relatórios</h1>
         <p className="text-sm text-muted">
           Relatórios executivos do cliente ativo. Os marcados como “requer dado” precisam de uma fonte
           que ainda não temos — listada em cada card.

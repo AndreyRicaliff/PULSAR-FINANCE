@@ -79,12 +79,15 @@
     --f-display: 'Space Grotesk', 'Inter', system-ui, sans-serif;
   }
 
+  /* Títulos de painel são UI, não vitrine: Inter, peso 600, sem tracking dramático.
+     Space Grotesk é ACENTO tipográfico — vive só no número-mestre e na marca, do mesmo
+     jeito que o roxo vibrante é acento e não preenchimento (§1). Antes eram 25 títulos
+     em 24px/800 na fonte display: cada painel gritava. */
   h1,
   h2,
   h3 {
-    font-family: var(--f-display);
-    font-weight: 700;
-    letter-spacing: -0.02em;
+    font-weight: 600;
+    letter-spacing: -0.01em;
   }
 
   /* Número que muda NUNCA dança de largura (§8.3). */
@@ -217,17 +220,16 @@
     animation-delay: 0.54s;
   }
 
-  /* Troca de aba/relatório: fade + leve blur — substitui o fade-up "seco". */
+  /* Troca de aba: fade + deslocamento. O blur saiu — chamava atenção para a transição
+     em vez de para o conteúdo, e é justamente o tipo de efeito que o interior não quer. */
   @keyframes tab-in {
     from {
       opacity: 0;
       transform: translateY(6px);
-      filter: blur(4px);
     }
     to {
       opacity: 1;
       transform: translateY(0);
-      filter: blur(0);
     }
   }
   .anim-tab-in {
@@ -810,8 +812,152 @@
 }
 /* §8.1 — os ÚNICOS loops permitidos dentro do sistema: o batimento da marca, o dot
    "ao vivo" e o dot de novidades. Sem esta exceção a rede acima mataria o batimento. */
-.pm-ping, .pm-ekg2, .mk-live i, .mk-dot {
+.pm-ping, .pm-ekg2, .mk-live i, .mk-dot,
+/* A ENTRADA e vitrine, nao interior (§8.8): o fio do card, o brilho do botao e o dot de
+   status podem repetir. O prefixo `login-` mantem essa licenca presa a porta. */
+.login-status--ok i, .login-card::before, .login-btn::after {
   animation-iteration-count: infinite !important;
+}
+
+/* ============================================================
+   ENTRADA (login) — gramática do PULSAR-RH sobre os tokens v3.1.
+   A porta é VITRINE; o interior é ferramenta (§8.8). Por isso os loops daqui
+   (fio do card, brilho do botão, dot de status) são permitidos com prefixo `login-`,
+   e NÃO valem dentro do sistema.
+   ============================================================ */
+.login-status {
+  position: fixed;
+  top: 18px;
+  right: 24px;
+  z-index: 20;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 8px;
+  border: 1px solid rgb(var(--c-primary) / 0.25);
+  background: rgb(var(--c-surface) / 0.55);
+  backdrop-filter: blur(8px);
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  color: rgb(var(--c-muted));
+}
+.login-status i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.login-status--ok i {
+  background: rgb(var(--c-accent));
+  box-shadow: 0 0 8px rgb(var(--c-accent) / 0.6);
+  animation: login-pulse 1.6s ease-in-out infinite;
+}
+.login-status--erro i { background: rgb(var(--c-warn)); }
+@keyframes login-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.5; transform: scale(0.85); }
+}
+
+.login-card {
+  position: relative;
+  width: 100%;
+  max-width: 440px;
+  padding: 28px;
+  border-radius: 16px;
+  border: 1px solid rgb(var(--c-primary) / 0.25);
+  background: rgb(var(--c-surface) / 0.72);
+  backdrop-filter: blur(16px);
+  overflow: hidden;
+}
+/* Fio de luz percorrendo a borda superior — assinatura do card do RH. */
+.login-card::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent 0%, rgb(112 72 232 / 0.3) 25%, #a55eff 50%, rgb(112 72 232 / 0.3) 75%, transparent 100%);
+  background-size: 200% 100%;
+  animation: login-fio 5s ease-in-out infinite;
+}
+@keyframes login-fio {
+  0%, 100% { background-position: -100% 0; opacity: 0.85; }
+  50%      { background-position: 100% 0; opacity: 1; }
+}
+
+.login-label {
+  display: block;
+  margin-bottom: 7px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: rgb(var(--c-muted));
+}
+.login-input {
+  width: 100%;
+  padding: 11px 14px;
+  border-radius: 9px;
+  border: 1px solid rgb(var(--c-bd));
+  background: rgb(var(--c-surface2) / 0.8);
+  color: rgb(var(--c-text));
+  font-size: 13.5px;
+  outline: none;
+  transition: border-color 0.2s, background-color 0.2s, box-shadow 0.2s;
+}
+.login-input:focus {
+  border-color: rgb(var(--c-primary));
+  background: rgb(var(--c-surface2));
+  box-shadow: 0 0 0 3px rgb(var(--c-primary) / 0.18);
+}
+
+.login-btn {
+  position: relative;
+  width: 100%;
+  padding: 13px;
+  border: 0;
+  border-radius: 10px;
+  overflow: hidden;
+  background: linear-gradient(135deg, #7048e8 0%, #9b6eff 50%, #a55eff 100%);
+  color: #fff;
+  font-size: 14.5px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: transform 0.2s var(--ease-soft), opacity 0.2s;
+}
+.login-btn::after {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 -100%;
+  width: 100%;
+  background: linear-gradient(115deg, transparent 40%, rgb(255 255 255 / 0.18) 50%, transparent 60%);
+  animation: login-brilho 3.5s var(--ease-soft) infinite;
+}
+@keyframes login-brilho { to { transform: translateX(220%); } }
+.login-btn:hover:not(:disabled) { transform: translateY(-2px); }
+.login-btn:active:not(:disabled) { transform: translateY(0); }
+.login-btn:disabled { opacity: 0.55; }
+
+.login-rodape small {
+  display: block;
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: rgb(var(--c-muted) / 0.55);
+  margin-bottom: 6px;
+}
+.login-rodape span {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  background: var(--grad-pulse);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 /* ============================================================

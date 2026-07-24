@@ -27,7 +27,7 @@ export function RelatorioCapitalGiro() {
   return (
     <div className="flex flex-col gap-6">
       <header>
-        <h1 className="text-2xl font-extrabold">Painel de Capital de Giro</h1>
+        <h1 className="text-[19px] font-semibold">Painel de Capital de Giro</h1>
         <p className="text-sm text-muted">
           Títulos em aberto, aging e prazos médios · cru {provedor.de} · denominadores seguem o período
           filtrado ({prazos.dias} dias)

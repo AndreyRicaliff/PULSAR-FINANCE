@@ -1,14 +1,51 @@
 /**
- * @file Login e criação de conta (Supabase Auth) — porta de entrada com a identidade de pulso:
- * piso de radar 3D, tilt do card seguindo o mouse (GPU only), aviso de Caps Lock, olho de senha
- * e acorde de sucesso (AudioContext criado no gesto, antes do await).
+ * @file Entrada do Pulsar Finance — mesma gramática do PULSAR-RH (marca grande, card com
+ * blur e fio de luz, rótulos em caixa alta, CTA em gradiente), sobre os tokens v3.1.
+ *
+ * A porta é vitrine; o interior é ferramenta (§8.8) — por isso os efeitos vivem aqui e
+ * não lá dentro. O tilt 3D do card saiu: é legado console (§8.7) e o RH não tem.
  */
-import { useRef, useState, type KeyboardEvent, type MouseEvent, type ReactNode } from 'react'
+import { useEffect, useState, type KeyboardEvent, type ReactNode } from 'react'
 import { entrar } from '@/lib/auth'
 import { criarAudio, somSucesso } from '@/lib/som'
+import { supabase } from '@/lib/supabase'
 import { CenaPulso } from './LoginCena.tsx'
 import { Logo, Tagline } from './Logo.tsx'
-import { MODO_ESTATICO } from '@/lib/estatico'
+
+type Status = 'checando' | 'ok' | 'erro'
+
+/**
+ * O RH mostra "Sistema operacional" na porta. Aqui o selo só acende depois de CONFIRMAR
+ * que o backend responde — um indicador verde fixo seria decoração mentindo (§8.4). Quando
+ * o servidor está fora, o usuário descobre antes de culpar a própria senha.
+ */
+function useStatusSistema(): Status {
+  const [status, setStatus] = useState<Status>('checando')
+  useEffect(() => {
+    if (!supabase) return setStatus('erro')
+    let vivo = true
+    void supabase.auth
+      .getSession()
+      .then(() => vivo && setStatus('ok'))
+      .catch(() => vivo && setStatus('erro'))
+    return () => {
+      vivo = false
+    }
+  }, [])
+  return status
+}
+
+function SeloStatus() {
+  const status = useStatusSistema()
+  if (status === 'checando') return null
+  const ok = status === 'ok'
+  return (
+    <span className={`login-status ${ok ? 'login-status--ok' : 'login-status--erro'}`} role="status">
+      <i aria-hidden />
+      {ok ? 'Sistema operacional' : 'Sem conexão com o servidor'}
+    </span>
+  )
+}
 
 export function Login() {
   const [login, setLogin] = useState('')
@@ -17,7 +54,6 @@ export function Login() {
   const [carregando, setCarregando] = useState(false)
   const [mostrarSenha, setMostrarSenha] = useState(false)
   const [capsAtivo, setCapsAtivo] = useState(false)
-  const tilt = useTilt3d()
 
   async function submeter(e: React.FormEvent) {
     e.preventDefault()
@@ -41,91 +77,84 @@ export function Login() {
 
   return (
     <Centro>
-      <div
-        ref={tilt.ref}
-        onMouseMove={tilt.aoMover}
-        onMouseLeave={tilt.aoSair}
-        className="anim-pop fx-border-glow pulso-borda tilt-3d relative flex w-full max-w-sm flex-col items-center gap-4 rounded-card p-8"
-      >
-      <span className="pulso-respira">
-        <Logo size={48} subtitulo="" />
-      </span>
-      <Tagline />
-      <form onSubmit={submeter} className="mt-2 flex w-full max-w-xs flex-col gap-3">
-        <input
-          type="text"
-          value={login}
-          onChange={(e) => setLogin(e.target.value)}
-          placeholder="Login"
-          autoComplete="username"
-          required
-          className="rounded-lg border border-bd bg-surface2 px-4 py-2.5 text-sm outline-none focus:border-primary"
-        />
-        <div className="relative">
+      <SeloStatus />
+
+      <header className="mb-1 flex flex-col items-center gap-2 text-center">
+        <Logo size={56} subtitulo="" />
+        <Tagline />
+      </header>
+
+      <form onSubmit={submeter} className="login-card anim-pop flex flex-col gap-4">
+        <div>
+          <label className="login-label" htmlFor="campo-login">
+            Login
+          </label>
           <input
-            type={mostrarSenha ? 'text' : 'password'}
-            value={senha}
-            onChange={(e) => setSenha(e.target.value)}
-            onKeyDown={verificarCaps}
-            onKeyUp={verificarCaps}
-            placeholder="Senha"
-            autoComplete="current-password"
+            id="campo-login"
+            type="text"
+            value={login}
+            onChange={(e) => setLogin(e.target.value)}
+            autoComplete="username"
             required
-            className="w-full rounded-lg border border-bd bg-surface2 py-2.5 pl-4 pr-11 text-sm outline-none focus:border-primary"
+            className="login-input"
           />
-          <button
-            type="button"
-            onClick={() => setMostrarSenha((v) => !v)}
-            aria-label={mostrarSenha ? 'Ocultar senha' : 'Mostrar senha'}
-            title={mostrarSenha ? 'Ocultar senha' : 'Mostrar senha'}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted transition-colors hover:text-text"
-          >
-            {mostrarSenha ? <IconeOlhoCortado /> : <IconeOlho />}
-          </button>
         </div>
-        {capsAtivo ? (
-          <p className="anim-fade-in flex items-center gap-2 rounded-md border border-warn/30 bg-warn/10 px-3 py-1.5 text-xs text-warn">
-            <IconeCaps /> Caps Lock está ativado
+
+        <div>
+          <label className="login-label" htmlFor="campo-senha">
+            Senha
+          </label>
+          <div className="relative">
+            <input
+              id="campo-senha"
+              type={mostrarSenha ? 'text' : 'password'}
+              value={senha}
+              onChange={(e) => setSenha(e.target.value)}
+              onKeyDown={verificarCaps}
+              onKeyUp={verificarCaps}
+              autoComplete="current-password"
+              required
+              className="login-input pr-11"
+            />
+            <button
+              type="button"
+              onClick={() => setMostrarSenha((v) => !v)}
+              aria-label={mostrarSenha ? 'Ocultar senha' : 'Mostrar senha'}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted transition-colors hover:text-text"
+            >
+              {mostrarSenha ? <IconeOlhoCortado /> : <IconeOlho />}
+            </button>
+          </div>
+          {capsAtivo ? (
+            <p className="anim-fade-in mt-1.5 flex items-center gap-2 rounded-md border border-warn/30 bg-warn/10 px-3 py-1.5 text-xs text-warn">
+              <IconeCaps /> Caps Lock está ativado
+            </p>
+          ) : null}
+        </div>
+
+        {erro ? (
+          <p className="anim-shake rounded-lg border border-danger/30 bg-danger/10 px-3.5 py-2.5 text-[13px] text-danger">
+            {erro}
           </p>
         ) : null}
-        {erro ? <p className="anim-shake text-xs text-danger">{erro}</p> : null}
-        <button
-          type="submit"
-          disabled={carregando}
-          className="fx-sheen fx-press rounded-lg bg-gradient-to-r from-primary to-secondary px-5 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
-        >
-          {carregando ? '…' : 'Entrar'}
+
+        <button type="submit" disabled={carregando} className="login-btn fx-press">
+          {carregando ? 'Entrando…' : <><IconeEntrar /> Entrar</>}
         </button>
       </form>
+
+      <div className="login-rodape mt-6 text-center">
+        <small>Feito por AG Consultoria</small>
+        <span>Muito além da contabilidade</span>
       </div>
     </Centro>
   )
 }
 
-/** Tilt 3D do card: rotateX/Y a partir da posição do cursor, mutando style direto (sem re-render). */
-function useTilt3d() {
-  const ref = useRef<HTMLDivElement>(null)
-
-  function aoMover(e: MouseEvent<HTMLDivElement>) {
-    const el = ref.current
-    if (!el || MODO_ESTATICO) return
-    const r = el.getBoundingClientRect()
-    const px = (e.clientX - r.left) / r.width - 0.5
-    const py = (e.clientY - r.top) / r.height - 0.5
-    el.style.transform = `perspective(900px) rotateX(${(-py * 10).toFixed(2)}deg) rotateY(${(px * 12).toFixed(2)}deg) translateZ(8px)`
-  }
-  function aoSair() {
-    if (ref.current) ref.current.style.transform = ''
-  }
-  return { ref, aoMover, aoSair }
-}
-
 export function Carregando() {
   return (
     <Centro>
-      <span className="pulso-respira">
-        <Logo size={48} subtitulo="" />
-      </span>
+      <Logo size={56} subtitulo="" />
       <p className="text-sm text-muted">Carregando…</p>
     </Centro>
   )
@@ -133,10 +162,20 @@ export function Carregando() {
 
 function Centro({ children }: { children: ReactNode }) {
   return (
-    <div className="fx-grid-bg relative flex min-h-screen flex-col items-center justify-center gap-4 overflow-hidden bg-bg p-6">
+    <div className="fx-grid-bg relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-bg p-6">
       <CenaPulso />
-      <div className="relative flex w-full flex-col items-center gap-4">{children}</div>
+      <div className="relative flex w-full max-w-[440px] flex-col items-center gap-4">{children}</div>
     </div>
+  )
+}
+
+function IconeEntrar() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+      <path d="M10 17l5-5-5-5" />
+      <path d="M15 12H3" />
+    </svg>
   )
 }
 

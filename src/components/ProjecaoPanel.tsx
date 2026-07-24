@@ -40,7 +40,7 @@ export function ProjecaoPanel() {
   return (
     <div className="flex flex-col gap-6">
       <header>
-        <h1 className="text-2xl font-extrabold">Previsto × Realizado · Fluxo de Caixa</h1>
+        <h1 className="text-[19px] font-semibold">Previsto × Realizado · Fluxo de Caixa</h1>
         <p className="text-sm text-muted">
           Por semana (clique na semana para abrir os dias) e por todos os grupos da estrutura ·
           Previsto = em aberto pelo vencimento · Realizado = pagamentos efetivos
