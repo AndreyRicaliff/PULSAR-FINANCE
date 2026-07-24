@@ -10,6 +10,8 @@ import { entrar } from '@/lib/auth'
 import { criarAudio, somSucesso } from '@/lib/som'
 import { supabase } from '@/lib/supabase'
 import { CenaPulso } from './LoginCena.tsx'
+import { LoginIntro } from './LoginIntro.tsx'
+import { PainelNovidades, useNovidades } from './Novidades.tsx'
 import { Logo, Tagline } from './Logo.tsx'
 
 type Status = 'checando' | 'ok' | 'erro'
@@ -146,8 +148,33 @@ export function Login() {
       <div className="login-rodape mt-6 text-center">
         <small>Feito por AG Consultoria</small>
         <span>Muito além da contabilidade</span>
+        <NovidadesNoLogin />
       </div>
+
+      <LoginIntro />
     </Centro>
+  )
+}
+
+/** Log de atualizações acessível já na porta — dot lilás quando há entrada não lida. */
+function NovidadesNoLogin() {
+  const { temNaoLido, marcarVisto } = useNovidades()
+  const [aberto, setAberto] = useState(false)
+  return (
+    <div>
+      <button
+        type="button"
+        className="login-novidades"
+        onClick={() => {
+          marcarVisto()
+          setAberto(true)
+        }}
+      >
+        Novidades
+        {temNaoLido ? <i className="mk-dot" aria-label="há novidades não lidas" /> : null}
+      </button>
+      {aberto ? <PainelNovidades onFechar={() => setAberto(false)} /> : null}
+    </div>
   )
 }
 
