@@ -4,6 +4,7 @@ import { comProvedor } from '@/core/provedor'
 import { useProvedor } from '@/lib/clientes'
 import { somSelecao, somTick } from '@/lib/som'
 import { IconeNav } from './IconesNav.tsx'
+import { BotaoNovidades } from './Novidades.tsx'
 import { Logo } from './Logo.tsx'
 
 export type Aba =
@@ -114,7 +115,10 @@ export function Sidebar({ ativa, onSelecionar, aberta }: Props) {
             />
           ))}
         </nav>
-        <p className="mt-auto px-6 py-4 text-xs text-muted">
+        <div className="mt-auto px-3 pb-1 pt-3">
+          <BotaoNovidades />
+        </div>
+        <p className="px-6 pb-4 text-xs text-muted">
           BPO financeiro · dados {provedor}
           <span className="mt-1 block text-[10px] text-muted/60">build {__BUILD_TIME__}</span>
         </p>
