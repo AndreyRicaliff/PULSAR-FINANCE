@@ -8,3 +8,6 @@ verify_jwt = true
 
 [functions.enviar-email]
 verify_jwt = true
+
+[functions.dois-fatores]
+verify_jwt = true

@@ -18,12 +18,17 @@ export interface Acesso {
 const OPERADOR_LOCAL: Acesso = { carregando: false, papel: 'operador', clienteIds: [] }
 const CARREGANDO: Acesso = { carregando: true, papel: 'nenhum', clienteIds: [] }
 
-export function useAcesso(userId: string | undefined): Acesso {
+/**
+ * `liberado` = a sessão já passou pelo 2º fator. Sem isso a RLS devolve ZERO linhas em
+ * painel_acessos e o papel viraria 'nenhum' para sempre (o efeito não refazia, pois só
+ * dependia do userId) — o usuário passaria o código e cairia em "sem acesso".
+ */
+export function useAcesso(userId: string | undefined, liberado = true): Acesso {
   const [acesso, setAcesso] = useState<Acesso>(() => (!AUTH_ATIVO || !supabase ? OPERADOR_LOCAL : CARREGANDO))
 
   useEffect(() => {
     if (!AUTH_ATIVO || !supabase) return setAcesso(OPERADOR_LOCAL)
-    if (!userId) return setAcesso(CARREGANDO)
+    if (!userId || !liberado) return setAcesso(CARREGANDO)
     let vivo = true
     void (async () => {
       const { data, error } = await supabase
@@ -46,7 +51,7 @@ export function useAcesso(userId: string | undefined): Acesso {
     return () => {
       vivo = false
     }
-  }, [userId])
+  }, [userId, liberado])
 
   return acesso
 }

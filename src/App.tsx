@@ -6,6 +6,8 @@ import { MODO_HUD } from './lib/hudModo'
 import { Slideshow } from './components/apresentacao/Slideshow.tsx'
 import { HudCliente } from './components/HudCliente.tsx'
 import { sair, useAuth, AUTH_ATIVO } from './lib/auth'
+import { use2FA } from './lib/doisFatores'
+import { CodigoAcesso } from './components/CodigoAcesso.tsx'
 import { useAcesso } from './lib/useAcesso'
 import { SemAcesso } from './components/SemAcesso.tsx'
 import { CadastrosProvider } from './lib/cadastros'
@@ -48,11 +50,16 @@ const PAINEIS: Readonly<Record<Aba, () => JSX.Element>> = {
 export function App() {
   const auth = useAuth()
   const userId = auth.status === 'logado' ? auth.session.user.id : undefined
-  const acesso = useAcesso(userId)
+  const dois = use2FA()
+  const acesso = useAcesso(userId, dois.estado === 'liberado')
 
   if (AUTH_ATIVO) {
     if (auth.status === 'carregando') return <Carregando />
     if (auth.status === 'deslogado') return <Login />
+    // O 2º fator vem ANTES de ler o papel: sem ele a RLS devolve zero em painel_acessos,
+    // e o app cairia em "sem acesso" em vez de pedir o código.
+    if (dois.estado === 'checando') return <Carregando />
+    if (dois.estado === 'pendente') return <CodigoAcesso onLiberado={dois.revalidar} />
     if (acesso.carregando) return <Carregando />
     if (acesso.papel === 'nenhum') return <SemAcesso email={auth.email} />
   }
