@@ -93,13 +93,21 @@ interface WordmarkProps {
   readonly classe?: string
 }
 
-/** Wordmark "Pulsar Finance": itálico pesado, Finance em roxo, EKG saindo do final. */
+/**
+ * Wordmark oficial (asset raster da marca, 2026-07): "Pulsar" itálico com o r
+ * entrando no F, "Finance" em gradiente com eco de batimento e EKG no final.
+ * A imagem escala com o font-size do wrapper (height em em) — os call-sites
+ * seguem controlando o tamanho pela mesma prop `classe` de antes.
+ */
 export function Wordmark({ classe = 'text-base' }: WordmarkProps) {
   return (
-    <span className={`flex items-end ${classe} font-titulo font-bold italic leading-none tracking-tight`}>
-      <span>Pulsar</span>
-      <span className="ml-1 text-secondary">Finance</span>
-      <EkgTrail />
+    <span className={`flex items-center ${classe} leading-none`}>
+      <img
+        src="/pulsar-finance-wordmark.png"
+        alt="Pulsar Finance"
+        className="block w-auto"
+        style={{ height: '1.6em' }}
+      />
     </span>
   )
 }
