@@ -34,3 +34,17 @@ export const redefinirSenhaAcesso = (userId: string, password: string) =>
   chamar({ action: 'update-password', user_id: userId, password })
 
 export const removerAcesso = (userId: string) => chamar({ action: 'delete', user_id: userId })
+
+/**
+ * Aviso de boas-vindas (Resend, edge `enviar-email`): login + link do painel para o e-mail
+ * REAL de contato do cliente — o login sintético (@agconsultorialtda.com) não tem caixa.
+ * SENHA NUNCA viaja por e-mail; o operador a entrega por outro canal.
+ */
+export async function enviarBoasVindas(para: string, login: string, nomeEmpresa: string): Promise<void> {
+  if (!supabase) throw new Error('Supabase não configurado')
+  const { data, error } = await supabase.functions.invoke('enviar-email', {
+    body: { template: 'boas-vindas', para, login, nomeEmpresa },
+  })
+  if (error) throw new Error(error.message)
+  if (data && typeof data === 'object' && 'error' in data && data.error) throw new Error(String(data.error))
+}

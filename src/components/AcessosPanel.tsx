@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from
 import { useClientes } from '@/lib/clientes'
 import {
   criarAcesso,
+  enviarBoasVindas,
   listarAcessos,
   redefinirSenhaAcesso,
   removerAcesso,
@@ -194,6 +195,7 @@ function ModalNovo({ clientes, onFechar, onCriou }: { clientes: readonly Tenant[
   const [login, setLogin] = useState('')
   const [senha, setSenha] = useState('')
   const [ids, setIds] = useState<string[]>([])
+  const [emailAviso, setEmailAviso] = useState('')
   const [erro, setErro] = useState('')
   const [salvando, setSalvando] = useState(false)
 
@@ -210,6 +212,16 @@ function ModalNovo({ clientes, onFechar, onCriou }: { clientes: readonly Tenant[
     setSalvando(true)
     try {
       await criarAcesso(login.trim(), senha, ids, 'cliente')
+      // Aviso por e-mail é best-effort: a CONTA já existe; falha de e-mail não desfaz nada,
+      // só avisa o operador para reenviar por outro canal.
+      if (emailAviso.trim()) {
+        const nomeEmpresa = clientes.find((c) => c.id === ids[0])?.nome ?? login.trim()
+        try {
+          await enviarBoasVindas(emailAviso.trim(), login.trim(), nomeEmpresa)
+        } catch (e) {
+          window.alert(`Conta criada, mas o e-mail de boas-vindas falhou: ${e instanceof Error ? e.message : e}`)
+        }
+      }
       await onCriou()
       onFechar()
     } catch (err) {
@@ -228,6 +240,11 @@ function ModalNovo({ clientes, onFechar, onCriou }: { clientes: readonly Tenant[
         <label className="flex flex-col gap-1 text-xs uppercase tracking-wide text-muted">
           Senha
           <input type="text" value={senha} onChange={(e) => setSenha(e.target.value)} placeholder="mín. 6 caracteres" autoComplete="off" required className={CLASSE_INPUT} />
+        </label>
+        <label className="flex flex-col gap-1 text-xs uppercase tracking-wide text-muted">
+          E-mail de contato (opcional — recebe o aviso de acesso)
+          <input type="email" value={emailAviso} onChange={(e) => setEmailAviso(e.target.value)} placeholder="cliente@empresa.com.br" autoComplete="off" className={CLASSE_INPUT} />
+          <span className="normal-case tracking-normal text-[10px] text-muted/70">O aviso leva login e link — a senha você entrega por outro canal.</span>
         </label>
         <fieldset className="flex flex-col gap-1">
           <legend className="mb-1 text-xs uppercase tracking-wide text-muted">Empresas que o cliente vê</legend>
