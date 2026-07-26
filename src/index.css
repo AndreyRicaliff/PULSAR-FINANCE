@@ -1483,3 +1483,37 @@ html[data-static] main h1, html[data-static] main h1 + p { animation: none; }
 .lp-anel--tela { width: 60px; height: 60px; animation: lp-anel-tela 4s cubic-bezier(.16,1,.3,1) infinite !important; }
 .lp-anel--tela.d2 { animation-delay: -1.3s !important; border-color: rgb(112 72 232 / 0.35); }
 .lp-anel--tela.d3 { animation-delay: -2.6s !important; border-color: rgb(155 110 255 / 0.25); }
+
+/* ── TELAS DEMONSTRATIVAS do showcase (portadas do site pulsar — mockups mk-*) ──
+   Escopadas ao palco do overlay; cores literais (vitrine, tokens do site v3.1). */
+.login-intro__palco .lp-tela {
+  position: absolute; inset: 12% 9% 24%; z-index: 2;
+  background: rgba(20, 20, 40, .88); border: 1px solid #3C3854; border-radius: 12px;
+  padding: 13px; display: flex; flex-direction: column; gap: 9px; overflow: hidden;
+  backdrop-filter: blur(6px); text-align: left;
+}
+.login-intro__palco .mk-kpi { background: #1D1B2E; border: 1px solid #3C3854; border-top: 2px solid #401C7F; border-radius: 10px; padding: 10px 13px; }
+.login-intro__palco .mk-kpi .lbl { font-size: 10px; text-transform: uppercase; letter-spacing: .12em; color: #9187B6; }
+.login-intro__palco .mk-kpi .val { font-size: 24px; font-weight: 800; letter-spacing: -.02em; font-variant-numeric: tabular-nums; line-height: 1.05; margin-top: 2px; color: #EAEEF6; }
+.login-intro__palco .mk-kpi .dl { font-size: 11px; color: #7FB89C; font-variant-numeric: tabular-nums; margin-top: 2px; }
+.login-intro__palco .mk-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.login-intro__palco .mk-mini { background: #1D1B2E; border: 1px solid #3C3854; border-radius: 9px; padding: 7px 9px; }
+.login-intro__palco .mk-mini .lbl { font-size: 9px; text-transform: uppercase; letter-spacing: .1em; color: #9187B6; }
+.login-intro__palco .mk-mini .val { font-size: 15px; font-weight: 800; font-variant-numeric: tabular-nums; margin-top: 1px; color: #EAEEF6; }
+.login-intro__palco .mk-mini .val.good { color: #7FB89C; }
+.login-intro__palco .mk-table { width: 100%; border-collapse: collapse; font-size: 12px; color: #EAEEF6; }
+.login-intro__palco .mk-table td { padding: 5.5px 3px; border-bottom: 1px solid #3C3854; }
+.login-intro__palco .mk-table td:last-child { text-align: right; font-variant-numeric: tabular-nums; font-weight: 700; }
+.login-intro__palco .mk-table tr.neg td { color: #9187B6; }
+.login-intro__palco .mk-table tr.tot td { color: #fff; font-weight: 800; border-bottom: none; border-top: 1px solid #3C3854; padding-top: 8px; }
+.login-intro__palco .mk-table tr.tot td:last-child { color: #9187B6; }
+.login-intro__palco .mk-table .tbar { height: 4px; border-radius: 2px; background: #3C3854; margin-top: 4px; overflow: hidden; max-width: 140px; }
+.login-intro__palco .mk-table .tbar i { display: block; height: 100%; background: linear-gradient(90deg, #401C7F, #7048E8); border-radius: 2px; }
+.login-intro__palco .mk-chart { background: #1D1B2E; border: 1px solid #3C3854; border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; flex: 1; min-height: 0; }
+.login-intro__palco .mk-chart .cttl { font-size: 10px; text-transform: uppercase; letter-spacing: .1em; color: #9187B6; }
+.login-intro__palco .mk-chart svg { width: 100%; flex: 1; min-height: 0; }
+.login-intro__palco .mk-live { display: inline-flex; align-items: center; gap: 5px; font-size: 9px; letter-spacing: .12em; text-transform: uppercase; color: #7FB89C; }
+.login-intro__palco .mk-live i { width: 6px; height: 6px; border-radius: 50%; background: #7FB89C; animation: mk-beat 2s ease-in-out infinite; }
+@keyframes mk-beat { 0%,100% { opacity: 1; box-shadow: 0 0 0 0 rgba(127,184,156,.45); } 50% { opacity: .65; box-shadow: 0 0 0 5px rgba(127,184,156,0); } }
+.login-intro__palco .mk-badge { margin-left: auto; font-size: 9px; letter-spacing: .06em; padding: 2px 9px; border-radius: 999px; border: 1px solid #3C3854; color: #9187B6; white-space: nowrap; }
+.login-intro__palco .mk-move { display: flex; align-items: center; gap: 9px; font-size: 11px; color: #9187B6; padding-top: 6px; border-top: 1px solid #3C3854; margin-top: auto; }
