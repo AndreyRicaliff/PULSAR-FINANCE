@@ -121,6 +121,62 @@ export function LoginIntro() {
   )
 }
 
+/** Tela demonstrativa por slide — mockups portados do site pulsar (dados fake do showcase). */
+const TELA_POR_SLIDE = ['dre', 'visao', 'visao', 'caixa', 'visao', 'dre'] as const
+
+function TelaDemo({ tela }: { tela: (typeof TELA_POR_SLIDE)[number] }) {
+  if (tela === 'dre')
+    return (
+      <div className="lp-tela anim-fade-up">
+        <table className="mk-table">
+          <tbody>
+            <tr><td>Receita líquida<div className="tbar"><i style={{ width: '77%' }} /></div></td><td>1.248.320</td></tr>
+            <tr className="neg"><td>(–) CMV<div className="tbar"><i style={{ width: '25%' }} /></div></td><td>402.110</td></tr>
+            <tr><td>Lucro bruto<div className="tbar"><i style={{ width: '52%' }} /></div></td><td>846.210</td></tr>
+            <tr className="neg"><td>(–) Despesas op.<div className="tbar"><i style={{ width: '26%' }} /></div></td><td>421.400</td></tr>
+            <tr className="tot"><td>EBITDA · margem 34,0%</td><td>424.810</td></tr>
+          </tbody>
+        </table>
+        <div className="mk-move"><span className="mk-live"><i />competência fechada</span><span className="mk-badge">julho · consolidado</span></div>
+      </div>
+    )
+  if (tela === 'caixa')
+    return (
+      <div className="lp-tela anim-fade-up">
+        <div className="mk-chart">
+          <div className="cttl">Fluxo de caixa · 8 semanas</div>
+          <svg viewBox="0 0 300 64" preserveAspectRatio="none" aria-hidden>
+            <defs>
+              <linearGradient id="lpMkG" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stopColor="#7048E8" stopOpacity=".32" />
+                <stop offset="1" stopColor="#7048E8" stopOpacity="0" />
+              </linearGradient>
+            </defs>
+            <polyline points="0,50 43,44 86,48 129,34 172,38 215,23 258,27 300,13 300,64 0,64" fill="url(#lpMkG)" stroke="none" />
+            <polyline points="0,50 43,44 86,48 129,34 172,38 215,23 258,27 300,13" fill="none" stroke="#7048E8" strokeWidth="2" />
+            <g fill="#A78BFA"><circle cx="215" cy="23" r="2.4" /><circle cx="300" cy="13" r="2.4" /></g>
+          </svg>
+        </div>
+        <div className="mk-move"><span className="mk-live"><i />projeção atualizada</span><span className="mk-badge">previsto × realizado</span></div>
+      </div>
+    )
+  return (
+    <div className="lp-tela anim-fade-up">
+      <div className="mk-kpi">
+        <div className="lbl">Faturamento · julho</div>
+        <div className="val">R$ 1.248.320</div>
+        <div className="dl">▲ 12,4% vs. junho · 92% da meta</div>
+      </div>
+      <div className="mk-row">
+        <div className="mk-mini"><div className="lbl">Margem líq.</div><div className="val good">32,4%</div></div>
+        <div className="mk-mini"><div className="lbl">Despesas</div><div className="val">R$ 421k</div></div>
+        <div className="mk-mini"><div className="lbl">Saldo</div><div className="val">R$ 318k</div></div>
+      </div>
+      <div className="mk-move"><span className="mk-live"><i />conciliado até hoje</span><span className="mk-badge">multi-empresa</span></div>
+    </div>
+  )
+}
+
 function IntroOverlay({ onFechar }: { onFechar: () => void }) {
   const [indice, setIndice] = useState(0)
 
@@ -143,6 +199,7 @@ function IntroOverlay({ onFechar }: { onFechar: () => void }) {
       <div className="login-intro__modal">
         <div className="login-intro__palco">
           <Palco />
+          <TelaDemo key={indice} tela={TELA_POR_SLIDE[indice] ?? 'visao'} />
           <div className="login-intro__marca">
             <LogoMark size={40} />
             <div>
