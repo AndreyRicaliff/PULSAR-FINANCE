@@ -91,6 +91,8 @@ export function EkgTrail({ altura = 14 }: { altura?: number }) {
 interface WordmarkProps {
   /** Classe de tamanho do texto (ex.: 'text-base', 'text-3xl'). */
   readonly classe?: string
+  /** Altura explícita do wordmark em px — vence a escala por font-size. */
+  readonly alturaPx?: number
 }
 
 /**
@@ -99,14 +101,14 @@ interface WordmarkProps {
  * A imagem escala com o font-size do wrapper (height em em) — os call-sites
  * seguem controlando o tamanho pela mesma prop `classe` de antes.
  */
-export function Wordmark({ classe = 'text-base' }: WordmarkProps) {
+export function Wordmark({ classe = 'text-base', alturaPx }: WordmarkProps) {
   return (
     <span className={`flex items-center ${classe} leading-none`}>
       <img
         src="/pulsar-finance-wordmark.png"
         alt="Pulsar Finance"
         className="block w-auto"
-        style={{ height: '1.6em' }}
+        style={{ height: alturaPx ? `${alturaPx}px` : '1.6em' }}
       />
     </span>
   )
@@ -122,7 +124,9 @@ export function Logo({ size = 36, subtitulo = 'AG Consultoria' }: LogoProps) {
     <div className="flex items-center gap-3">
       <LogoMark size={size} />
       <div className="flex flex-col gap-1 leading-tight">
-        <Wordmark />
+        {/* wordmark acompanha o tamanho do mark (0.42x) — antes ficava travado no
+            font-size e sumia ao lado de marks grandes (login size=56 -> ~25px) */}
+        <Wordmark alturaPx={Math.round(size * 0.42)} />
         {subtitulo ? (
           <p className="text-[11px] font-medium uppercase tracking-wider text-secondary">{subtitulo}</p>
         ) : null}
