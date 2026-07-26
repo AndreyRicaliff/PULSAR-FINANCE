@@ -190,6 +190,19 @@ export function Carregando() {
 function Centro({ children }: { children: ReactNode }) {
   return (
     <div className="fx-grid-bg relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-bg p-6">
+      <div className="lp-piso" aria-hidden><span /><span /><span /></div>
+      <svg className="lp-ekg-tela" viewBox="0 0 800 60" preserveAspectRatio="none" aria-hidden>
+        <defs>
+          <linearGradient id="lpGradTela" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0" stopColor="#7048E8" stopOpacity="0" />
+            <stop offset="0.3" stopColor="#7048E8" />
+            <stop offset="0.7" stopColor="#A55EFF" />
+            <stop offset="1" stopColor="#A55EFF" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        <polyline className="lp-base" points="0,30 180,30 220,26 240,30 256,18 270,42 286,30 400,30 520,30 540,26 560,30 576,18 590,42 606,30 800,30" pathLength={860} />
+        <polyline className="lp-varre" points="0,30 180,30 220,26 240,30 256,18 270,42 286,30 400,30 520,30 540,26 560,30 576,18 590,42 606,30 800,30" pathLength={860} stroke="url(#lpGradTela)" fill="none" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
       <CenaPulso />
       <div className="relative flex w-full max-w-[440px] flex-col items-center gap-4">{children}</div>
     </div>
