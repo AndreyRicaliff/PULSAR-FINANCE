@@ -13,6 +13,9 @@ export function CodigoAcesso({ onLiberado }: { onLiberado: () => Promise<void> }
   const [erro, setErro] = useState('')
   const [enviando, setEnviando] = useState(true)
   const [verificando, setVerificando] = useState(false)
+  // Ligado por padrão: quem entra é o próprio time no próprio aparelho. Em máquina
+  // compartilhada o usuário desmarca — por isso o aviso está colado na caixa.
+  const [lembrar, setLembrar] = useState(true)
   const pediu = useRef(false)
 
   // Pede o código UMA vez ao montar (StrictMode monta duas vezes em dev — o ref evita
@@ -43,7 +46,7 @@ export function CodigoAcesso({ onLiberado }: { onLiberado: () => Promise<void> }
     setErro('')
     setVerificando(true)
     try {
-      await verificarCodigo(codigo)
+      await verificarCodigo(codigo, lembrar)
       await onLiberado()
     } catch (err) {
       setErro(err instanceof Error ? err.message : 'Código inválido')
@@ -95,6 +98,21 @@ export function CodigoAcesso({ onLiberado }: { onLiberado: () => Promise<void> }
               {erro}
             </p>
           ) : null}
+
+          <label className="flex cursor-pointer items-start gap-2.5 text-[13px] text-muted">
+            <input
+              type="checkbox"
+              checked={lembrar}
+              onChange={(e) => setLembrar(e.target.checked)}
+              className="mt-0.5 h-4 w-4 shrink-0 accent-[#7048E8]"
+            />
+            <span>
+              Confiar neste aparelho por 30 dias
+              <span className="mt-0.5 block text-[11px] text-muted/70">
+                Não marque em computador compartilhado.
+              </span>
+            </span>
+          </label>
 
           <button type="submit" disabled={verificando || codigo.length !== 6} className="login-btn fx-press">
             {verificando ? 'Conferindo…' : 'Entrar'}

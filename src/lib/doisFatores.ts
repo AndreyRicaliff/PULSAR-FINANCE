@@ -26,7 +26,43 @@ export async function enviarCodigo(): Promise<string> {
   return String(data?.enviadoPara ?? '')
 }
 
-export const verificarCodigo = (codigo: string) => chamar({ acao: 'verificar', codigo })
+/**
+ * Segredo do aparelho confiável. Fica no localStorage — o mesmo lugar onde o token da
+ * sessão Supabase já vive, então não amplia a superfície: quem conseguir ler daqui já
+ * teria a sessão inteira. O que ele NÃO é: prova de identidade por si só — o servidor
+ * confere o hash e o dono antes de liberar.
+ */
+const CHAVE_APARELHO = 'pulsar-aparelho'
+
+export const aparelhoLembrado = () => localStorage.getItem(CHAVE_APARELHO) ?? ''
+export const esquecerAparelho = () => localStorage.removeItem(CHAVE_APARELHO)
+
+/** Verifica o código. Com `lembrar`, o servidor emite o segredo do aparelho UMA vez. */
+export async function verificarCodigo(codigo: string, lembrar = false): Promise<void> {
+  if (!supabase) throw new Error('Supabase não configurado')
+  const { data, error } = await supabase.functions.invoke('dois-fatores', {
+    body: { acao: 'verificar', codigo, lembrar },
+  })
+  if (error) throw new Error(error.message)
+  if (data?.error) throw new Error(String(data.error))
+  if (data?.dispositivo) localStorage.setItem(CHAVE_APARELHO, String(data.dispositivo))
+}
+
+/** Troca o segredo do aparelho por uma sessão liberada. `false` = precisa do código. */
+async function tentarAparelho(): Promise<boolean> {
+  const token = aparelhoLembrado()
+  if (!token || !supabase) return false
+  const { data, error } = await supabase.functions.invoke('dois-fatores', {
+    body: { acao: 'dispositivo', token },
+  })
+  if (error || data?.error) {
+    // Token recusado (revogado, vencido, de outro dono) não serve mais: apaga para não
+    // insistir num segredo morto a cada boot.
+    esquecerAparelho()
+    return false
+  }
+  return true
+}
 
 /**
  * `session_id` não é campo do objeto Session — é um claim DENTRO do access_token.
@@ -52,7 +88,9 @@ export function use2FA(): { readonly estado: Estado2FA; readonly revalidar: () =
     if (!token) return setEstado('pendente')
     const idAtual = sessionIdDoToken(token)
     const { data } = await supabase.from('painel_sessoes_2fa').select('session_id')
-    setEstado((data ?? []).some((r) => r.session_id === idAtual) ? 'liberado' : 'pendente')
+    if ((data ?? []).some((r) => r.session_id === idAtual)) return setEstado('liberado')
+    // Ainda não liberada: se este aparelho já foi confiado, ele libera sem e-mail nenhum.
+    setEstado((await tentarAparelho()) ? 'liberado' : 'pendente')
   }, [])
 
   useEffect(() => {
