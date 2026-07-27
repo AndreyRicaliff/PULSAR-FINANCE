@@ -3,6 +3,18 @@ export function brl(centavos: number): string {
   return (centavos / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 }
 
+/**
+ * Texto pt-BR digitado ("1.234,56", "R$ 89,90", "1500") → centavos (inteiro), ou null
+ * se não parseável/≤ 0. Vírgula é decimal; ponto é milhar — nunca o contrário.
+ */
+export function centavosDeTexto(texto: string): number | null {
+  const limpo = texto.replace(/[^\d,.-]/g, '').replace(/\./g, '').replace(',', '.')
+  if (!limpo) return null
+  const v = Number(limpo)
+  if (!Number.isFinite(v) || v <= 0) return null
+  return Math.round(v * 100)
+}
+
 /** Fração de variação (0.12) → '+12,0%' / '−4,1%' com sinal. '—' quando null. */
 export function pctVariacao(frac: number | null): string {
   if (frac === null) return '—'
