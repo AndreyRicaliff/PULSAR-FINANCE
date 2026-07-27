@@ -73,16 +73,20 @@
     @apply bg-bg text-text font-sans antialiased;
   }
 
-  /* Tipografia v3.1 (§2): display = Space Grotesk (personalidade); corpo/UI = Inter.
-     O comentário anterior citava Chillax/Author, que nunca chegaram a ser carregados. */
+  /* TIPOGRAFIA ÚNICA DA FAMÍLIA PULSAR — Inter, e só. Vale igual no RH.
+     Critério é empresarial, não estético: software financeiro denso se lê melhor com UMA
+     família, hierarquia feita por PESO, TAMANHO e TRACKING. É o que Stripe, Linear e
+     GitHub fazem. Inter tem algarismos tabulares de verdade, então número financeiro
+     alinha sem precisar de uma segunda fonte. Space Grotesk saiu: era personalidade de
+     vitrine em um lugar só (o número-mestre do KPI) e cobrava um download inteiro. */
   :root {
-    --f-display: 'Space Grotesk Variable', 'Space Grotesk', 'Inter Variable', 'Inter', system-ui, sans-serif;
+    --f-display: 'Inter Variable', 'Inter', system-ui, sans-serif;
   }
 
-  /* Títulos de painel são UI, não vitrine: Inter, peso 600, sem tracking dramático.
-     Space Grotesk é ACENTO tipográfico — vive só no número-mestre e na marca, do mesmo
-     jeito que o roxo vibrante é acento e não preenchimento (§1). Antes eram 25 títulos
-     em 24px/800 na fonte display: cada painel gritava. */
+  /* Títulos de painel são UI, não vitrine: peso 600, sem tracking dramático.
+     A hierarquia inteira do sistema se faz com PESO e TAMANHO dentro da mesma família —
+     é isso que dá a leitura empresarial. Antes eram 25 títulos em 24px/800: cada painel
+     gritava. */
   h1,
   h2,
   h3 {
