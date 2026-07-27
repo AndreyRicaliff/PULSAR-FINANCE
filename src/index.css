@@ -836,7 +836,7 @@ html:not([data-static]) .login-cena .pulso-piso span {
    login-/lp- mantem essa licenca presa a porta. */
 .login-status--ok i, .login-card::before, .login-btn::after,
 .login-cena .orbe, .login-cena .ekg-ambiente path, .login-cena .pulso-piso span,
-.lp-orb, .lp-anel, .lp-ekg polyline {
+.lp-orb, .lp-anel, .lp-ekg polyline, .lp-ekg-tela polyline {
   animation-iteration-count: infinite !important;
 }
 
@@ -1471,6 +1471,15 @@ html[data-static] main h1, html[data-static] main h1 + p { animation: none; }
   stroke-linecap: round; stroke-linejoin: round;
   filter: drop-shadow(0 0 4px rgb(165 94 255 / 0.4));
   animation: lp-fluir 4.5s ease-in-out infinite !important;
+}
+/* O PULSO percorrendo a linha da esquerda para a direita. O markup ja tinha este
+   polyline, mas a regra da varredura estava escopada em `.lp-ekg` (a miniatura) — a
+   linha larga da tela e `.lp-ekg-tela`, entao nunca casava e ficava parada.
+   Traco mais longo e ciclo mais lento que na miniatura: aqui ele cruza a tela inteira. */
+.lp-ekg-tela .lp-varre {
+  stroke-dasharray: 90 780;
+  filter: drop-shadow(0 0 7px rgb(165 94 255 / 0.85));
+  animation: lp-varre 4.6s linear infinite !important;
 }
 
 /* ATMOSFERA (paridade RH): navy profundo + anel de tela grande */
