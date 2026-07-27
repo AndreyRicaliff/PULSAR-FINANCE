@@ -53,7 +53,7 @@ export function CodigoAcesso({ onLiberado }: { onLiberado: () => Promise<void> }
   }
 
   return (
-    <div className="fx-grid-bg relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-bg p-6">
+    <div className="login-fundo fx-grid-bg relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-bg p-6">
       <div className="relative flex w-full max-w-[440px] flex-col items-center gap-4">
         <header className="mb-1 flex flex-col items-center gap-2 text-center">
           <Logo size={56} subtitulo="" />

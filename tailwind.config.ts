@@ -24,9 +24,9 @@ export default {
         muted: cor('muted'),
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
-        titulo: ['Inter', 'system-ui', 'sans-serif'],
-        apoio: ['Inter', 'system-ui', 'sans-serif'],
+        sans: ['Inter Variable', 'Inter', 'system-ui', 'sans-serif'],
+        titulo: ['Inter Variable', 'Inter', 'system-ui', 'sans-serif'],
+        apoio: ['Inter Variable', 'Inter', 'system-ui', 'sans-serif'],
       },
       borderRadius: { card: '12px' },
     },

@@ -76,7 +76,7 @@
   /* Tipografia v3.1 (§2): display = Space Grotesk (personalidade); corpo/UI = Inter.
      O comentário anterior citava Chillax/Author, que nunca chegaram a ser carregados. */
   :root {
-    --f-display: 'Space Grotesk', 'Inter', system-ui, sans-serif;
+    --f-display: 'Space Grotesk Variable', 'Space Grotesk', 'Inter Variable', 'Inter', system-ui, sans-serif;
   }
 
   /* Títulos de painel são UI, não vitrine: Inter, peso 600, sem tracking dramático.
@@ -1482,8 +1482,13 @@ html[data-static] main h1, html[data-static] main h1 + p { animation: none; }
   animation: lp-varre 4.6s linear infinite !important;
 }
 
-/* ATMOSFERA (paridade RH): navy profundo + anel de tela grande */
-.fx-grid-bg { background-color: #06081A !important; }
+/* ATMOSFERA da ENTRADA (paridade RH): navy mais profundo que o resto do app.
+   ESCOPADO ao login — antes isto era `.fx-grid-bg { background: #06081A !important }`,
+   mas essa classe também veste o <main> do Shell e do HUD: no tema CLARO o miolo do app
+   inteiro ficava navy com texto escuro por cima, ilegível. E mesmo no escuro, o main
+   destoava do resto (#06081A vs #0E0E16). */
+.login-fundo { background-color: #06081A; }
+html.light .login-fundo { background-color: rgb(var(--c-bg)); }
 @keyframes lp-anel-tela {
   0%   { transform: translate(-50%, -50%) scale(0.3); opacity: 0; }
   20%  { opacity: 0.9; }
