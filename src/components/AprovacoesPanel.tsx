@@ -10,6 +10,7 @@ import {
   podeIr,
   ROTULO_EVENTO,
   ROTULO_STATUS,
+  somarMeses,
   type Aprovacao,
   type EventoAprovacao,
 } from '@/core/aprovacao'
@@ -184,6 +185,15 @@ function CartaoConta({
     }
   }
 
+  async function marcarMercadoria(recebida: boolean) {
+    onErro('')
+    try {
+      await api.marcarMercadoria(a.id, recebida)
+    } catch (e) {
+      onErro(e instanceof Error ? e.message : 'Erro ao marcar mercadoria')
+    }
+  }
+
   async function responder() {
     if (!resposta.trim()) return
     onErro('')
@@ -207,6 +217,12 @@ function CartaoConta({
           </p>
         </div>
         <span className="text-[15px] font-bold tabular-nums">{brl(a.valorCentavos)}</span>
+        {a.mercadoriaRecebida === false ? (
+          <span className="rounded-full bg-warn/15 px-2.5 py-1 text-xs font-semibold text-warn">aguardando mercadoria</span>
+        ) : null}
+        {a.mercadoriaRecebida === true ? (
+          <span className="rounded-full bg-accent/10 px-2.5 py-1 text-xs font-medium text-muted">mercadoria ok</span>
+        ) : null}
         <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${COR_STATUS[a.status]}`}>
           {ROTULO_STATUS[a.status]}
         </span>
@@ -219,6 +235,9 @@ function CartaoConta({
         {podeIr(a.status, 'agendada') ? <BotaoAcao onClick={() => void mover('agendada')}>Agendar pagamento</BotaoAcao> : null}
         {podeIr(a.status, 'paga') ? <BotaoAcao onClick={() => void mover('paga')}>Marcar paga</BotaoAcao> : null}
         {a.status === 'reprovada' ? <BotaoAcao onClick={() => void mover('pendente')}>Reabrir (nova rodada)</BotaoAcao> : null}
+        {a.mercadoriaRecebida === false ? (
+          <BotaoAcao onClick={() => void marcarMercadoria(true)}>Mercadoria chegou</BotaoAcao>
+        ) : null}
         {emAberto(a) ? <BotaoAcao onClick={() => void mover('cancelada')}>Cancelar</BotaoAcao> : null}
         <button
           type="button"
@@ -320,17 +339,30 @@ function FormConta({ api, onFechar }: { api: AprovacoesApi; onFechar: () => void
   const [descricao, setDescricao] = useState('')
   const [valor, setValor] = useState('')
   const [vencimento, setVencimento] = useState(new Date().toISOString().slice(0, 10))
+  const [meses, setMeses] = useState('1')
+  const [controlaMercadoria, setControlaMercadoria] = useState(false)
   const [erro, setErro] = useState('')
   const [salvando, setSalvando] = useState(false)
 
   async function salvar() {
     const centavos = centavosDeTexto(valor)
+    const n = Math.max(1, Math.min(24, Number.parseInt(meses, 10) || 1))
     if (!fornecedor.trim()) return setErro('Informe o fornecedor.')
     if (centavos === null) return setErro('Valor inválido — use vírgula para centavos.')
     setSalvando(true)
     setErro('')
+    // Recorrência da planilha (aluguel/financiamento lançados até dezembro): n contas,
+    // vencimento andando de mês em mês, parcela no texto para o cliente saber qual é qual.
+    const base = descricao.trim()
+    const contas = Array.from({ length: n }, (_, i) => ({
+      fornecedor: fornecedor.trim(),
+      descricao: n > 1 ? [base, `(${i + 1}/${n})`].filter(Boolean).join(' ') : base,
+      valorCentavos: centavos,
+      vencimento: somarMeses(vencimento, i),
+      mercadoriaRecebida: controlaMercadoria ? false : null,
+    }))
     try {
-      await api.criar([{ fornecedor: fornecedor.trim(), descricao: descricao.trim(), valorCentavos: centavos, vencimento }])
+      await api.criar(contas)
       onFechar()
     } catch (e) {
       setErro(e instanceof Error ? e.message : 'Erro ao criar')
@@ -354,6 +386,20 @@ function FormConta({ api, onFechar }: { api: AprovacoesApi; onFechar: () => void
           <input type="date" value={vencimento} onChange={(e) => setVencimento(e.target.value)} className={CLASSE_INPUT} />
         </Campo>
       </div>
+      <div className="grid grid-cols-2 items-end gap-3">
+        <Campo rotulo="Repetir mensalmente (meses)">
+          <input type="number" min={1} max={24} value={meses} onChange={(e) => setMeses(e.target.value)} className={`${CLASSE_INPUT} text-right tabular-nums`} />
+        </Campo>
+        <label className="flex items-center gap-2 pb-2.5 text-sm text-muted">
+          <input type="checkbox" checked={controlaMercadoria} onChange={(e) => setControlaMercadoria(e.target.checked)} className="h-4 w-4 accent-[rgb(var(--primary))]" />
+          Só pagar com mercadoria recebida
+        </label>
+      </div>
+      {Number.parseInt(meses, 10) > 1 ? (
+        <p className="text-[11.5px] text-muted">
+          Serão criadas {Math.min(24, Number.parseInt(meses, 10) || 1)} contas, uma por mês a partir do vencimento, com a parcela no nome.
+        </p>
+      ) : null}
       {erro ? <p className="text-[13px] text-danger">{erro}</p> : null}
       <div className="flex justify-end gap-2">
         <button type="button" onClick={onFechar} className="rounded-lg border border-bd px-4 py-2 text-sm text-muted hover:text-text">Cancelar</button>

@@ -16,6 +16,8 @@ export interface NovaConta {
   /** ISO 'aaaa-mm-dd'. */
   readonly vencimento: string
   readonly tituloRef?: string
+  /** false = compra que só se paga com a mercadoria em mãos (planilha: "MERCADORIA RECEBIDA?"). */
+  readonly mercadoriaRecebida?: boolean | null
 }
 
 export interface AprovacoesApi {
@@ -27,6 +29,7 @@ export interface AprovacoesApi {
   readonly decidir: (id: string, decisao: 'aprovada' | 'reprovada', comentario: string) => Promise<void>
   readonly comentar: (id: string, texto: string) => Promise<void>
   readonly transicao: (id: string, para: StatusAprovacao) => Promise<void>
+  readonly marcarMercadoria: (id: string, recebida: boolean) => Promise<void>
   readonly recarregar: () => Promise<void>
 }
 
@@ -39,6 +42,7 @@ interface LinhaAprovacao {
   readonly valor_centavos: number
   readonly vencimento: string
   readonly status: StatusAprovacao
+  readonly mercadoria_recebida: boolean | null
   readonly decidido_em: string | null
   readonly criado_em: string
 }
@@ -61,6 +65,7 @@ const mapearAprovacao = (r: LinhaAprovacao): Aprovacao => ({
   valorCentavos: Number(r.valor_centavos),
   vencimento: r.vencimento,
   status: r.status,
+  mercadoriaRecebida: r.mercadoria_recebida,
   decididoEm: r.decidido_em,
   criadoEm: r.criado_em,
 })
@@ -132,6 +137,7 @@ export function useAprovacoes(): AprovacoesApi {
           descricao: c.descricao,
           valor_centavos: c.valorCentavos,
           vencimento: c.vencimento,
+          mercadoria_recebida: c.mercadoriaRecebida ?? null,
         })),
       )
       aErro(error, 'Erro ao criar conta(s)')
@@ -174,5 +180,16 @@ export function useAprovacoes(): AprovacoesApi {
     [recarregar],
   )
 
-  return { aprovacoes, eventos, carregando, criar, decidir, comentar, transicao, recarregar }
+  // Fora do congelamento de propósito: a mercadoria chega DEPOIS da aprovação.
+  const marcarMercadoria = useCallback(
+    async (id: string, recebida: boolean) => {
+      if (!supabase) throw new Error('Supabase não configurado')
+      const { error } = await supabase.from('painel_aprovacoes').update({ mercadoria_recebida: recebida }).eq('id', id)
+      aErro(error, 'Erro ao marcar mercadoria')
+      await recarregar()
+    },
+    [recarregar],
+  )
+
+  return { aprovacoes, eventos, carregando, criar, decidir, comentar, transicao, marcarMercadoria, recarregar }
 }

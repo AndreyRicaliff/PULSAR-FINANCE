@@ -26,6 +26,8 @@ export interface Aprovacao {
   /** ISO 'aaaa-mm-dd' (formato do banco). */
   readonly vencimento: string
   readonly status: StatusAprovacao
+  /** null = não se aplica · false = compra aguardando entrega · true = recebida. */
+  readonly mercadoriaRecebida: boolean | null
   readonly decididoEm: string | null
   readonly criadoEm: string
 }
@@ -86,4 +88,20 @@ export const ROTULO_EVENTO: Readonly<Record<TipoEvento, string>> = {
 /** Em aberto = ainda pede ação de alguém (o que os KPIs somam). */
 export function emAberto(a: Pick<Aprovacao, 'status'>): boolean {
   return a.status === 'pendente' || a.status === 'aprovada' || a.status === 'agendada'
+}
+
+/**
+ * Soma meses a um ISO 'aaaa-mm-dd' preservando o dia quando existe no mês destino
+ * (31/01 + 1 mês = 28/02, não 03/03). Base das contas recorrentes — a planilha lançava
+ * aluguel/financiamento até dezembro na mão; aqui o vencimento anda sozinho.
+ */
+export function somarMeses(iso: string, meses: number): string {
+  const [a, m, d] = iso.split('-').map(Number)
+  if (!a || !m || !d) return iso
+  const total = m - 1 + meses
+  const ano = a + Math.floor(total / 12)
+  const mes = (total % 12 + 12) % 12
+  const ultimoDia = new Date(ano, mes + 1, 0).getDate()
+  const dia = Math.min(d, ultimoDia)
+  return `${ano}-${String(mes + 1).padStart(2, '0')}-${String(dia).padStart(2, '0')}`
 }
