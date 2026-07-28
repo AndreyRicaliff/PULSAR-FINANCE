@@ -2,7 +2,7 @@
 import { useMemo, useState } from 'react'
 import { descricoesAmbiguas, rotuloCategoria } from '@/core/categoria'
 import { arvorePorGrupo, totaisEfetivos } from '@/core/classes'
-import { calcular, demonstracaoPadrao, mapaPadrao, type TipoDemo } from '@/core/demonstracao'
+import { calcular, demonstracaoPadrao, LINHA_FORA, mapaPadrao, type TipoDemo } from '@/core/demonstracao'
 import { movimentosCaixa } from '@/core/movimento'
 import { ESTRUTURA_PADRAO_AG } from '@/core/modelo'
 import { useCadastros } from '@/lib/cadastros'
@@ -101,7 +101,52 @@ function Conteudo() {
 
   const demoTipo = dem.demo[tipo]
   const demoMapa = demoTipo.mapa
-  const remapeados = gruposAlocaveis.filter((g) => (comp.mapaPadrao[g.id] ?? '') !== (demoMapa[g.id] ?? '')).length
+
+  // TODAS as personalizações vs padrão — grupos remapeados E overrides de subgrupo/classe.
+  // O contador antigo só via grupos: mostrava "0 remapeados" com Δ gigante quando a mudança
+  // era um override, e o financeiro leu como bug (AUTAG, 2026-07-28).
+  const mudancas = useMemo<Mudanca[]>(() => {
+    const noNome = new Map(conc.estrutura.map((n) => [n.id, n.nome]))
+    const catNome = new Map(cadCategorias.categorias.map((c) => [c.codigo, c.descricao]))
+    const ambiguas = descricoesAmbiguas(cadCategorias.categorias)
+    const linha = (id: string) => comp.nomeLinha.get(id) ?? id
+    const lista: Mudanca[] = []
+    for (const g of gruposAlocaveis) {
+      const pad = comp.mapaPadrao[g.id] ?? ''
+      const cur = demoMapa[g.id] ?? ''
+      if (pad === cur) continue
+      lista.push({
+        chave: `g:${g.id}`,
+        origem: 'Grupo',
+        nome: g.nome,
+        atual: cur ? linha(cur) : 'não alocado',
+        padrao: pad ? linha(pad) : 'não alocado',
+        aoRestaurar: () => (pad ? dem.alocar(tipo, g.id, pad) : dem.desalocar(tipo, g.id)),
+      })
+    }
+    for (const [subId, l] of Object.entries(demoTipo.mapaSub ?? {})) {
+      lista.push({
+        chave: `s:${subId}`,
+        origem: 'Subgrupo',
+        nome: noNome.get(subId) ?? subId,
+        atual: l === LINHA_FORA ? 'removido desta demonstração' : linha(l),
+        padrao: 'segue o grupo',
+        aoRestaurar: () => dem.alocarSub(tipo, subId, ''),
+      })
+    }
+    for (const [cod, l] of Object.entries(demoTipo.mapaClasse ?? {})) {
+      lista.push({
+        chave: `c:${cod}`,
+        origem: 'Classe',
+        nome: rotuloCategoria(cod, catNome.get(cod) ?? '', ambiguas),
+        atual: l === LINHA_FORA ? 'removida desta demonstração' : linha(l),
+        padrao: 'segue o grupo',
+        aoRestaurar: () => dem.alocarClasse(tipo, cod, ''),
+      })
+    }
+    return lista
+  }, [gruposAlocaveis, comp, demoMapa, demoTipo, conc.estrutura, cadCategorias, dem, tipo])
+  const [mudancasAbertas, setMudancasAbertas] = useState(false)
   const acoes = {
     entradas: calc.filter((l) => l.tipo === 'entrada'),
     mapaSub: demoTipo.mapaSub ?? {},
@@ -174,7 +219,12 @@ function Conteudo() {
           {modo === 'editar' ? (
             <>
               <div className="flex items-center justify-between gap-3">
-                <Discrepancia remapeados={remapeados} editado={ultima?.valorCentavos ?? 0} padrao={comp.valorPadrao.get(ultima?.id ?? '') ?? 0} />
+                <Discrepancia
+                  mudancas={mudancas.length}
+                  editado={ultima?.valorCentavos ?? 0}
+                  padrao={comp.valorPadrao.get(ultima?.id ?? '') ?? 0}
+                  aoAbrir={() => setMudancasAbertas(true)}
+                />
                 <button
                   type="button"
                   onClick={() => setOrdenando((v) => !v)}
@@ -216,26 +266,137 @@ function Conteudo() {
           )}
         </>
       )}
+      {mudancasAbertas ? (
+        <MudancasModal
+          mudancas={mudancas}
+          tipo={tipo}
+          aoRestaurarTudo={() => {
+            dem.restaurar(tipo)
+            setMudancasAbertas(false)
+          }}
+          aoFechar={() => setMudancasAbertas(false)}
+        />
+      ) : null}
       {detalhe.modal}
     </div>
   )
 }
 
-function Discrepancia({ remapeados, editado, padrao }: { remapeados: number; editado: number; padrao: number }) {
+interface Mudanca {
+  readonly chave: string
+  readonly origem: 'Grupo' | 'Subgrupo' | 'Classe'
+  readonly nome: string
+  readonly atual: string
+  readonly padrao: string
+  readonly aoRestaurar: () => void
+}
+
+/**
+ * Alerta minimalista. O anterior riscava o padrão e listava Δ na própria faixa — lia-se
+ * como erro. Agora: uma frase, e o detalhe inteiro no pop-up.
+ */
+function Discrepancia({ mudancas, editado, padrao, aoAbrir }: { mudancas: number; editado: number; padrao: number; aoAbrir: () => void }) {
   const delta = editado - padrao
-  const limpo = remapeados === 0 && delta === 0
+  if (mudancas === 0 && delta === 0) {
+    return (
+      <div className="rounded-card border border-bd bg-surface p-3 text-sm text-muted">
+        Igual ao padrão dos MDs — nada personalizado.
+      </div>
+    )
+  }
+  if (mudancas === 0) {
+    return (
+      <div className="rounded-card border border-bd bg-surface p-3 text-sm text-muted">
+        Estrutura própria deste cliente — a comparação com o padrão AG não se aplica a todos os grupos.
+      </div>
+    )
+  }
   return (
-    <div className={`rounded-card border p-3 text-sm ${limpo ? 'border-bd bg-surface' : 'border-warn/40 bg-warn/10'}`}>
-      {limpo ? (
-        <span className="text-muted">Sem personalização — igual ao padrão dos MDs (imutável).</span>
-      ) : (
-        <span>
-          <strong>{remapeados}</strong> grupo(s) remapeado(s) vs padrão · Resultado:{' '}
-          <span className="font-semibold">{brl(editado)}</span> (padrão{' '}
-          <span className="line-through">{brl(padrao)}</span> · Δ{' '}
-          <span className="font-semibold text-warn">{brl(delta)}</span>)
-        </span>
-      )}
+    <div className="flex flex-wrap items-center gap-3 rounded-card border border-warn/30 bg-surface p-3 text-sm">
+      <span className="inline-block h-1.5 w-1.5 rounded-full bg-warn" />
+      <span>
+        <strong>{mudancas}</strong> mudança(s) em relação ao padrão
+        {delta !== 0 ? <span className="text-muted"> · resultado difere em {brl(delta)}</span> : null}
+      </span>
+      <button type="button" onClick={aoAbrir} className="fx-press rounded-lg border border-bd px-3 py-1 text-xs font-medium text-muted hover:text-text">
+        Ver mudanças
+      </button>
+    </div>
+  )
+}
+
+function MudancasModal({
+  mudancas,
+  tipo,
+  aoRestaurarTudo,
+  aoFechar,
+}: {
+  mudancas: readonly Mudanca[]
+  tipo: TipoDemo
+  aoRestaurarTudo: () => void
+  aoFechar: () => void
+}) {
+  return (
+    <div className="anim-fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={aoFechar}>
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Mudanças em relação ao padrão"
+        className="anim-pop flex max-h-[85vh] w-full max-w-xl flex-col gap-4 overflow-y-auto rounded-card border border-bd bg-surface p-6"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <header>
+          <h2 className="text-lg font-bold">Mudanças em relação ao padrão · {tipo.toUpperCase()}</h2>
+          <p className="text-sm text-muted">
+            O que foi movido nesta demonstração, onde está agora e onde o padrão colocaria.
+            Restaurar desfaz só aquele item.
+          </p>
+        </header>
+
+        {mudancas.length === 0 ? (
+          <p className="rounded-card border border-dashed border-bd p-6 text-center text-sm text-muted">
+            Nada personalizado — tudo no padrão.
+          </p>
+        ) : (
+          <ul className="flex flex-col gap-2">
+            {mudancas.map((m) => (
+              <li key={m.chave} className="flex flex-wrap items-center gap-3 rounded-card border border-bd bg-surface2/50 px-4 py-3">
+                <div className="min-w-0 flex-1">
+                  <p className="flex items-center gap-2 text-sm font-medium">
+                    <span className="rounded bg-secondary/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-secondary">
+                      {m.origem}
+                    </span>
+                    <span className="truncate">{m.nome}</span>
+                  </p>
+                  <p className="text-xs text-muted">
+                    está em: <span className="text-text">{m.atual}</span> · padrão: {m.padrao}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={m.aoRestaurar}
+                  className="fx-press rounded-lg border border-bd px-3 py-1.5 text-xs font-medium text-muted hover:border-primary hover:text-text"
+                >
+                  Restaurar
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        <footer className="flex items-center justify-between gap-2 border-t border-bd pt-4">
+          <button
+            type="button"
+            onClick={aoRestaurarTudo}
+            className="fx-press rounded-lg border border-danger/40 px-4 py-2 text-sm font-medium text-danger"
+          >
+            Restaurar tudo ({tipo.toUpperCase()})
+          </button>
+          <button type="button" onClick={aoFechar} className="fx-press rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white">
+            Fechar
+          </button>
+        </footer>
+      </div>
     </div>
   )
 }
