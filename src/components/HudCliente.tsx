@@ -14,6 +14,7 @@ import { useOverrides } from '@/lib/overrides'
 import { PeriodoProvider } from '@/lib/periodo'
 import { SomenteLeituraProvider } from '@/lib/somenteLeitura'
 import { useTema } from '@/lib/useTema'
+import { useMovimentos } from '@/lib/movimentos'
 import { useResultado } from '@/lib/useResultado'
 import { DefinirSenha } from './DefinirSenha.tsx'
 import { Logo } from './Logo.tsx'
@@ -189,11 +190,37 @@ function Embedded() {
 
 function Corpo({ vista }: { vista: VistaHud }) {
   const { dre, dfc, grupos, periodo, movimentos, conc } = useResultado()
+  const fonte = useMovimentos()
   // Igual aos relatórios: o apresentativo mostra só o operacional; neutros (Regra Mãe) ficam fora.
   const { operacionais, neutros } = useMemo(() => separarNeutros(movimentos, conc), [movimentos, conc])
 
+  // Gate dos 5 estados: zeros só depois da fonte responder — número piscando de 0 pro real
+  // é dado falso na vitrine do cliente (revisão 2026-07-29).
+  if (fonte.status === 'carregando') {
+    return (
+      <div className="flex flex-col items-center gap-3 rounded-card border border-bd bg-surface p-12 text-center">
+        <span className="pulso-vivo h-2 w-2 rounded-full bg-secondary" />
+        <p className="text-sm text-muted">Carregando seus dados…</p>
+      </div>
+    )
+  }
+
   return (
     <div className="flex flex-col gap-6">
+      {fonte.status === 'erro' ? (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-card border border-danger/40 bg-danger/10 px-4 py-3">
+          <p className="text-sm font-medium text-danger">
+            Não foi possível carregar seus dados — os valores abaixo podem estar incompletos.
+          </p>
+          <button
+            type="button"
+            onClick={() => void fonte.recarregar()}
+            className="fx-press rounded-lg border border-danger/50 px-3 py-1.5 text-xs font-semibold text-danger"
+          >
+            Tentar de novo
+          </button>
+        </div>
+      ) : null}
       <FiltroPeriodo info={periodo} />
       <ResumoPeriodo
         contexto="periodo"

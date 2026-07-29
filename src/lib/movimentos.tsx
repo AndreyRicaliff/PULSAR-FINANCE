@@ -27,6 +27,12 @@ export interface FonteMovimentos {
   readonly geradoEm: string | null
   /** 'local' = seed do build; 'sync' = doc vivo do painel_estado. */
   readonly origem: 'local' | 'sync'
+  /**
+   * 'carregando' = a 1ª leitura ainda não voltou (não renderizar zeros como dado);
+   * 'erro' = a leitura FALHOU — a lista vazia não significa "sem movimento".
+   * Sem isto o HUD mostrava "R$ 0,00" confiante em falha de rede/RLS (revisão 2026-07-29).
+   */
+  readonly status: 'carregando' | 'ok' | 'erro'
   readonly recarregar: () => Promise<void>
 }
 
@@ -41,14 +47,16 @@ function docValido(v: unknown): v is MovimentosSeed {
 
 // Sem seed: cada tenant parte vazio e hidrata só do PRÓPRIO sync (painel_estado por cliente).
 // O seed era a conta da Acme/27 e contaminava a ACME 36 — dado real vem só do sync do cliente.
-function fallbackLocal(): Pick<FonteMovimentos, 'movimentos' | 'geradoEm' | 'origem'> {
-  return { movimentos: [], geradoEm: null, origem: 'local' }
+function fallbackLocal(
+  status: 'carregando' | 'ok' | 'erro' = 'carregando',
+): Pick<FonteMovimentos, 'movimentos' | 'geradoEm' | 'origem' | 'status'> {
+  return { movimentos: [], geradoEm: null, origem: 'local', status }
 }
 
 export function MovimentosProvider({ children }: { children: ReactNode }) {
   const { ativo } = useClientes()
   const { movimentosManuais } = useLancamentos()
-  const [estado, setEstado] = useState(() => fallbackLocal())
+  const [estado, setEstado] = useState(() => fallbackLocal(supabase ? 'carregando' : 'ok'))
 
   const recarregar = useCallback(async () => {
     if (!supabase) return
@@ -59,6 +67,8 @@ export function MovimentosProvider({ children }: { children: ReactNode }) {
       .maybeSingle()
     if (error) {
       console.error('[movimentos] erro ao ler doc do sync:', error.message)
+      // Fail-closed: mantém o que houver + status 'erro' — a UI marca o furo, não zera calada.
+      setEstado((atual) => ({ ...atual, status: 'erro' }))
       return
     }
     const doc = data?.dados
@@ -68,13 +78,17 @@ export function MovimentosProvider({ children }: { children: ReactNode }) {
         movimentos: aplicarPisoDados(doc.movimentos, piso),
         geradoEm: doc.geradoEm ?? null,
         origem: 'sync',
+        status: 'ok',
       })
+    } else {
+      // Sem doc de sync é estado LEGÍTIMO (cliente nunca sincronizou) — vazio honesto, não erro.
+      setEstado(fallbackLocal('ok'))
     }
   }, [ativo.id])
 
   // Troca de tenant → volta ao fallback do novo tenant antes de hidratar (não vaza dado entre clientes).
   useEffect(() => {
-    setEstado(fallbackLocal())
+    setEstado(fallbackLocal(supabase ? 'carregando' : 'ok'))
     void recarregar()
   }, [ativo.id, recarregar])
 
