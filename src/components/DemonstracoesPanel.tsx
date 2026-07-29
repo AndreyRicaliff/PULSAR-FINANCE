@@ -187,7 +187,17 @@ function Conteudo() {
         </div>
         <button
           type="button"
-          onClick={() => dem.restaurar(tipo)}
+          onClick={() => {
+            // Com contexto real: diz QUANTAS mudanças serão desfeitas (o modal de mudanças
+            // já guarda o caminho item a item — este botão zera tudo, então confirma).
+            if (mudancas.length === 0) return dem.restaurar(tipo)
+            if (
+              window.confirm(
+                `Restaurar o padrão desfaz ${mudancas.length} mudança(s) feitas na ${tipo.toUpperCase()} — remapeamentos e overrides voltam ao padrão AG. Para desfazer só um item, use "Ver mudanças". Confirmar?`,
+              )
+            )
+              dem.restaurar(tipo)
+          }}
           className="rounded-lg border border-bd px-3 py-1.5 text-sm font-medium text-muted hover:text-text"
         >
           Restaurar padrão ({tipo.toUpperCase()})

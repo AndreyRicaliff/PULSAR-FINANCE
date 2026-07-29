@@ -6,6 +6,7 @@ import { useClientes } from '@/lib/clientes'
 import { useSomMaster } from '@/lib/useMusicaAmbiente'
 import type { Tema } from '@/lib/useTema'
 import { DefinirSenha } from './DefinirSenha.tsx'
+import { SeloSync } from './SeloSync.tsx'
 
 interface Props {
   readonly titulo: string
@@ -37,6 +38,7 @@ export function Topbar({ titulo, tema, onAlternarTema, email, onSair, menuAberto
         </div>
       </div>
       <div className="flex items-center gap-3">
+        <SeloSync />
         <SeletorCliente />
         <ToggleMusica />
         <ToggleTema tema={tema} onAlternar={onAlternarTema} />
