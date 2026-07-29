@@ -17,10 +17,76 @@ async function buscarRemoto(chave: string): Promise<unknown | null> {
   return data?.dados ?? null
 }
 
+// ── Estado global de sincronização ──────────────────────────────────────────────
+// A UI é otimista (a edição aparece na hora); sem este estado, um upsert recusado
+// morria em console.error e o financeiro conciliava o mês acreditando que salvou —
+// perda silenciosa de trabalho contábil (achado 🟠 da revisão de 2026-07-29, e
+// pendência declarada desde 24/07). O selo na Topbar lê daqui.
+export interface EstadoSync {
+  readonly estado: 'ocioso' | 'salvando' | 'salvo' | 'erro'
+  /** Chaves cuja última gravação remota FALHOU (localStorage ainda tem o valor). */
+  readonly falhas: number
+  readonly ultimoSalvoEm: string | null
+}
+
+const sync = {
+  pendentes: new Set<string>(),
+  falhas: new Set<string>(),
+  ultimoSalvoEm: null as string | null,
+  listeners: new Set<() => void>(),
+  foto: { estado: 'ocioso', falhas: 0, ultimoSalvoEm: null } as EstadoSync,
+}
+
+function atualizarSync(): void {
+  sync.foto = {
+    estado: sync.pendentes.size
+      ? 'salvando'
+      : sync.falhas.size
+        ? 'erro'
+        : sync.ultimoSalvoEm
+          ? 'salvo'
+          : 'ocioso',
+    falhas: sync.falhas.size,
+    ultimoSalvoEm: sync.ultimoSalvoEm,
+  }
+  for (const l of sync.listeners) l()
+}
+
+/** Estado da gravação remota, para o selo da Topbar. */
+export function useEstadoSync(): EstadoSync {
+  const subscrever = useCallback((cb: () => void) => {
+    sync.listeners.add(cb)
+    return () => sync.listeners.delete(cb)
+  }, [])
+  return useSyncExternalStore(subscrever, () => sync.foto)
+}
+
+/** Re-tenta as chaves que falharam (o valor vivo continua no store/localStorage). */
+export function tentarSalvarDeNovo(): void {
+  for (const chave of [...sync.falhas]) {
+    const s = stores.get(chave)
+    if (!s) continue
+    sync.pendentes.add(chave)
+    void salvarRemoto(chave, s.valor)
+  }
+  atualizarSync()
+}
+
 async function salvarRemoto(chave: string, dados: unknown): Promise<void> {
   if (!supabase) return
+  // Idempotente: garante o "salvando…" também quando chamado pelo timer/retry.
+  sync.pendentes.add(chave)
+  atualizarSync()
   const { error } = await supabase.from(TABELA).upsert({ chave, dados })
-  if (error) console.error(`[persistencia] erro ao salvar "${chave}":`, error.message)
+  sync.pendentes.delete(chave)
+  if (error) {
+    console.error(`[persistencia] erro ao salvar "${chave}":`, error.message)
+    sync.falhas.add(chave)
+  } else {
+    sync.falhas.delete(chave)
+    if (sync.pendentes.size === 0) sync.ultimoSalvoEm = new Date().toISOString()
+  }
+  atualizarSync()
 }
 
 function carregarLocal<T>(chave: string, normalizar: (bruto: unknown) => T): T {
@@ -75,6 +141,8 @@ function definirStore(chave: string, atualizar: SetStateAction<unknown>): void {
     /* cota/serialização — ignora, o remoto é a fonte */
   }
   if (s.timer) clearTimeout(s.timer)
+  sync.pendentes.add(chave)
+  atualizarSync()
   s.timer = setTimeout(() => void salvarRemoto(chave, s.valor), DEBOUNCE_MS)
 }
 

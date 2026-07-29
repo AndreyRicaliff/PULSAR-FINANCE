@@ -108,7 +108,16 @@ export function ModeloPanel() {
         </div>
         <button
           type="button"
-          onClick={() => api.restaurar(dim)}
+          onClick={() => {
+            // Ação mais destrutiva da tela: some com a organização inteira da dimensão.
+            // Remover UM lançamento pede confirm; apagar TUDO não pedia (revisão 2026-07-29).
+            if (
+              window.confirm(
+                'Restaurar a estrutura padrão substitui TODA a organização personalizada desta dimensão — grupos e subgrupos criados somem, e a conciliação ligada a eles fica órfã. Não há desfazer. Confirmar?',
+              )
+            )
+              api.restaurar(dim)
+          }}
           className="rounded-lg border border-bd px-3 py-1.5 text-sm font-medium text-muted hover:text-text"
         >
           Restaurar estrutura padrão
