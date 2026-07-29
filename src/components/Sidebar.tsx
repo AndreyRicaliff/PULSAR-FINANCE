@@ -101,8 +101,8 @@ export function Sidebar({ ativa, onSelecionar, aberta }: Props) {
 
   return (
     <aside
-      className={`h-dvh shrink-0 overflow-y-auto overflow-x-hidden border-bd bg-surface transition-[width] duration-300 ${
-        aberta ? 'w-64 border-r' : 'w-0'
+      className={`h-dvh shrink-0 overflow-y-auto overflow-x-hidden border-bd bg-surface transition-[width] duration-300 max-md:fixed max-md:left-0 max-md:top-0 max-md:z-40 ${
+        aberta ? 'w-64 border-r max-md:shadow-[0_0_60px_rgba(0,0,0,.55)]' : 'w-0'
       }`}
     >
       {/* Largura interna fixa: o texto não quebra durante a animação de recolher. */}

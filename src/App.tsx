@@ -99,7 +99,10 @@ export function App() {
 
 function Shell({ email }: { email?: string }) {
   const [aba, setAba] = useState<Aba>('plano')
-  const [menuAberto, setMenuAberto] = useState(() => localStorage.getItem('lf-menu') !== '0')
+  // No celular a sidebar é overlay e nasce FECHADA — 240px fixos comiam a tela (revisão).
+  const [menuAberto, setMenuAberto] = useState(
+    () => window.innerWidth >= 768 && localStorage.getItem('lf-menu') !== '0',
+  )
   const [tema, alternarTema] = useTema()
   useEffect(() => {
     localStorage.setItem('lf-menu', menuAberto ? '1' : '0')
@@ -111,7 +114,22 @@ function Shell({ email }: { email?: string }) {
     <OverridesProvider>
       <BoasVindas />
       <div className="flex h-dvh overflow-hidden">
-        <Sidebar ativa={aba} onSelecionar={setAba} aberta={menuAberto} />
+        <Sidebar
+          ativa={aba}
+          onSelecionar={(a) => {
+            setAba(a)
+            // Overlay mobile: escolher a aba fecha o menu — senão ele cobre o conteúdo.
+            if (window.innerWidth < 768) setMenuAberto(false)
+          }}
+          aberta={menuAberto}
+        />
+        {menuAberto ? (
+          <div
+            className="fixed inset-0 z-30 bg-black/50 md:hidden"
+            onClick={() => setMenuAberto(false)}
+            aria-hidden
+          />
+        ) : null}
         <div className="flex min-w-0 flex-1 flex-col">
           <Topbar
             titulo={ROTULO_ABA[aba]}
@@ -122,7 +140,7 @@ function Shell({ email }: { email?: string }) {
             menuAberto={menuAberto}
             onAlternarMenu={() => setMenuAberto((v) => !v)}
           />
-          <main className="fx-grid-bg min-w-0 flex-1 overflow-auto p-8">
+          <main className="fx-grid-bg min-w-0 flex-1 overflow-auto p-4 md:p-8">
             <div key={aba} className="anim-tab-in">
               <Painel />
             </div>
