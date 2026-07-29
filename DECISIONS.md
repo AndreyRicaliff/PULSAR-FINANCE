@@ -866,3 +866,9 @@ DRE calculada ponta a ponta no motor real: RL R$ 767,7 mil; MC negativa (-R$ 159
 **Por quê:** A espalha responsabilidade e perde falha de tela fechada; C é infra pesada para um app sempre-online — e retry automático infinito mascara erro de RLS/cota.
 **Consequências:** `useEstadoSync()`/`tentarSalvarDeNovo()` públicos; qualquer persistência nova herda o selo de graça.
 **Em entrevista (30s):** "A UI era otimista e a falha de gravação morria no console — perda silenciosa de trabalho contábil. Coloquei o estado de sync no único lugar que sabe a verdade, o módulo de persistência, e a Topbar exibe um selo: salvando, salvo às HH:MM, ou 'não salvo · tentar de novo' persistente. Falha vira coisa que o usuário VÊ, não que o dev acha no console."
+
+## 2026-07-29 — [acessos] Convite por e-mail real via marcador em app_metadata
+**Problema:** o trigger de signup só aceitava @agconsultorialtda.com; cliente sem inbox real não passa no 2FA nem pode aprovar conta com valor de assinatura.
+**Opções:** A) abrir signup público e confiar na RLS; B) convite por edge service-role com marcador `app_metadata.convite_ag`; C) SMTP custom no Supabase Auth.
+**Decisão:** B — `app_metadata` não é editável pelo usuário (diferente de `user_metadata`), então o marcador é prova de origem; a edge exige operador + sessão 2FA, cria a conta com senha aleatória que ninguém vê e manda link de definir senha via Resend. Conta órfã é deletada se o vínculo falhar.
+**Em entrevista (30s):** "Signup continua fechado; quem abre a porta é o operador. A conta nasce marcada no app_metadata — que o usuário não consegue forjar — e o convidado define a própria senha por link. Nunca vemos nem transportamos senha de cliente."

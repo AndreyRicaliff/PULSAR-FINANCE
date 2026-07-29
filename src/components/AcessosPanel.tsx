@@ -10,12 +10,14 @@ import {
   type AcessoConta,
 } from '@/lib/acessos'
 import type { Tenant } from '@/core/tenant'
+import { supabase } from '@/lib/supabase'
 
 export function AcessosPanel() {
   const { clientes } = useClientes()
   const [contas, setContas] = useState<AcessoConta[] | null>(null)
   const [erro, setErro] = useState('')
   const [novo, setNovo] = useState(false)
+  const [convite, setConvite] = useState(false)
 
   const recarregar = useCallback(async () => {
     setErro('')
@@ -41,13 +43,22 @@ export function AcessosPanel() {
             reseta aqui; o cliente entra e vê só o HUD do tenant dele.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => setNovo(true)}
-          className="fx-press rounded-lg bg-gradient-to-r from-primary to-secondary px-4 py-2 text-sm font-semibold text-white"
-        >
-          Novo acesso
-        </button>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => setConvite(true)}
+            className="fx-press rounded-lg bg-gradient-to-r from-primary to-secondary px-4 py-2 text-sm font-semibold text-white"
+          >
+            Convidar por e-mail
+          </button>
+          <button
+            type="button"
+            onClick={() => setNovo(true)}
+            className="fx-press rounded-lg border border-bd px-4 py-2 text-sm font-medium text-muted hover:text-text"
+          >
+            Novo acesso (login)
+          </button>
+        </div>
       </header>
 
       {erro ? (
@@ -82,7 +93,82 @@ export function AcessosPanel() {
       )}
 
       {novo ? <ModalNovo clientes={clientes} onFechar={() => setNovo(false)} onCriou={recarregar} /> : null}
+      {convite ? <ModalConvite clientes={clientes} onFechar={() => setConvite(false)} onCriou={recarregar} /> : null}
     </div>
+  )
+}
+
+/**
+ * Fase 2 dos acessos: conta com E-MAIL REAL. O convidado define a própria senha pelo
+ * link (nunca vemos senha), e o 2FA passa a funcionar no inbox dele — pré-requisito
+ * para aprovar contas por dentro. O login sintético segue existindo em paralelo.
+ */
+function ModalConvite({
+  clientes,
+  onFechar,
+  onCriou,
+}: {
+  clientes: readonly Tenant[]
+  onFechar: () => void
+  onCriou: () => Promise<void>
+}) {
+  const [email, setEmail] = useState('')
+  const [selecionados, setSelecionados] = useState<readonly string[]>([])
+  const [erro, setErro] = useState('')
+  const [enviando, setEnviando] = useState(false)
+
+  function alternar(id: string) {
+    setSelecionados((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]))
+  }
+
+  async function enviar(e: FormEvent) {
+    e.preventDefault()
+    if (!supabase) return
+    setEnviando(true)
+    setErro('')
+    const { data, error } = await supabase.functions.invoke('convidar-acesso', {
+      body: { email: email.trim(), clienteIds: selecionados },
+    })
+    if (error || data?.error) {
+      setErro(String(data?.error ?? error?.message ?? 'Falha ao convidar'))
+      setEnviando(false)
+      return
+    }
+    await onCriou()
+    onFechar()
+  }
+
+  return (
+    <Modal titulo="Convidar por e-mail" onFechar={onFechar}>
+      <form onSubmit={(e) => void enviar(e)} className="flex flex-col gap-4">
+        <p className="text-sm text-muted">
+          O convidado recebe um link para definir a própria senha. Com e-mail real, o código
+          do 2FA chega nele — e a aprovação de contas passa a valer como assinatura dele.
+        </p>
+        <label className="flex flex-col gap-1.5">
+          <span className="text-xs font-medium uppercase tracking-wide text-muted">E-mail do cliente</span>
+          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoFocus placeholder="dono@empresa.com.br" className={CLASSE_INPUT} />
+        </label>
+        <div className="flex flex-col gap-1.5">
+          <span className="text-xs font-medium uppercase tracking-wide text-muted">Empresas que ele enxerga</span>
+          <div className="flex max-h-44 flex-col gap-1 overflow-y-auto rounded-lg border border-bd bg-surface2 p-2">
+            {clientes.map((c) => (
+              <label key={c.id} className="flex items-center gap-2 rounded px-2 py-1 text-sm hover:bg-surface">
+                <input type="checkbox" checked={selecionados.includes(c.id)} onChange={() => alternar(c.id)} className="h-4 w-4 accent-[rgb(var(--primary))]" />
+                {c.nome}
+              </label>
+            ))}
+          </div>
+        </div>
+        {erro ? <p className="text-[13px] text-danger">{erro}</p> : null}
+        <div className="flex justify-end gap-2">
+          <button type="button" onClick={onFechar} className="rounded-lg border border-bd px-4 py-2 text-sm text-muted hover:text-text">Cancelar</button>
+          <button type="submit" disabled={enviando || !selecionados.length} className="fx-press rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white disabled:opacity-60">
+            {enviando ? 'Enviando…' : 'Enviar convite'}
+          </button>
+        </div>
+      </form>
+    </Modal>
   )
 }
 

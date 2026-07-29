@@ -15,6 +15,7 @@ import { PeriodoProvider } from '@/lib/periodo'
 import { SomenteLeituraProvider } from '@/lib/somenteLeitura'
 import { useTema } from '@/lib/useTema'
 import { useMovimentos } from '@/lib/movimentos'
+import { AprovacoesCliente } from './AprovacoesCliente.tsx'
 import { useResultado } from '@/lib/useResultado'
 import { DefinirSenha } from './DefinirSenha.tsx'
 import { Logo } from './Logo.tsx'
@@ -31,10 +32,11 @@ import { GrupoArvore } from './drilldown/GrupoArvore.tsx'
 import { TabelaMov } from './drilldown/TabelaMov.tsx'
 import type { Eixo } from './drilldown/rotulos'
 
-type VistaHud = 'indicadores' | 'dre' | 'dfc' | 'evolucao' | 'detalhamento'
+type VistaHud = 'indicadores' | 'aprovacoes' | 'dre' | 'dfc' | 'evolucao' | 'detalhamento'
 
 const VISTAS: readonly OpcaoSeg<VistaHud>[] = [
   { id: 'indicadores', rotulo: 'Indicadores' },
+  { id: 'aprovacoes', rotulo: 'Aprovações' },
   { id: 'dre', rotulo: 'DRE' },
   { id: 'dfc', rotulo: 'Fluxo de Caixa' },
   { id: 'evolucao', rotulo: 'Evolução & Projeção' },
@@ -56,6 +58,7 @@ export function HudCliente({ kiosk = false }: { kiosk?: boolean }) {
 
 const ICONE: Readonly<Record<VistaHud, string>> = {
   indicadores: '▦',
+  aprovacoes: '✓',
   dre: '≣',
   dfc: '◵',
   evolucao: '⇗',
@@ -233,6 +236,7 @@ function Corpo({ vista }: { vista: VistaHud }) {
       />
       <div key={vista} className="anim-tab-in">
         {vista === 'indicadores' ? <IndicadoresPanel /> : null}
+        {vista === 'aprovacoes' ? <AprovacoesCliente /> : null}
         {vista === 'dre' ? <RelatorioDRE dre={dre} grupos={grupos} /> : null}
         {vista === 'dfc' ? <RelatorioDFC dfc={dfc} /> : null}
         {vista === 'evolucao' ? <RelatorioEvolucao /> : null}
