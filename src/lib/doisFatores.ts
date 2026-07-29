@@ -55,13 +55,15 @@ async function tentarAparelho(): Promise<boolean> {
   const { data, error } = await supabase.functions.invoke('dois-fatores', {
     body: { acao: 'dispositivo', token },
   })
-  if (error || data?.error) {
-    // Token recusado (revogado, vencido, de outro dono) não serve mais: apaga para não
-    // insistir num segredo morto a cada boot.
+  // Só a recusa DITA PELO SERVIDOR (revogado, vencido, de outro dono) mata o token.
+  // Falha de transporte (rede, edge fria) não prova nada — apagar aqui destruía a
+  // confiança boa e o aparelho voltava a pedir código para sempre.
+  if (data && typeof data === 'object' && 'error' in data && data.error) {
     esquecerAparelho()
     return false
   }
-  return true
+  if (error) return false
+  return data?.ok === true
 }
 
 /**
@@ -95,6 +97,17 @@ export function use2FA(): { readonly estado: Estado2FA; readonly revalidar: () =
 
   useEffect(() => {
     void revalidar()
+    if (!supabase) return
+    // O login acontece DEPOIS do mount. Sem este listener, a única checagem rodava antes
+    // de existir sessão — o aparelho confiável nunca era tentado e a tela do código
+    // aparecia sempre (5 tokens emitidos, 0 resgatados em prod, 2026-07-29).
+    const { data: escuta } = supabase.auth.onAuthStateChange((evento) => {
+      if (evento === 'SIGNED_IN') {
+        setEstado('checando')
+        void revalidar()
+      }
+    })
+    return () => escuta.subscription.unsubscribe()
   }, [revalidar])
 
   return { estado, revalidar }
