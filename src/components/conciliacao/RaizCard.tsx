@@ -170,7 +170,17 @@ function Subgrupo({
         <div className="flex items-center gap-2">
           {itens.length > 0 ? <span className="text-xs text-muted">{itens.length}</span> : null}
           <span className="text-xs tabular-nums text-muted">{brl(totalCentavos(itens))}</span>
-          <button type="button" onClick={onRemover} className="text-xs text-muted hover:text-danger">
+          <button
+            type="button"
+            onClick={() => {
+              const aviso =
+                itens.length > 0
+                  ? `Remover o subgrupo "${no.nome}"? ${itens.length} categoria(s) voltam para "A conciliar".`
+                  : `Remover o subgrupo "${no.nome}"?`
+              if (window.confirm(aviso)) onRemover()
+            }}
+            className="text-xs text-muted hover:text-danger"
+          >
             ✕
           </button>
         </div>

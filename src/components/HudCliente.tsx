@@ -64,12 +64,41 @@ const ICONE: Readonly<Record<VistaHud, string>> = {
 /** Casco tela-cheia do modo cliente: sidebar Pulsar (marca + empresa + navegação + tema), nada do operador. */
 function Kiosk() {
   const [vista, setVista] = useState<VistaHud>('indicadores')
+  // Drawer mobile: o dono acessa do celular — sidebar fixa de 240px inviabilizava (revisao 2026-07-29)
+  const [menuAberto, setMenuAberto] = useState(false)
+  const irPara = (v: VistaHud) => {
+    setVista(v)
+    setMenuAberto(false)
+  }
   const [tema, alternarTema] = useTema()
   const [modalSenha, setModalSenha] = useState(false)
   const { clientes, ativo, selecionar } = useClientes()
   return (
-    <div className="flex h-dvh overflow-hidden">
-      <aside className="flex w-60 shrink-0 flex-col border-r border-bd bg-surface">
+    <div className="flex h-dvh flex-col overflow-hidden md:flex-row">
+      <header className="flex items-center justify-between border-b border-bd bg-surface px-4 py-3 md:hidden">
+        <Logo size={26} subtitulo="" />
+        <button
+          type="button"
+          onClick={() => setMenuAberto(true)}
+          aria-label="Abrir menu"
+          className="fx-press rounded-lg border border-bd bg-surface2 px-3 py-1.5 text-sm text-muted"
+        >
+          ☰ Menu
+        </button>
+      </header>
+      {menuAberto ? (
+        <button
+          type="button"
+          aria-label="Fechar menu"
+          onClick={() => setMenuAberto(false)}
+          className="fixed inset-0 z-30 bg-black/50 md:hidden"
+        />
+      ) : null}
+      <aside
+        className={`fixed inset-y-0 left-0 z-40 flex w-60 flex-col border-r border-bd bg-surface transition-transform md:static md:z-auto md:shrink-0 md:translate-x-0 ${
+          menuAberto ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
         <div className="border-b border-bd px-5 py-5">
           <Logo size={30} />
         </div>
@@ -95,7 +124,7 @@ function Kiosk() {
         )}
         <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-3">
           {VISTAS.map((v) => (
-            <ItemNav key={v.id} rotulo={v.rotulo} icone={ICONE[v.id]} ativo={v.id === vista} onClick={() => setVista(v.id)} />
+            <ItemNav key={v.id} rotulo={v.rotulo} icone={ICONE[v.id]} ativo={v.id === vista} onClick={() => irPara(v.id)} />
           ))}
         </nav>
         <div className="flex flex-col gap-2 border-t border-bd p-3">
@@ -124,7 +153,7 @@ function Kiosk() {
           </div>
         </div>
       </aside>
-      <main className="fx-grid-bg min-w-0 flex-1 overflow-auto p-8">
+      <main className="fx-grid-bg min-w-0 flex-1 overflow-auto p-4 md:p-8">
         <Corpo vista={vista} />
       </main>
       {modalSenha ? <DefinirSenha onFechar={() => setModalSenha(false)} /> : null}
@@ -200,7 +229,7 @@ function Detalhamento({ movimentos }: { movimentos: readonly Movimento[] }) {
         <div className="rounded-card border border-bd bg-surface p-4">
           <EixoChain eixos={eixos} onChange={setEixos} />
         </div>
-        <div className="overflow-hidden rounded-card border border-bd bg-surface">
+        <div className="overflow-x-auto rounded-card border border-bd bg-surface">
           {eixos.length === 0 ? (
             <TabelaMov movimentos={movimentos} />
           ) : (

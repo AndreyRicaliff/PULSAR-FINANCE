@@ -111,7 +111,14 @@ function Acoes({ cliente, ativo, onEditar }: { cliente: Tenant; ativo: boolean; 
       {protegido ? null : (
         <button
           type="button"
-          onClick={() => void deletar(cliente.id)}
+          onClick={() => {
+            if (
+              window.confirm(
+                `Excluir o cliente "${cliente.nome}"? Conciliação, DRE/DFC e ajustes dele serão perdidos de forma permanente.`,
+              )
+            )
+              void deletar(cliente.id)
+          }}
           className="text-muted hover:text-danger"
         >
           Excluir
