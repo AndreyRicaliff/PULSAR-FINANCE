@@ -141,7 +141,17 @@ function AcoesNo(props: Props & { alvo: Extract<AlvoMenu, { tipo: 'no' }>; onVis
           onClick={() => fechar(onFechar, () => chavesDoNo.forEach(props.onDesmapear))}
         />
       ) : null}
-      <Acao rotulo="Remover grupo" perigo onClick={() => fechar(onFechar, () => props.onRemoveNo(alvo.noId))} />
+      <Acao
+        rotulo="Remover grupo"
+        perigo
+        onClick={() => {
+          const aviso =
+            chavesDoNo.length > 0
+              ? `Remover este grupo e seus subgrupos? ${chavesDoNo.length} categoria(s) conciliada(s) voltam para "A conciliar".`
+              : 'Remover este grupo e seus subgrupos?'
+          if (window.confirm(aviso)) fechar(onFechar, () => props.onRemoveNo(alvo.noId))
+        }}
+      />
     </div>
   )
 }

@@ -38,7 +38,7 @@ export function TabelaDemonstracao({ titulo, linhas, grupos, base = 0, anterior,
   }
 
   return (
-    <div className="overflow-hidden rounded-card border border-bd bg-surface">
+    <div className="overflow-x-auto rounded-card border border-bd bg-surface">
       {titulo ? (
         <h2 className="border-b border-bd px-4 py-3 text-sm font-semibold uppercase tracking-wide text-muted">
           {titulo}

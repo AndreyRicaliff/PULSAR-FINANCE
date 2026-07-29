@@ -1,6 +1,7 @@
 /** @file Indicadores-chave derivados da DRE/DFC configurada + gráficos (sparkline mensal por card). */
 import { useMemo } from 'react'
 import { calcularIndicadores, seriesDosIndicadores } from '@/lib/indicadores'
+import { useSomenteLeitura } from '@/lib/somenteLeitura'
 import { useCadastros } from '@/lib/cadastros'
 import { useDemonstracoes } from '@/lib/useDemonstracoes'
 import { useResultado } from '@/lib/useResultado'
@@ -9,6 +10,7 @@ import { KpiCard } from './KpiCard.tsx'
 
 /** resumo = só os cards de indicadores (sem os gráficos), p/ o slide de Indicadores não repetir gráficos. */
 export function IndicadoresPanel({ resumo = false }: { resumo?: boolean } = {}) {
+  const somenteLeitura = useSomenteLeitura()
   const { grupos, dre, dfc, movimentos: movs, conc, periodo, anterior } = useResultado()
   const dem = useDemonstracoes()
   const { categorias } = useCadastros()
