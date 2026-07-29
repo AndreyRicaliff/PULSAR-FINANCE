@@ -189,7 +189,7 @@ export function Carregando() {
 
 function Centro({ children }: { children: ReactNode }) {
   return (
-    <div className="fx-grid-bg relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-bg p-6">
+    <div className="login-fundo fx-grid-bg relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-bg p-6">
       <div className="lp-piso" aria-hidden><span /><span /><span /></div>
       <span className="lp-anel lp-anel--tela" aria-hidden /><span className="lp-anel lp-anel--tela d2" aria-hidden /><span className="lp-anel lp-anel--tela d3" aria-hidden />
       <svg className="lp-ekg-tela" viewBox="0 0 800 60" preserveAspectRatio="none" aria-hidden>

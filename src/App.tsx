@@ -12,6 +12,7 @@ import { useAcesso } from './lib/useAcesso'
 import { SemAcesso } from './components/SemAcesso.tsx'
 import { CadastrosProvider } from './lib/cadastros'
 import { ClientesProvider } from './lib/clientes'
+import { LancamentosProvider } from './lib/lancamentos'
 import { MovimentosProvider } from './lib/movimentos'
 import { OverridesProvider } from './lib/overrides'
 import { BoasVindas } from './components/BoasVindas.tsx'
@@ -23,6 +24,8 @@ import { CategoriasPanel } from './components/CategoriasPanel.tsx'
 import { ValoresPanel } from './components/ValoresPanel.tsx'
 import { FornecedoresPanel } from './components/FornecedoresPanel.tsx'
 import { ContasPagarPanel, ContasReceberPanel } from './components/ContasPanel.tsx'
+import { LancamentosManuaisPanel } from './components/LancamentosManuaisPanel.tsx'
+import { AprovacoesPanel } from './components/AprovacoesPanel.tsx'
 import { ProjecaoPanel } from './components/ProjecaoPanel.tsx'
 import { ModeloPanel } from './components/ModeloPanel.tsx'
 import { DemonstracoesPanel } from './components/DemonstracoesPanel.tsx'
@@ -37,6 +40,8 @@ const PAINEIS: Readonly<Record<Aba, () => JSX.Element>> = {
   fornecedores: FornecedoresPanel,
   pagar: ContasPagarPanel,
   receber: ContasReceberPanel,
+  manuais: LancamentosManuaisPanel,
+  aprovacoes: AprovacoesPanel,
   projecao: ProjecaoPanel,
   modelo: ModeloPanel,
   demonstracoes: DemonstracoesPanel,
@@ -71,6 +76,7 @@ export function App() {
     <>
     <ClientesProvider>
       <CadastrosProvider>
+        <LancamentosProvider>
         <MovimentosProvider>
           {MODO_APRESENTACAO ? (
             <OverridesProvider>
@@ -84,6 +90,7 @@ export function App() {
             <Shell email={email} />
           )}
         </MovimentosProvider>
+        </LancamentosProvider>
       </CadastrosProvider>
     </ClientesProvider>
     </>

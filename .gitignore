@@ -12,3 +12,7 @@ tsconfig.tsbuildinfo
 
 # Dados de cliente (seed real) — nunca versionar; vêm do sync em runtime
 src/data/*.json
+
+.vercel
+.env*
+.env.offline

@@ -24,6 +24,7 @@ const json = (body: unknown, status = 200) =>
 const VALIDADE_MIN = 10
 const MAX_TENTATIVAS = 5
 const REENVIO_S = 45
+const DIAS_CONFIANCA = 30
 
 const FROM = Deno.env.get('RESEND_FROM') ?? 'Pulsar Finance <noreply@agconsultorialtda.com>'
 
@@ -38,6 +39,27 @@ async function hash(codigo: string, sessionId: string): Promise<string> {
   const dados = new TextEncoder().encode(`${codigo}:${sessionId}`)
   const digest = await crypto.subtle.digest('SHA-256', dados)
   return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, '0')).join('')
+}
+
+/** Segredo do aparelho: 32 bytes do gerador criptográfico, base64url. Nasce AQUI —
+ *  se o navegador escolhesse o próprio token, forjar confiança seria digitar no console. */
+function gerarToken(): string {
+  const b = new Uint8Array(32)
+  crypto.getRandomValues(b)
+  return btoa(String.fromCharCode(...b)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+}
+
+async function hashToken(token: string): Promise<string> {
+  const d = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(token))
+  return [...new Uint8Array(d)].map((b) => b.toString(16).padStart(2, '0')).join('')
+}
+
+/** Rótulo legível só para o dono reconhecer o aparelho ao revogar. Sem fingerprint: o
+ *  user-agent aqui é DESCRIÇÃO, nunca prova de identidade — quem prova é o token. */
+function rotuloDoAparelho(ua: string): string {
+  const nav = /Edg\//.test(ua) ? 'Edge' : /Chrome\//.test(ua) ? 'Chrome' : /Safari\//.test(ua) ? 'Safari' : /Firefox\//.test(ua) ? 'Firefox' : 'Navegador'
+  const so = /Windows/.test(ua) ? 'Windows' : /Android/.test(ua) ? 'Android' : /iPhone|iPad/.test(ua) ? 'iOS' : /Mac OS/.test(ua) ? 'macOS' : /Linux/.test(ua) ? 'Linux' : 'sistema'
+  return `${nav} · ${so}`
 }
 
 function emailHtml(codigo: string): string {
@@ -82,7 +104,8 @@ Deno.serve(async (req) => {
     const email = String(claims.email ?? '')
     if (!userId || !sessionId) return json({ error: 'Sessão inválida' })
 
-    const { acao, codigo } = await req.json().catch(() => ({}))
+    const body = await req.json().catch(() => ({}))
+    const { acao, codigo } = body
 
     // ── ENVIAR ────────────────────────────────────────────────────────────────
     if (acao === 'enviar') {
@@ -166,6 +189,53 @@ Deno.serve(async (req) => {
         .from('painel_sessoes_2fa')
         .upsert({ session_id: sessionId, user_id: userId }, { onConflict: 'session_id' })
       if (upErr) return json({ error: 'Não foi possível liberar a sessão' })
+
+      // "Confiar neste aparelho": emite o segredo UMA vez. O banco fica com o hash.
+      let dispositivo: string | undefined
+      if (body?.lembrar === true) {
+        const token = gerarToken()
+        const expira = new Date(Date.now() + DIAS_CONFIANCA * 86_400_000).toISOString()
+        const { error } = await admin.from('painel_dispositivos_confiaveis').insert({
+          user_id: userId,
+          token_hash: await hashToken(token),
+          rotulo: rotuloDoAparelho(req.headers.get('user-agent') ?? ''),
+          expira_em: expira,
+        })
+        // Falhar aqui não pode derrubar o login — a sessão JÁ está liberada.
+        if (!error) dispositivo = token
+      }
+      return json({ ok: true, dispositivo, diasConfianca: DIAS_CONFIANCA })
+    }
+
+    // ── APARELHO CONFIÁVEL ────────────────────────────────────────────────────
+    // Troca o segredo do aparelho por uma sessão liberada, SEM mandar e-mail.
+    if (acao === 'dispositivo') {
+      const token = String(body?.token ?? '')
+      if (token.length < 20) return json({ error: 'Aparelho não reconhecido' })
+
+      const { data: disp } = await admin
+        .from('painel_dispositivos_confiaveis')
+        .select('id, user_id, expira_em')
+        .eq('token_hash', await hashToken(token))
+        .maybeSingle()
+
+      // Amarrado ao DONO: token de um usuário não libera a sessão de outro.
+      if (!disp || disp.user_id !== userId) return json({ error: 'Aparelho não reconhecido' })
+      if (new Date(disp.expira_em) < new Date()) {
+        await admin.from('painel_dispositivos_confiaveis').delete().eq('id', disp.id)
+        return json({ error: 'Confiança do aparelho expirou' })
+      }
+
+      const { error: upErr } = await admin
+        .from('painel_sessoes_2fa')
+        .upsert({ session_id: sessionId, user_id: userId }, { onConflict: 'session_id' })
+      if (upErr) return json({ error: 'Não foi possível liberar a sessão' })
+
+      await admin
+        .from('painel_dispositivos_confiaveis')
+        .update({ ultimo_uso_em: new Date().toISOString() })
+        .eq('id', disp.id)
+      void admin.rpc('limpar_dispositivos_vencidos')
       return json({ ok: true })
     }
 

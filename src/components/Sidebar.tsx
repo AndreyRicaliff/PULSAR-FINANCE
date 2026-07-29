@@ -14,6 +14,8 @@ export type Aba =
   | 'fornecedores'
   | 'pagar'
   | 'receber'
+  | 'manuais'
+  | 'aprovacoes'
   | 'modelo'
   | 'demonstracoes'
   | 'projecao'
@@ -45,6 +47,7 @@ const SECOES: readonly Secao[] = [
       { id: 'fornecedores', rotulo: 'Contrapartes' },
       { id: 'pagar', rotulo: 'Títulos a Pagar' },
       { id: 'receber', rotulo: 'Títulos a Receber' },
+      { id: 'manuais', rotulo: 'Lançamentos Manuais', divisorAntes: 'Fora do banco' },
     ],
   },
   {
@@ -54,6 +57,10 @@ const SECOES: readonly Secao[] = [
       { id: 'demonstracoes', rotulo: 'Demonstrações (DRE/DFC)' },
       { id: 'projecao', rotulo: 'Projeção' },
     ],
+  },
+  {
+    titulo: 'Operação',
+    itens: [{ id: 'aprovacoes', rotulo: 'Aprovações de Pagamento' }],
   },
   {
     titulo: 'Camada Analítica',

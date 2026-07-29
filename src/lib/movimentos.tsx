@@ -1,6 +1,7 @@
 /**
  * @file Fonte única de movimentos em RUNTIME: doc gravado pelo sync (painel_estado,
- * chave cliente:<id>:movimentos-raw) com o seed bundlado como fallback de boot.
+ * chave cliente:<id>:movimentos-raw) + lançamentos manuais (painel_lancamentos_manuais,
+ * via LancamentosProvider) concatenados aqui — o resto do app não sabe a origem.
  * O seed é a foto da Acme no build — outro tenant nunca herda esse fallback.
  */
 import {
@@ -16,6 +17,7 @@ import type { Movimento, MovimentosSeed } from '@/core/movimento'
 import { aplicarPisoDados } from '@/core/periodo'
 import { chaveDoCliente, pisoDadosDoCliente } from '@/core/tenant'
 import { useClientes } from './clientes'
+import { useLancamentos } from './lancamentos'
 import { supabase } from './supabase'
 
 const BASE = 'movimentos-raw'
@@ -45,6 +47,7 @@ function fallbackLocal(): Pick<FonteMovimentos, 'movimentos' | 'geradoEm' | 'ori
 
 export function MovimentosProvider({ children }: { children: ReactNode }) {
   const { ativo } = useClientes()
+  const { movimentosManuais } = useLancamentos()
   const [estado, setEstado] = useState(() => fallbackLocal())
 
   const recarregar = useCallback(async () => {
@@ -75,7 +78,18 @@ export function MovimentosProvider({ children }: { children: ReactNode }) {
     void recarregar()
   }, [ativo.id, recarregar])
 
-  const valor = useMemo(() => ({ ...estado, recarregar }), [estado, recarregar])
+  // Terceira fonte: os lançamentos manuais (já canônicos e com piso aplicado) entram aqui,
+  // no gargalo único — DRE, DFC, conciliação, drill-down e HUD herdam sem saber a origem.
+  const valor = useMemo(
+    () => ({
+      ...estado,
+      movimentos: movimentosManuais.length
+        ? [...estado.movimentos, ...movimentosManuais]
+        : estado.movimentos,
+      recarregar,
+    }),
+    [estado, movimentosManuais, recarregar],
+  )
   return <Ctx.Provider value={valor}>{children}</Ctx.Provider>
 }
 

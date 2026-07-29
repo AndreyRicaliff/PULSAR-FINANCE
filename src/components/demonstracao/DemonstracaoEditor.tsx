@@ -58,7 +58,9 @@ function Cabecalho() {
   return (
     <div className="flex items-center justify-between px-1 text-sm font-semibold uppercase tracking-wide text-muted">
       <span>Estrutura da demonstração</span>
-      <span className="text-xs normal-case">editado · padrão · Δ</span>
+      <span className="text-xs normal-case">
+        <span className="mr-1 inline-block h-1.5 w-1.5 rounded-full bg-warn align-middle" /> = difere do padrão
+      </span>
     </div>
   )
 }

@@ -88,17 +88,23 @@ export function Grip({ chave }: { chave: string }) {
   )
 }
 
-/** Valor editado + comparação com o padrão (riscado) e Δ quando diferem. */
+/**
+ * Valor da linha + marcador DISCRETO quando difere do padrão (detalhe no tooltip).
+ * O desenho anterior riscava o padrão e mostrava Δ em toda linha — o financeiro leu os
+ * riscados como "tá tudo errado" (AUTAG, 2026-07-28). O riscado saiu; a comparação
+ * completa mora no pop-up "Ver mudanças".
+ */
 export function Valores({ editado, padrao }: { editado: number; padrao: number }) {
   const delta = editado - padrao
   return (
-    <span className="flex items-center gap-3 text-right tabular-nums">
+    <span className="flex items-center gap-2 text-right tabular-nums">
       <span className={`font-semibold ${editado < 0 ? 'text-danger' : ''}`}>{brl(editado)}</span>
       {delta !== 0 ? (
-        <>
-          <span className="text-xs text-muted line-through">{brl(padrao)}</span>
-          <span className="text-xs font-medium text-warn">Δ {brl(delta)}</span>
-        </>
+        <span
+          title={`Difere do padrão dos MDs: padrão ${brl(padrao)} · Δ ${brl(delta)}. Veja "mudanças vs padrão" no topo.`}
+          className="h-1.5 w-1.5 shrink-0 rounded-full bg-warn"
+          aria-label="difere do padrão"
+        />
       ) : null}
     </span>
   )

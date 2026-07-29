@@ -73,16 +73,20 @@
     @apply bg-bg text-text font-sans antialiased;
   }
 
-  /* Tipografia v3.1 (§2): display = Space Grotesk (personalidade); corpo/UI = Inter.
-     O comentário anterior citava Chillax/Author, que nunca chegaram a ser carregados. */
+  /* TIPOGRAFIA ÚNICA DA FAMÍLIA PULSAR — Inter, e só. Vale igual no RH.
+     Critério é empresarial, não estético: software financeiro denso se lê melhor com UMA
+     família, hierarquia feita por PESO, TAMANHO e TRACKING. É o que Stripe, Linear e
+     GitHub fazem. Inter tem algarismos tabulares de verdade, então número financeiro
+     alinha sem precisar de uma segunda fonte. Space Grotesk saiu: era personalidade de
+     vitrine em um lugar só (o número-mestre do KPI) e cobrava um download inteiro. */
   :root {
-    --f-display: 'Space Grotesk', 'Inter', system-ui, sans-serif;
+    --f-display: 'Inter Variable', 'Inter', system-ui, sans-serif;
   }
 
-  /* Títulos de painel são UI, não vitrine: Inter, peso 600, sem tracking dramático.
-     Space Grotesk é ACENTO tipográfico — vive só no número-mestre e na marca, do mesmo
-     jeito que o roxo vibrante é acento e não preenchimento (§1). Antes eram 25 títulos
-     em 24px/800 na fonte display: cada painel gritava. */
+  /* Títulos de painel são UI, não vitrine: peso 600, sem tracking dramático.
+     A hierarquia inteira do sistema se faz com PESO e TAMANHO dentro da mesma família —
+     é isso que dá a leitura empresarial. Antes eram 25 títulos em 24px/800: cada painel
+     gritava. */
   h1,
   h2,
   h3 {
@@ -836,7 +840,7 @@ html:not([data-static]) .login-cena .pulso-piso span {
    login-/lp- mantem essa licenca presa a porta. */
 .login-status--ok i, .login-card::before, .login-btn::after,
 .login-cena .orbe, .login-cena .ekg-ambiente path, .login-cena .pulso-piso span,
-.lp-orb, .lp-anel, .lp-ekg polyline {
+.lp-orb, .lp-anel, .lp-ekg polyline, .lp-ekg-tela polyline {
   animation-iteration-count: infinite !important;
 }
 
@@ -1472,9 +1476,23 @@ html[data-static] main h1, html[data-static] main h1 + p { animation: none; }
   filter: drop-shadow(0 0 4px rgb(165 94 255 / 0.4));
   animation: lp-fluir 4.5s ease-in-out infinite !important;
 }
+/* O PULSO percorrendo a linha da esquerda para a direita. O markup ja tinha este
+   polyline, mas a regra da varredura estava escopada em `.lp-ekg` (a miniatura) — a
+   linha larga da tela e `.lp-ekg-tela`, entao nunca casava e ficava parada.
+   Traco mais longo e ciclo mais lento que na miniatura: aqui ele cruza a tela inteira. */
+.lp-ekg-tela .lp-varre {
+  stroke-dasharray: 90 780;
+  filter: drop-shadow(0 0 7px rgb(165 94 255 / 0.85));
+  animation: lp-varre 4.6s linear infinite !important;
+}
 
-/* ATMOSFERA (paridade RH): navy profundo + anel de tela grande */
-.fx-grid-bg { background-color: #06081A !important; }
+/* ATMOSFERA da ENTRADA (paridade RH): navy mais profundo que o resto do app.
+   ESCOPADO ao login — antes isto era `.fx-grid-bg { background: #06081A !important }`,
+   mas essa classe também veste o <main> do Shell e do HUD: no tema CLARO o miolo do app
+   inteiro ficava navy com texto escuro por cima, ilegível. E mesmo no escuro, o main
+   destoava do resto (#06081A vs #0E0E16). */
+.login-fundo { background-color: #06081A; }
+html.light .login-fundo { background-color: rgb(var(--c-bg)); }
 @keyframes lp-anel-tela {
   0%   { transform: translate(-50%, -50%) scale(0.3); opacity: 0; }
   20%  { opacity: 0.9; }

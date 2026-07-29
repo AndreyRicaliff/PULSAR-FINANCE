@@ -25,6 +25,10 @@ const DESENHOS: Readonly<Record<Aba, readonly string[]>> = {
   fornecedores: ['M9 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z', 'M3 20a6 6 0 0 1 12 0', 'M17 8h4', 'M19 6v4'],
   pagar: ['M12 19V5', 'M6 11l6-6 6 6'],
   receber: ['M12 5v14', 'M6 13l6 6 6-6'],
+  // Lápis: lançamento digitado à mão (fora do banco).
+  manuais: ['M4 20l4-1L19 8l-3-3L5 16l-1 4Z', 'M13 7l3 3'],
+  // Selo com check: conta aprovada pelo cliente.
+  aprovacoes: ['M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z', 'M8.5 12.5l2.5 2.5 4.5-5'],
   // Camada semântica
   modelo: ['M4 4h7v7H4z', 'M13 4h7v7h-7z', 'M4 13h7v7H4z', 'M13 13h7v7h-7z'],
   demonstracoes: ['M6 3h8l4 4v14H6z', 'M14 3v4h4', 'M9 13h6', 'M9 17h4'],
