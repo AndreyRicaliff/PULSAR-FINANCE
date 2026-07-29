@@ -1459,6 +1459,9 @@ html[data-static] main h1, html[data-static] main h1 + p { animation: none; }
    pra direita, como monitor. Paridade com o login do PULSAR-RH. */
 .lp-orb { display: none !important; }
 @keyframes lp-varre { from { stroke-dashoffset: 860; } to { stroke-dashoffset: -60; } }
+/* O raio anda nos DOIS EKGs: miniatura (.lp-ekg) E tela cheia (.lp-ekg-tela) — só o
+   primeiro tinha a regra, então na tela o raio parava no meio (report 2026-07-29). */
+.lp-ekg-tela .lp-varre,
 .lp-ekg .lp-varre {
   stroke-dasharray: 60 800;
   filter: drop-shadow(0 0 6px rgb(165 94 255 / 0.8));

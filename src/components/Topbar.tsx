@@ -21,7 +21,7 @@ interface Props {
 export function Topbar({ titulo, tema, onAlternarTema, email, onSair, menuAberto, onAlternarMenu }: Props) {
   const [senhaAberta, setSenhaAberta] = useState(false)
   return (
-    <header className="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-bd bg-bg/80 px-8 py-4 backdrop-blur">
+    <header className="sticky top-0 z-10 flex flex-wrap items-center justify-between gap-2 border-b border-bd bg-bg/80 px-4 py-3 backdrop-blur md:gap-4 md:px-8 md:py-4">
       <div className="flex items-center gap-4">
         <button
           type="button"
