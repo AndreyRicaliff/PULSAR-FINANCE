@@ -22,6 +22,7 @@ const quando = (ts: string) => {
 export function AprovacoesCliente() {
   const api = useAprovacoes()
   const [erro, setErro] = useState('')
+  const [marcadas, setMarcadas] = useState<ReadonlySet<string>>(new Set())
   const pendentes = useMemo(() => api.aprovacoes.filter((a) => a.status === 'pendente'), [api.aprovacoes])
   const outras = useMemo(() => api.aprovacoes.filter((a) => a.status !== 'pendente' && emAberto(a)), [api.aprovacoes])
   const eventosPor = useMemo(() => {
@@ -52,11 +53,58 @@ export function AprovacoesCliente() {
           Nada aguardando sua aprovação no momento.
         </p>
       ) : (
-        <div className="flex flex-col gap-3">
-          {pendentes.map((a) => (
-            <Cartao key={a.id} a={a} eventos={eventosPor.get(a.id) ?? []} api={api} onErro={setErro} decisivel />
-          ))}
-        </div>
+        <>
+          {/* Lote: 12 contas em 3 cliques (todas → aprovar → confirmar), não 24. */}
+          <div className="flex flex-wrap items-center gap-3 rounded-card border border-bd bg-surface2/60 px-4 py-2.5">
+            <label className="flex items-center gap-2 text-sm text-muted">
+              <input
+                type="checkbox"
+                checked={marcadas.size === pendentes.length && pendentes.length > 0}
+                onChange={(e) => setMarcadas(e.target.checked ? new Set(pendentes.map((p) => p.id)) : new Set())}
+                className="h-4 w-4 accent-[rgb(var(--primary))]"
+              />
+              Selecionar todas ({pendentes.length})
+            </label>
+            {marcadas.size > 0 ? (
+              <button
+                type="button"
+                onClick={() => {
+                  const soma = pendentes.filter((p) => marcadas.has(p.id)).reduce((s, p) => s + p.valorCentavos, 0)
+                  if (!window.confirm(`Aprovar ${marcadas.size} conta(s) — total ${brl(soma)}? Fica registrado em seu nome.`)) return
+                  setErro('')
+                  api
+                    .decidirLote([...marcadas], 'aprovada', '')
+                    .then(() => setMarcadas(new Set()))
+                    .catch((e) => setErro(e instanceof Error ? e.message : 'Falha no lote'))
+                }}
+                className="fx-press ml-auto rounded-lg bg-primary px-4 py-1.5 text-sm font-semibold text-white"
+              >
+                Aprovar selecionadas ({marcadas.size})
+              </button>
+            ) : null}
+          </div>
+          <div className="flex flex-col gap-3">
+            {pendentes.map((a) => (
+              <Cartao
+                key={a.id}
+                a={a}
+                eventos={eventosPor.get(a.id) ?? []}
+                api={api}
+                onErro={setErro}
+                decisivel
+                marcada={marcadas.has(a.id)}
+                onMarcar={(v) =>
+                  setMarcadas((m) => {
+                    const n = new Set(m)
+                    if (v) n.add(a.id)
+                    else n.delete(a.id)
+                    return n
+                  })
+                }
+              />
+            ))}
+          </div>
+        </>
       )}
 
       {outras.length ? (
@@ -79,12 +127,16 @@ function Cartao({
   api,
   onErro,
   decisivel,
+  marcada,
+  onMarcar,
 }: {
   a: Aprovacao
   eventos: readonly EventoAprovacao[]
   api: ReturnType<typeof useAprovacoes>
   onErro: (m: string) => void
   decisivel?: boolean
+  marcada?: boolean
+  onMarcar?: (v: boolean) => void
 }) {
   const [trilha, setTrilha] = useState(false)
   const [pergunta, setPergunta] = useState('')
@@ -122,6 +174,9 @@ function Cartao({
   return (
     <article className="rounded-card border border-bd bg-surface px-5 py-4">
       <div className="flex flex-wrap items-center gap-3">
+        {onMarcar ? (
+          <input type="checkbox" checked={marcada ?? false} onChange={(e) => onMarcar(e.target.checked)} className="h-4 w-4 shrink-0 accent-[rgb(var(--primary))]" aria-label="selecionar" />
+        ) : null}
         <div className="min-w-0 flex-1">
           <p className="truncate text-[14.5px] font-semibold">{a.fornecedor}</p>
           <p className="text-xs text-muted">{a.descricao ? `${a.descricao} · ` : ''}vence {dataBr(a.vencimento)}</p>
