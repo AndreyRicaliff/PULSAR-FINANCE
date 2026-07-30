@@ -1538,3 +1538,23 @@ html.light .login-fundo { background-color: rgb(var(--c-bg)); }
 @keyframes mk-beat { 0%,100% { opacity: 1; box-shadow: 0 0 0 0 rgba(127,184,156,.45); } 50% { opacity: .65; box-shadow: 0 0 0 5px rgba(127,184,156,0); } }
 .login-intro__palco .mk-badge { margin-left: auto; font-size: 9px; letter-spacing: .06em; padding: 2px 9px; border-radius: 999px; border: 1px solid #3C3854; color: #9187B6; white-space: nowrap; }
 .login-intro__palco .mk-move { display: flex; align-items: center; gap: 9px; font-size: 11px; color: #9187B6; padding-top: 6px; border-top: 1px solid #3C3854; margin-top: auto; }
+
+/* ── MODAIS LARGOS (pedido do Ricaliff, 2026-07-30) ─────────────────────
+   "não precisa arrastar pro lado, já mostra completo". A largura segue o
+   CONTEÚDO: formulário respira, tabela ocupa a tela, e o que sobrar rola
+   DENTRO do modal (nunca corta). Ponto único: todos os overlays do app são
+   `fixed inset-0 z-50` com filho `.anim-pop` — daqui vence o max-w-* local. */
+.fixed.inset-0.z-50 > .anim-pop:has(input),
+.fixed.inset-0.z-50 > .anim-pop:has(select),
+.fixed.inset-0.z-50 > .anim-pop:has(textarea) {
+  max-width: min(680px, 94vw) !important;
+}
+.fixed.inset-0.z-50 > .anim-pop:has(table) {
+  max-width: min(1320px, 96vw) !important;
+}
+.fixed.inset-0.z-50 > .anim-pop:has(svg[viewBox]):not(:has(input)) {
+  max-width: min(1320px, 96vw) !important;
+}
+/* o conteúdo largo rola dentro; a tabela não é espremida nem cortada */
+.fixed.inset-0.z-50 > .anim-pop table { min-width: max-content; }
+.fixed.inset-0.z-50 > .anim-pop .overflow-hidden:has(table) { overflow-x: auto; }
