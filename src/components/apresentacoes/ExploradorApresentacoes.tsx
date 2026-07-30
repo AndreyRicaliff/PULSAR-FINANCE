@@ -53,6 +53,7 @@ export function ExploradorApresentacoes() {
   const [erro, setErro] = useState('')
   const [abertaId, setAbertaId] = useState<string | null>(null)
   const [abertaTitulo, setAbertaTitulo] = useState('')
+  const [abertaStatus, setAbertaStatus] = useState<Item['status']>('rascunho')
   const [editando, setEditando] = useState(false)
 
   const carregar = useCallback(async () => {
@@ -97,12 +98,21 @@ export function ExploradorApresentacoes() {
 
   async function abrir(item: Item, editar: boolean) {
     if (!supabase) return
+    // O roteiro de trabalho é UM por cliente: abrir outra apresentação SUBSTITUI o que
+    // está nele. Sem esta confirmação, editar A e abrir B perdia a edição em silêncio.
+    if (abertaId && abertaId !== item.id) {
+      const ok = window.confirm(
+        `Abrir "${item.titulo}" substitui o roteiro em edição${abertaTitulo ? ` ("${abertaTitulo}")` : ''}. Alterações não salvas lá se perdem. Continuar?`,
+      )
+      if (!ok) return
+    }
     setErro('')
     const { data, error } = await supabase.from('painel_apresentacoes').select('conteudo').eq('id', item.id).single()
     if (error) return setErro(error.message)
     apre.substituir(data.conteudo)
     setAbertaId(item.id)
     setAbertaTitulo(item.titulo)
+    setAbertaStatus(item.status)
     if (editar) setEditando(true)
   }
 
@@ -126,12 +136,33 @@ export function ExploradorApresentacoes() {
   async function salvarNaAberta() {
     if (!supabase || !abertaId) return
     setErro('')
-    const { error } = await supabase
+    // .select() no update: sem ele, salvar numa apresentação que não é mais rascunho
+    // afetava 0 linhas SEM erro — o financeiro achava que salvou e nada foi gravado.
+    const { data, error } = await supabase
       .from('painel_apresentacoes')
       .update({ conteudo: apre.estado, atualizado_em: new Date().toISOString() })
       .eq('id', abertaId)
       .eq('status', 'rascunho')
-    if (error) setErro(error.message)
+      .select('id')
+    if (error) return setErro(error.message)
+    if (!data?.length) return setErro('Nada gravado — esta apresentação não é mais rascunho. Use "Salvar como nova".')
+    await carregar()
+  }
+
+  async function salvarComoNova() {
+    if (!supabase) return
+    const titulo = window.prompt('Salvar o roteiro atual como nova apresentação:', `${abertaTitulo || 'Apresentação'} (cópia)`)
+    if (!titulo?.trim()) return
+    setErro('')
+    const { data, error } = await supabase
+      .from('painel_apresentacoes')
+      .insert({ cliente_id: ativo.id, competencia: new Date().toISOString().slice(0, 7), titulo: titulo.trim(), status: 'rascunho', conteudo: apre.estado, numeros: {} })
+      .select('id')
+      .single()
+    if (error) return setErro(error.message)
+    setAbertaId(data.id)
+    setAbertaTitulo(titulo.trim())
+    setAbertaStatus('rascunho')
     await carregar()
   }
 
@@ -162,11 +193,22 @@ export function ExploradorApresentacoes() {
           <p className="min-w-0 flex-1 truncate text-sm">
             Editando: <strong>{abertaTitulo || 'roteiro avulso'}</strong>
           </p>
-          {abertaId ? (
+          {abertaId && abertaStatus === 'rascunho' ? (
             <button type="button" onClick={() => void salvarNaAberta()} className="fx-press rounded-lg bg-primary px-4 py-1.5 text-sm font-semibold text-white">
               Salvar nesta apresentação
             </button>
-          ) : null}
+          ) : (
+            <>
+              {abertaId ? (
+                <span className="rounded-full bg-warn/15 px-2.5 py-1 text-xs font-medium text-warn">
+                  {abertaStatus} — não editável
+                </span>
+              ) : null}
+              <button type="button" onClick={() => void salvarComoNova()} className="fx-press rounded-lg border border-bd px-4 py-1.5 text-sm font-medium text-muted hover:text-text">
+                Salvar como nova…
+              </button>
+            </>
+          )}
           {erro ? <p className="w-full text-[13px] text-danger">{erro}</p> : null}
         </div>
         <RelatorioApresentacao />
@@ -241,7 +283,15 @@ function Coluna({
   return (
     <section
       onDragOver={aceitaDrop ? (e) => { e.preventDefault(); setSobre(true) } : undefined}
-      onDragLeave={aceitaDrop ? () => setSobre(false) : undefined}
+      onDragLeave={
+        aceitaDrop
+          ? (e) => {
+              // dragLeave dispara ao passar sobre FILHOS da coluna — sem este guard o
+              // highlight piscava a cada card atravessado.
+              if (!e.currentTarget.contains(e.relatedTarget as Node)) setSobre(false)
+            }
+          : undefined
+      }
       onDrop={
         aceitaDrop
           ? (e) => {
@@ -271,19 +321,29 @@ function Cartao({ item, onAbrir, onExcluir }: { item: Item; onAbrir: (i: Item, e
   const slides = item.conteudo?.roteiro?.length ?? 0
   const arrastavel = item.status === 'rascunho'
   return (
-    <article
-      draggable={arrastavel}
-      onDragStart={arrastavel ? (e) => e.dataTransfer.setData('text/plain', item.id) : undefined}
-      className={`card-hover group overflow-hidden rounded-card border border-bd bg-surface2/60 ${arrastavel ? 'cursor-grab active:cursor-grabbing' : ''}`}
-    >
-      {/* mini-capa: o "ícone de arquivo" do explorador */}
+    <article className="card-hover group overflow-hidden rounded-card border border-bd bg-surface2/60">
+      {/* mini-capa: o "ícone de arquivo" do explorador. O card NÃO é draggable — clique
+          e arrasto brigavam (abrir acidental no drop); só a alça ⠿ arrasta, mesmo padrão
+          já validado na conciliação. */}
       <button type="button" onClick={() => void onAbrir(item, true)} className="block w-full text-left">
         <div className="relative h-16 bg-[image:var(--grad-pulse)] opacity-90">
+          {arrastavel ? (
+            <span
+              draggable
+              onDragStart={(e) => e.dataTransfer.setData('text/plain', item.id)}
+              onClick={(e) => e.stopPropagation()}
+              title="Arraste para Arquivadas"
+              className="absolute left-2 top-1.5 cursor-grab rounded bg-black/30 px-1.5 py-0.5 text-[13px] text-white/80 active:cursor-grabbing"
+              aria-hidden
+            >
+              ⠿
+            </span>
+          ) : null}
           <span className="absolute bottom-2 left-3 text-[11px] font-bold uppercase tracking-wider text-white/90">
             {mesLegivel(item.competencia)}
           </span>
           <span className="absolute right-3 top-2 rounded-full bg-black/30 px-2 py-0.5 text-[10px] font-semibold text-white/90">
-            {slides} slide{slides === 1 ? '' : 's'}
+            {item.conteudo?.roteiro ? `${slides} slide${slides === 1 ? '' : 's'}` : 'nova'}
           </span>
         </div>
         <div className="flex flex-col gap-1 px-3 py-2.5">
