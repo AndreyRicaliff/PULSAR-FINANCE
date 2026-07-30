@@ -18,6 +18,8 @@ const COMUM = {
 } as const
 
 const DESENHOS: Readonly<Record<Aba, readonly string[]>> = {
+  // Casa: a caixa de entrada do operador.
+  inicio: ['M3 11l9-7 9 7', 'M5 10v10h14V10', 'M10 20v-6h4v6'],
   // Captura
   cadastro: ['M4 7h16', 'M4 12h16', 'M4 17h10'],
   plano: ['M4 6h6', 'M4 12h10', 'M4 18h14', 'M18 4v4', 'M16 6h4'],
