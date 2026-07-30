@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Movimento } from './movimento'
-import { coberturaDatas, dataDoMovimento, diasDoPeriodo, filtrarPorPeriodo, intervaloAnterior, intervaloDoPreset, isoDeMov } from './periodo'
+import { coberturaDatas, dataDoMovimento, diasDoPeriodo, filtrarPorPeriodo, intervaloAnterior, intervaloDoPreset, isoDeMov, mesesDoIntervalo } from './periodo'
 
 function mov(p: Partial<Movimento>): Movimento {
   return {
@@ -105,5 +105,31 @@ describe('intervaloAnterior', () => {
   it('janela aberta não tem anterior (sem comparação inventada)', () => {
     expect(intervaloAnterior({ inicio: null, fim: null })).toBeNull()
     expect(intervaloAnterior({ inicio: '2026-01-01', fim: null })).toBeNull()
+  })
+})
+
+describe('mesesDoIntervalo (matriz do comparativo)', () => {
+  it('trimestre fechado vira 3 meses com bordas de mês', () => {
+    const m = mesesDoIntervalo({ inicio: '2026-05-01', fim: '2026-07-31' })
+    expect(m).toHaveLength(3)
+    expect(m[0]).toEqual({ inicio: '2026-05-01', fim: '2026-05-31' })
+    expect(m[2]).toEqual({ inicio: '2026-07-01', fim: '2026-07-31' })
+  })
+
+  it('bordas quebradas são clampadas ao intervalo (rolling 3m começa no meio do mês)', () => {
+    const m = mesesDoIntervalo({ inicio: '2026-05-15', fim: '2026-07-10' })
+    expect(m[0]).toEqual({ inicio: '2026-05-15', fim: '2026-05-31' })
+    expect(m[2]).toEqual({ inicio: '2026-07-01', fim: '2026-07-10' })
+  })
+
+  it('vira o ano e respeita o teto', () => {
+    const m = mesesDoIntervalo({ inicio: '2026-11-01', fim: '2027-02-28' })
+    expect(m.map((x) => x.inicio?.slice(0, 7))).toEqual(['2026-11', '2026-12', '2027-01', '2027-02'])
+    expect(mesesDoIntervalo({ inicio: '2020-01-01', fim: '2026-12-31' })).toHaveLength(13)
+  })
+
+  it('intervalo aberto ("todo o histórico") não vira matriz', () => {
+    expect(mesesDoIntervalo({ inicio: null, fim: '2026-07-31' })).toEqual([])
+    expect(mesesDoIntervalo({ inicio: '2026-08-01', fim: '2026-07-01' })).toEqual([])
   })
 })

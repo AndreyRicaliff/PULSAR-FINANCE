@@ -13,9 +13,10 @@ import {
   type Regime,
 } from '@/core/periodo'
 import { brl } from '@/lib/money'
-import { useDemonstracoesDe } from '@/lib/useComparativo'
+import { useDemonstracoesDe, useMesesDe } from '@/lib/useComparativo'
 import { Segmento, type OpcaoSeg } from './Segmento.tsx'
 import { TabelaDemonstracao } from './TabelaDemonstracao.tsx'
+import { TabelaMeses } from './TabelaMeses.tsx'
 
 type Tipo = 'dre' | 'dfc'
 
@@ -94,9 +95,19 @@ interface PropsLado {
   readonly regime: Regime
 }
 
+const VISOES: readonly OpcaoSeg<'total' | 'meses'>[] = [
+  { id: 'total', rotulo: 'Total' },
+  { id: 'meses', rotulo: 'Mês a mês' },
+]
+
 function Lado({ titulo, preset, onPreset, tipo, regime }: PropsLado) {
   const intervalo = useMemo(() => intervaloDoPreset(preset, hojeLocalIso()), [preset])
   const d = useDemonstracoesDe(intervalo, regime)
+  // Trimestre/semestre aberto por mês (pedido 2026-07-29): total consolidado continua,
+  // e cada mês vira coluna com AV%/AH% — a matriz que o financeiro conhece da contabilidade.
+  const meses = useMesesDe(intervalo, regime)
+  const [visao, setVisao] = useState<'total' | 'meses'>('total')
+  const temMeses = meses.length >= 2
   const linhas = tipo === 'dre' ? d.dre : d.dfc
   const receitaBruta = tipo === 'dre' ? (d.dre.find((l) => l.id === 'dre_receita')?.valorCentavos ?? 0) : 0
 
@@ -119,8 +130,11 @@ function Lado({ titulo, preset, onPreset, tipo, regime }: PropsLado) {
             ))}
           </select>
         </span>
-        <span className="text-xs text-muted">
-          {rotuloIntervalo(intervalo)} · {d.totais.qtd} lançamentos
+        <span className="flex items-center gap-3">
+          {temMeses ? <Segmento opcoes={VISOES} valor={visao} onTrocar={setVisao} /> : null}
+          <span className="text-xs text-muted">
+            {rotuloIntervalo(intervalo)} · {d.totais.qtd} lançamentos
+          </span>
         </span>
       </div>
 
@@ -132,12 +146,21 @@ function Lado({ titulo, preset, onPreset, tipo, regime }: PropsLado) {
         </span>
       </div>
 
-      <TabelaDemonstracao
-        titulo={`${tipo.toUpperCase()} · ${rotuloIntervalo(intervalo)}`}
-        linhas={linhas}
-        grupos={d.espelho}
-        base={receitaBruta}
-      />
+      {visao === 'meses' && temMeses ? (
+        <TabelaMeses
+          titulo={`${tipo.toUpperCase()} · ${rotuloIntervalo(intervalo)} · mês a mês`}
+          meses={meses}
+          total={linhas}
+          tipo={tipo}
+        />
+      ) : (
+        <TabelaDemonstracao
+          titulo={`${tipo.toUpperCase()} · ${rotuloIntervalo(intervalo)}`}
+          linhas={linhas}
+          grupos={d.espelho}
+          base={receitaBruta}
+        />
+      )}
     </section>
   )
 }
