@@ -10,6 +10,7 @@ import { useClientes } from '@/lib/clientes'
 import { supabase } from '@/lib/supabase'
 import { RelatorioApresentacao } from '../relatorios/RelatorioApresentacao.tsx'
 import { temaPorId } from '@/core/temaApresentacao'
+import { useFicha } from '@/lib/ficha'
 import { Segmento, type OpcaoSeg } from '../Segmento.tsx'
 
 interface Item {
@@ -320,6 +321,8 @@ function Coluna({
 }
 
 function Cartao({ item, onAbrir, onExcluir }: { item: Item; onAbrir: (i: Item, editar: boolean) => Promise<void>; onExcluir: (i: Item) => Promise<void> }) {
+  const { ficha } = useFicha()
+  const tema = temaPorId(item.conteudo?.tema ?? ficha.temaPadrao, ficha.temasCustom)
   const slides = item.conteudo?.roteiro?.length ?? 0
   const arrastavel = item.status === 'rascunho'
   return (
@@ -330,9 +333,7 @@ function Cartao({ item, onAbrir, onExcluir }: { item: Item; onAbrir: (i: Item, e
       <button type="button" onClick={() => void onAbrir(item, true)} className="block w-full text-left">
         <div
           className="relative h-16 opacity-95"
-          style={{
-            background: `linear-gradient(135deg, ${temaPorId(item.conteudo?.tema).escuro}, ${temaPorId(item.conteudo?.tema).acento})`,
-          }}
+          style={{ background: `linear-gradient(135deg, ${tema.escuro}, ${tema.acento})` }}
         >
           {arrastavel ? (
             <span

@@ -28,7 +28,7 @@ export function DefinirSenha({ email, onFechar }: { email?: string; onFechar: ()
 
   return createPortal(
     <div className="anim-fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onFechar}>
-      <div className="anim-pop w-full max-w-sm rounded-card border border-bd bg-surface p-6" onClick={(e) => e.stopPropagation()}>
+      <div className="anim-pop w-full max-w-lg rounded-card border border-bd bg-surface p-6" onClick={(e) => e.stopPropagation()}>
         <h2 className="text-lg font-bold">Definir senha</h2>
         <p className="mt-1 text-sm text-muted">
           {email ? <span className="font-medium text-text">{email}</span> : 'Sua conta'} — escolha uma senha para

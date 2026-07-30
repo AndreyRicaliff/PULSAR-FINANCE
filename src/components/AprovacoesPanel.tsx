@@ -414,7 +414,7 @@ function FormConta({ api, onFechar }: { api: AprovacoesApi; onFechar: () => void
 function Modal({ titulo, children, onFechar }: { titulo: string; children: ReactNode; onFechar: () => void }) {
   return (
     <div className="anim-fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onFechar}>
-      <div className="anim-pop flex max-h-[90vh] w-full max-w-lg flex-col gap-4 overflow-y-auto rounded-card border border-bd bg-surface p-6" onClick={(e) => e.stopPropagation()}>
+      <div className="anim-pop flex max-h-[90vh] w-full max-w-2xl flex-col gap-4 overflow-y-auto rounded-card border border-bd bg-surface p-6" onClick={(e) => e.stopPropagation()}>
         <h2 className="text-lg font-bold">{titulo}</h2>
         {children}
       </div>
