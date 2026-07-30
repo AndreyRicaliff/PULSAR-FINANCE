@@ -1,8 +1,9 @@
 /** @file Casca de um slide (tema ACME: amarelo + preto): header/footer, título, argumento e observação. */
 import type { ReactNode } from 'react'
 
-const AMARELO = '#F2B100'
-const PRETO = '#161616'
+// Vars do tema (setadas no root do Slideshow); fallback = AG Clássico.
+const AMARELO = 'var(--ap-acento, #F2B100)'
+const PRETO = 'var(--ap-escuro, #161616)'
 
 function Cabecalho({ cliente, data }: { cliente: string; data: string }) {
   return (

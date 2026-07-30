@@ -18,6 +18,8 @@ function normalizar(bruto: unknown): EstadoApresentacao {
     capa: { titulo: '', subtitulo: '', elaboradoPor: 'AG Consultoria', ...e.capa },
     roteiro: e.roteiro?.length ? e.roteiro : ROTEIRO_PADRAO,
     periodo: { de: e.periodo?.de ?? null, ate: e.periodo?.ate ?? null },
+    // null = herda o tema padrão da EMPRESA (ficha); só a escolha explícita viaja aqui.
+    tema: e.tema ?? null,
   }
 }
 
@@ -33,6 +35,7 @@ export interface ApresentacaoApi {
   readonly adicionarLivre: () => void
   /** Substitui o roteiro inteiro (carregar apresentação salva da biblioteca). */
   readonly substituir: (novo: unknown) => void
+  readonly definirTema: (tema: string | null) => void
 }
 
 export function useApresentacao(): ApresentacaoApi {
@@ -77,6 +80,7 @@ export function useApresentacao(): ApresentacaoApi {
   // normalizar() no substituir: doc da biblioteca passa pelo MESMO boundary do doc remoto —
   // apresentação antiga/backup com shape defasado não quebra o roteiro.
   const substituir = useCallback((novo: unknown) => setEstado(() => normalizar(novo)), [setEstado])
+  const definirTema = useCallback((tema: string | null) => setEstado((e) => ({ ...e, tema })), [setEstado])
 
-  return { estado, definirCapa, definirPeriodo, patchItem, mover, remover, adicionarSecao, adicionarLivre, substituir }
+  return { estado, definirCapa, definirPeriodo, patchItem, mover, remover, adicionarSecao, adicionarLivre, substituir, definirTema }
 }

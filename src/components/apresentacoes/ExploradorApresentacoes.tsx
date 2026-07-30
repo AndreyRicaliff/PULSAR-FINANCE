@@ -9,6 +9,7 @@ import { useApresentacao } from '@/lib/useApresentacao'
 import { useClientes } from '@/lib/clientes'
 import { supabase } from '@/lib/supabase'
 import { RelatorioApresentacao } from '../relatorios/RelatorioApresentacao.tsx'
+import { temaPorId } from '@/core/temaApresentacao'
 import { Segmento, type OpcaoSeg } from '../Segmento.tsx'
 
 interface Item {
@@ -22,6 +23,7 @@ interface Item {
     readonly periodo?: { readonly de: string | null; readonly ate: string | null }
     readonly roteiro?: readonly unknown[]
     readonly capa?: { readonly subtitulo?: string }
+    readonly tema?: string | null
   } | null
 }
 
@@ -326,7 +328,12 @@ function Cartao({ item, onAbrir, onExcluir }: { item: Item; onAbrir: (i: Item, e
           e arrasto brigavam (abrir acidental no drop); só a alça ⠿ arrasta, mesmo padrão
           já validado na conciliação. */}
       <button type="button" onClick={() => void onAbrir(item, true)} className="block w-full text-left">
-        <div className="relative h-16 bg-[image:var(--grad-pulse)] opacity-90">
+        <div
+          className="relative h-16 opacity-95"
+          style={{
+            background: `linear-gradient(135deg, ${temaPorId(item.conteudo?.tema).escuro}, ${temaPorId(item.conteudo?.tema).acento})`,
+          }}
+        >
           {arrastavel ? (
             <span
               draggable

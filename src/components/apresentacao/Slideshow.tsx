@@ -5,6 +5,8 @@ import { useClientes } from '@/lib/clientes'
 import { PeriodoProvider } from '@/lib/periodo'
 import { snapshotApresentacao } from '@/lib/apresentacaoSnapshot'
 import { useApresentacao } from '@/lib/useApresentacao'
+import { useFicha } from '@/lib/ficha'
+import { temaEfetivo, varsDoTema } from '@/core/temaApresentacao'
 import { useResultado } from '@/lib/useResultado'
 import { Capa } from './Capa.tsx'
 import { ConteudoSecao } from './ConteudoSecao.tsx'
@@ -28,6 +30,7 @@ function dataGeracao(): string {
 function Conteudo() {
   const { ativo } = useClientes()
   const { estado } = useApresentacao()
+  const { ficha } = useFicha()
   const { periodo } = useResultado()
   const [i, setI] = useState(0)
 
@@ -48,7 +51,10 @@ function Conteudo() {
   const comum = { numero: i + 1, total, cliente: ativo.nome, data }
 
   return (
-    <div className="ag-slideshow h-screen overflow-hidden bg-[#1A1A1A]">
+    <div
+      className="ag-slideshow h-screen overflow-hidden"
+      style={{ ...varsDoTema(temaEfetivo(estado.tema, ficha.temaPadrao)), background: 'var(--ap-palco)' }}
+    >
       {i === 0 ? (
         <Capa titulo={estado.capa.titulo} subtitulo={estado.capa.subtitulo} elaboradoPor={estado.capa.elaboradoPor} cliente={ativo.nome} periodo={periodoTxt} data={data} />
       ) : item?.tipo === 'secao' ? (
@@ -66,14 +72,17 @@ function Conteudo() {
 
 function Navegacao({ i, total, onIr }: { i: number; total: number; onIr: (n: number) => void }) {
   return (
-    <div className="fixed bottom-5 right-5 z-50 flex items-center gap-2 rounded-full border border-[#F2B100]/40 bg-[#161616] px-3 py-1.5 shadow-lg">
-      <button type="button" onClick={() => onIr(i - 1)} disabled={i === 0} className="rounded-full px-2 text-lg text-[#F2B100] disabled:opacity-30" title="Anterior (←)">
+    <div
+      className="fixed bottom-5 right-5 z-50 flex items-center gap-2 rounded-full border px-3 py-1.5 shadow-lg"
+      style={{ background: 'var(--ap-escuro, #161616)', borderColor: 'color-mix(in srgb, var(--ap-acento, #F2B100) 40%, transparent)' }}
+    >
+      <button type="button" onClick={() => onIr(i - 1)} disabled={i === 0} className="rounded-full px-2 text-lg disabled:opacity-30" style={{ color: 'var(--ap-acento, #F2B100)' }} title="Anterior (←)">
         ‹
       </button>
       <span className="text-xs font-semibold tabular-nums text-white">
         {i + 1} / {total}
       </span>
-      <button type="button" onClick={() => onIr(i + 1)} disabled={i === total - 1} className="rounded-full px-2 text-lg text-[#F2B100] disabled:opacity-30" title="Próximo (→)">
+      <button type="button" onClick={() => onIr(i + 1)} disabled={i === total - 1} className="rounded-full px-2 text-lg disabled:opacity-30" style={{ color: 'var(--ap-acento, #F2B100)' }} title="Próximo (→)">
         ›
       </button>
     </div>

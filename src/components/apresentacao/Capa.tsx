@@ -1,6 +1,7 @@
 /** @file Capa (intro) da apresentação — tema ACME: fundo preto, acentos amarelos. */
-const AMARELO = '#F2B100'
-const PRETO = '#161616'
+// Vars do tema (setadas no root do Slideshow); fallback = AG Clássico.
+const AMARELO = 'var(--ap-acento, #F2B100)'
+const PRETO = 'var(--ap-escuro, #161616)'
 
 export function Capa({
   titulo,
@@ -30,7 +31,10 @@ export function Capa({
       </h1>
       {subtitulo ? <p className="mt-3 max-w-2xl text-lg italic text-white/70">{subtitulo}</p> : null}
 
-      <div className="mt-10 w-full max-w-md rounded-xl border px-6 py-5 text-sm text-white/85" style={{ borderColor: `${AMARELO}55` }}>
+      <div
+        className="mt-10 w-full max-w-md rounded-xl border px-6 py-5 text-sm text-white/85"
+        style={{ borderColor: `color-mix(in srgb, ${AMARELO} 33%, transparent)` }}
+      >
         <p>
           <span className="font-semibold" style={{ color: AMARELO }}>Período:</span> {periodo}
         </p>
