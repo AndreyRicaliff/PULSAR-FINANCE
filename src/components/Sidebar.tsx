@@ -8,6 +8,7 @@ import { BotaoNovidades } from './Novidades.tsx'
 import { Logo } from './Logo.tsx'
 
 export type Aba =
+  | 'inicio'
   | 'cadastro'
   | 'plano'
   | 'valores'
@@ -38,6 +39,10 @@ interface Secao {
 }
 
 const SECOES: readonly Secao[] = [
+  {
+    titulo: 'Visão geral',
+    itens: [{ id: 'inicio', rotulo: 'Início' }],
+  },
   {
     titulo: 'Captura',
     itens: [

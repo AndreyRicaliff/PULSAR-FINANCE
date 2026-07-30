@@ -21,6 +21,7 @@ import { Sidebar, ROTULO_ABA, type Aba } from './components/Sidebar.tsx'
 import { Topbar } from './components/Topbar.tsx'
 import { Carregando, Login } from './components/Login.tsx'
 import { CadastroPanel } from './components/CadastroPanel.tsx'
+import { InicioPanel } from './components/InicioPanel.tsx'
 import { CategoriasPanel } from './components/CategoriasPanel.tsx'
 import { ValoresPanel } from './components/ValoresPanel.tsx'
 import { FornecedoresPanel } from './components/FornecedoresPanel.tsx'
@@ -36,6 +37,7 @@ import { ConfiguracoesPanel } from './components/ConfiguracoesPanel.tsx'
 import { AcessosPanel } from './components/AcessosPanel.tsx'
 
 const PAINEIS: Readonly<Record<Aba, () => JSX.Element>> = {
+  inicio: InicioPanel,
   cadastro: CadastroPanel,
   plano: CategoriasPanel,
   valores: ValoresPanel,
@@ -103,11 +105,20 @@ function Shell({ email }: { email?: string }) {
   // A aba sobrevive a reload/deploy — "voltar pro início sozinho" era exatamente isso.
   const [aba, setAba] = useState<Aba>(() => {
     const salva = localStorage.getItem('lf-aba') as Aba | null
-    return salva && salva in PAINEIS ? salva : 'plano'
+    return salva && salva in PAINEIS ? salva : 'inicio'
   })
   useEffect(() => {
     localStorage.setItem('lf-aba', aba)
   }, [aba])
+  // Painéis pedem navegação por evento (ex.: Início → "resolver na Matriz").
+  useEffect(() => {
+    const ouvir = (e: Event) => {
+      const alvo = (e as CustomEvent<string>).detail as Aba
+      if (alvo in PAINEIS) setAba(alvo)
+    }
+    window.addEventListener('lf-ir-aba', ouvir)
+    return () => window.removeEventListener('lf-ir-aba', ouvir)
+  }, [])
   // No celular a sidebar é overlay e nasce FECHADA — 240px fixos comiam a tela (revisão).
   const [menuAberto, setMenuAberto] = useState(
     () => window.innerWidth >= 768 && localStorage.getItem('lf-menu') !== '0',
