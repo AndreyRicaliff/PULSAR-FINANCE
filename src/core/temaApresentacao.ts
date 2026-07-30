@@ -15,26 +15,38 @@ export interface TemaApresentacao {
   readonly palco: string
 }
 
-const AG_CLASSICO: TemaApresentacao = { id: 'ag-classico', nome: 'AG Clássico', acento: '#F2B100', escuro: '#161616', palco: '#1A1A1A' }
+// Correção de batismo (2026-07-30): o dourado/preto é a identidade da AUTAG; o padrão
+// da CASA é o roxo Pulsar. O id 'ag-classico' segue resolvendo pro dourado — apresentações
+// salvas com ele não mudam de cara.
+const PULSAR: TemaApresentacao = { id: 'pulsar', nome: 'Pulsar (padrão AG)', acento: '#7048E8', escuro: '#14102A', palco: '#0E0E16' }
 
 export const TEMAS_APRESENTACAO: readonly TemaApresentacao[] = [
-  AG_CLASSICO,
-  { id: 'pulsar', nome: 'Pulsar', acento: '#7048E8', escuro: '#14102A', palco: '#0E0E16' },
+  PULSAR,
+  { id: 'autag', nome: 'AUTAG', acento: '#F2B100', escuro: '#161616', palco: '#1A1A1A' },
   { id: 'esmeralda', nome: 'Esmeralda', acento: '#0E8A5F', escuro: '#0E1F19', palco: '#0B1512' },
   { id: 'safira', nome: 'Safira', acento: '#2F6FDE', escuro: '#101B2E', palco: '#0B1220' },
   { id: 'vinho', nome: 'Vinho', acento: '#B4304A', escuro: '#23121A', palco: '#170C11' },
   { id: 'grafite', nome: 'Grafite', acento: '#9BA1AC', escuro: '#1C1C1E', palco: '#121214' },
 ]
 
-export const TEMA_PADRAO_ID = 'ag-classico'
+export const TEMA_PADRAO_ID = 'pulsar'
 
-export function temaPorId(id: string | null | undefined): TemaApresentacao {
-  return TEMAS_APRESENTACAO.find((t) => t.id === id) ?? AG_CLASSICO
+/** ids antigos → atuais (arquivo salvo não quebra com rebatismo). */
+const APELIDOS: Readonly<Record<string, string>> = { 'ag-classico': 'autag' }
+
+/** Resolve id em tema, considerando também os temas CUSTOM da empresa (ficha). */
+export function temaPorId(id: string | null | undefined, extras: readonly TemaApresentacao[] = []): TemaApresentacao {
+  const alvo = APELIDOS[id ?? ''] ?? id
+  return extras.find((t) => t.id === alvo) ?? TEMAS_APRESENTACAO.find((t) => t.id === alvo) ?? PULSAR
 }
 
-/** Tema efetivo: o do arquivo vence; sem ele, o padrão da empresa; sem ambos, clássico. */
-export function temaEfetivo(daApresentacao: string | null | undefined, daEmpresa: string | null | undefined): TemaApresentacao {
-  return temaPorId(daApresentacao ?? daEmpresa ?? TEMA_PADRAO_ID)
+/** Tema efetivo: o do arquivo vence; sem ele, o padrão da empresa; sem ambos, Pulsar. */
+export function temaEfetivo(
+  daApresentacao: string | null | undefined,
+  daEmpresa: string | null | undefined,
+  extras: readonly TemaApresentacao[] = [],
+): TemaApresentacao {
+  return temaPorId(daApresentacao ?? daEmpresa ?? TEMA_PADRAO_ID, extras)
 }
 
 /** Vars CSS que o palco/capa/slides consomem (inline no root — cascata pros filhos). */

@@ -3,6 +3,7 @@
  * das apresentações. Vive no painel_estado (chave por tenant) — sincroniza, entra no
  * snapshot do HTML exportado e a RLS já governa.
  */
+import type { TemaApresentacao } from '@/core/temaApresentacao'
 import { useChaveCliente } from './clientes'
 import { useEstadoSincronizado } from './persistencia'
 
@@ -15,8 +16,10 @@ export interface FichaEmpresa {
   readonly email: string
   readonly telefone: string
   readonly notas: string
-  /** id de TEMAS_APRESENTACAO; null = clássico AG. */
+  /** id de tema (preset ou custom); null = padrão da casa (Pulsar). */
   readonly temaPadrao: string | null
+  /** Temas criados pela empresa (nome + 2 cores; palco deriva do escuro). */
+  readonly temasCustom: readonly TemaApresentacao[]
 }
 
 function normalizar(bruto: unknown): FichaEmpresa {
@@ -29,6 +32,7 @@ function normalizar(bruto: unknown): FichaEmpresa {
     telefone: f.telefone ?? '',
     notas: f.notas ?? '',
     temaPadrao: f.temaPadrao ?? null,
+    temasCustom: Array.isArray(f.temasCustom) ? f.temasCustom : [],
   }
 }
 
@@ -36,5 +40,18 @@ export function useFicha() {
   const chave = useChaveCliente(BASE)
   const [ficha, setFicha] = useEstadoSincronizado<FichaEmpresa>(chave, normalizar)
   const patch = (p: Partial<FichaEmpresa>) => setFicha((f) => ({ ...f, ...p }))
-  return { ficha, patch }
+
+  // Básico de propósito: nome + acento + escuro; o palco (moldura) reusa o escuro.
+  const criarTema = (nome: string, acento: string, escuro: string) => {
+    const id = `custom-${Date.now().toString(36)}`
+    setFicha((f) => ({ ...f, temasCustom: [...f.temasCustom, { id, nome, acento, escuro, palco: escuro }], temaPadrao: f.temaPadrao ?? id }))
+  }
+  const removerTema = (id: string) =>
+    setFicha((f) => ({
+      ...f,
+      temasCustom: f.temasCustom.filter((t) => t.id !== id),
+      temaPadrao: f.temaPadrao === id ? null : f.temaPadrao,
+    }))
+
+  return { ficha, patch, criarTema, removerTema }
 }

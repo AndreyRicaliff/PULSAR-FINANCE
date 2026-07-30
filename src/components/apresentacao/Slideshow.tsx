@@ -53,7 +53,7 @@ function Conteudo() {
   return (
     <div
       className="ag-slideshow h-screen overflow-hidden"
-      style={{ ...varsDoTema(temaEfetivo(estado.tema, ficha.temaPadrao)), background: 'var(--ap-palco)' }}
+      style={{ ...varsDoTema(temaEfetivo(estado.tema, ficha.temaPadrao, ficha.temasCustom)), background: 'var(--ap-palco)' }}
     >
       {i === 0 ? (
         <Capa titulo={estado.capa.titulo} subtitulo={estado.capa.subtitulo} elaboradoPor={estado.capa.elaboradoPor} cliente={ativo.nome} periodo={periodoTxt} data={data} />

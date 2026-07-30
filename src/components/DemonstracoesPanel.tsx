@@ -349,7 +349,7 @@ function MudancasModal({
         role="dialog"
         aria-modal="true"
         aria-label="Mudanças em relação ao padrão"
-        className="anim-pop flex max-h-[85vh] w-full max-w-xl flex-col gap-4 overflow-y-auto rounded-card border border-bd bg-surface p-6"
+        className="anim-pop flex max-h-[85vh] w-full max-w-3xl flex-col gap-4 overflow-y-auto rounded-card border border-bd bg-surface p-6"
         onClick={(e) => e.stopPropagation()}
       >
         <header>

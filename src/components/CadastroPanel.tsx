@@ -3,12 +3,12 @@ import { useState } from 'react'
 import { ACME_ID, type Tenant } from '@/core/tenant'
 import { useClientes } from '@/lib/clientes'
 import { useFicha } from '@/lib/ficha'
-import { SeletorTema } from './apresentacoes/SeletorTema.tsx'
+import { CriadorTema, SeletorTema } from './apresentacoes/SeletorTema.tsx'
 
 /** Ficha da empresa ativa: informações úteis + tema padrão das apresentações dela. */
 function FichaEmpresa() {
   const { ativo } = useClientes()
-  const { ficha, patch } = useFicha()
+  const { ficha, patch, criarTema, removerTema } = useFicha()
   const campo = 'rounded-lg border border-bd bg-surface2 px-3 py-2 text-sm outline-none focus:border-primary'
   return (
     <section className="flex flex-col gap-4 rounded-card border border-bd bg-surface p-5">
@@ -42,9 +42,16 @@ function FichaEmpresa() {
           <input type="text" value={ficha.notas} onChange={(e) => patch({ notas: e.target.value })} placeholder="Particularidades, combinados…" className={campo} />
         </label>
       </div>
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-3">
         <span className="text-[11px] font-medium uppercase tracking-wide text-muted">Tema padrão das apresentações</span>
-        <SeletorTema valor={ficha.temaPadrao} onTrocar={(id) => patch({ temaPadrao: id })} rotuloHeranca="AG Clássico" />
+        <SeletorTema
+          valor={ficha.temaPadrao}
+          onTrocar={(id) => patch({ temaPadrao: id })}
+          rotuloHeranca="Pulsar (padrão AG)"
+          extras={ficha.temasCustom}
+          onRemoverExtra={removerTema}
+        />
+        <CriadorTema onCriar={criarTema} />
       </div>
     </section>
   )

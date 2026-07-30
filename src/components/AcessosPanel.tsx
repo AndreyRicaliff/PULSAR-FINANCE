@@ -355,7 +355,7 @@ function ModalNovo({ clientes, onFechar, onCriou }: { clientes: readonly Tenant[
 function Modal({ titulo, children, onFechar }: { titulo: string; children: ReactNode; onFechar: () => void }) {
   return (
     <div className="anim-fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onFechar}>
-      <div className="anim-pop w-full max-w-sm rounded-card border border-bd bg-surface p-6" onClick={(e) => e.stopPropagation()}>
+      <div className="anim-pop w-full max-w-xl rounded-card border border-bd bg-surface p-6" onClick={(e) => e.stopPropagation()}>
         <h2 className="mb-3 text-lg font-bold">{titulo}</h2>
         {children}
       </div>
