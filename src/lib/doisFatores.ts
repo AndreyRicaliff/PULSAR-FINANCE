@@ -104,7 +104,11 @@ export function use2FA(): { readonly estado: Estado2FA; readonly revalidar: () =
     const { data: escuta } = supabase.auth.onAuthStateChange((evento) => {
       if (evento === 'SIGNED_IN') {
         setEstado('checando')
-        void revalidar()
+        // FORA do callback (setTimeout 0): o handler roda segurando o lock de auth da
+        // supabase-js, e o revalidar chama getSession — que espera o MESMO lock.
+        // Chamar direto deadlocka e o app fica no "Carregando…" pra sempre em todo
+        // login (regressão de 2026-07-29, vista em prod 2026-07-30).
+        setTimeout(() => void revalidar(), 0)
       }
     })
     return () => escuta.subscription.unsubscribe()
