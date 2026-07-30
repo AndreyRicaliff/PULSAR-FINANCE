@@ -49,7 +49,8 @@ const VISTAS: readonly OpcaoSeg<VistaRel>[] = [
   { id: 'giro', rotulo: 'Capital de Giro' },
   { id: 'previsto', rotulo: 'Previsto × Realizado' },
   { id: 'neutros', rotulo: 'Neutros' },
-  { id: 'apresentacao', rotulo: 'Apresentação' },
+  // 'apresentacao' saiu do menu: agora é a aba própria "Apresentações" (explorador).
+  // O tipo/render ficam para o deep-link inicial="apresentacao" não quebrar.
 ]
 
 export function RelatoriosPanel({ inicial = 'visao' }: { inicial?: VistaRel } = {}) {

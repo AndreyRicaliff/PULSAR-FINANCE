@@ -66,7 +66,7 @@ const SECOES: readonly Secao[] = [
     titulo: 'Camada Analítica',
     itens: [
       { id: 'relatorios', rotulo: 'Relatórios' },
-      { id: 'apresentacao', rotulo: 'Apresentação' },
+      { id: 'apresentacao', rotulo: 'Apresentações' },
       { id: 'hud', rotulo: 'HUD do Cliente', divisorAntes: 'Visão do cliente' },
     ],
   },
