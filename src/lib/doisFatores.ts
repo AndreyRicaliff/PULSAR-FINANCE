@@ -103,7 +103,10 @@ export function use2FA(): { readonly estado: Estado2FA; readonly revalidar: () =
     // aparecia sempre (5 tokens emitidos, 0 resgatados em prod, 2026-07-29).
     const { data: escuta } = supabase.auth.onAuthStateChange((evento) => {
       if (evento === 'SIGNED_IN') {
-        setEstado('checando')
+        // SIGNED_IN também dispara ao REFOCAR a guia do navegador — sessão já liberada
+        // revalida em silêncio, sem regredir a tela pro splash de carregamento (report
+        // 2026-07-30). O portão visual só vale enquanto ainda não passou pelo 2FA.
+        setEstado((atual) => (atual === 'liberado' ? atual : 'checando'))
         // FORA do callback (setTimeout 0): o handler roda segurando o lock de auth da
         // supabase-js, e o revalidar chama getSession — que espera o MESMO lock.
         // Chamar direto deadlocka e o app fica no "Carregando…" pra sempre em todo
