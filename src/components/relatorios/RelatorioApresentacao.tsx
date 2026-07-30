@@ -13,6 +13,7 @@ import { useClientes } from '@/lib/clientes'
 import { SECOES_SLIDE, ROTULO_SECAO, type FaixaMesesRel, type SlideItem } from '../apresentacao/tipos'
 import { EditorRico } from '../apresentacao/EditorRico.tsx'
 import { SeletorMeses, rotuloMes } from '../SeletorMeses.tsx'
+import { BibliotecaApresentacoes } from './BibliotecaApresentacoes.tsx'
 
 const ultimoDia = (mes: string): string => {
   const [a, m] = [Number(mes.slice(0, 4)), Number(mes.slice(5, 7))]
@@ -42,6 +43,7 @@ export function RelatorioApresentacao() {
 
   return (
     <div className="flex flex-col gap-6">
+      <BibliotecaApresentacoes />
       <header>
         <h1 className="text-[19px] font-semibold">Apresentação (slideshow)</h1>
         <p className="text-sm text-muted">

@@ -31,6 +31,8 @@ export interface ApresentacaoApi {
   readonly remover: (i: number) => void
   readonly adicionarSecao: (secao: SecaoSlideId) => void
   readonly adicionarLivre: () => void
+  /** Substitui o roteiro inteiro (carregar apresentação salva da biblioteca). */
+  readonly substituir: (novo: unknown) => void
 }
 
 export function useApresentacao(): ApresentacaoApi {
@@ -72,5 +74,9 @@ export function useApresentacao(): ApresentacaoApi {
     [setRoteiro],
   )
 
-  return { estado, definirCapa, definirPeriodo, patchItem, mover, remover, adicionarSecao, adicionarLivre }
+  // normalizar() no substituir: doc da biblioteca passa pelo MESMO boundary do doc remoto —
+  // apresentação antiga/backup com shape defasado não quebra o roteiro.
+  const substituir = useCallback((novo: unknown) => setEstado(() => normalizar(novo)), [setEstado])
+
+  return { estado, definirCapa, definirPeriodo, patchItem, mover, remover, adicionarSecao, adicionarLivre, substituir }
 }

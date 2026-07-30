@@ -85,13 +85,25 @@ function SeletorCliente() {
       <select
         value={ativo.id}
         onChange={(e) => selecionar(e.target.value)}
-        className="bg-transparent text-sm font-semibold text-text outline-none"
+        className="max-w-[44vw] bg-transparent text-sm font-semibold text-text outline-none sm:max-w-none"
       >
-        {clientes.map((c) => (
-          <option key={c.id} value={c.id} className="bg-surface text-text">
-            {rotulo(c)}
-          </option>
-        ))}
+        {/* Agrupado por ERP e alfabético dentro de cada grupo — a lista crescia na ordem
+            de cadastro e virou caça ao nome (report 2026-07-30). */}
+        {(['omie', 'nibo', null] as const).map((prov) => {
+          const grupo = clientes
+            .filter((c) => (c.provedor ?? null) === prov)
+            .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))
+          if (!grupo.length) return null
+          return (
+            <optgroup key={prov ?? 'sem'} label={prov ? rotulosProvedor(prov).nome : 'Sem integração'}>
+              {grupo.map((c) => (
+                <option key={c.id} value={c.id} className="bg-surface text-text">
+                  {rotulo(c)}
+                </option>
+              ))}
+            </optgroup>
+          )
+        })}
       </select>
       <TagProvedor provedor={ativo.provedor} />
     </label>

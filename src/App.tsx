@@ -15,6 +15,7 @@ import { ClientesProvider } from './lib/clientes'
 import { LancamentosProvider } from './lib/lancamentos'
 import { MovimentosProvider } from './lib/movimentos'
 import { OverridesProvider } from './lib/overrides'
+import { PeriodoProvider } from './lib/periodo'
 import { BoasVindas } from './components/BoasVindas.tsx'
 import { Sidebar, ROTULO_ABA, type Aba } from './components/Sidebar.tsx'
 import { Topbar } from './components/Topbar.tsx'
@@ -98,7 +99,14 @@ export function App() {
 }
 
 function Shell({ email }: { email?: string }) {
-  const [aba, setAba] = useState<Aba>('plano')
+  // A aba sobrevive a reload/deploy — "voltar pro início sozinho" era exatamente isso.
+  const [aba, setAba] = useState<Aba>(() => {
+    const salva = localStorage.getItem('lf-aba') as Aba | null
+    return salva && salva in PAINEIS ? salva : 'plano'
+  })
+  useEffect(() => {
+    localStorage.setItem('lf-aba', aba)
+  }, [aba])
   // No celular a sidebar é overlay e nasce FECHADA — 240px fixos comiam a tela (revisão).
   const [menuAberto, setMenuAberto] = useState(
     () => window.innerWidth >= 768 && localStorage.getItem('lf-menu') !== '0',
@@ -141,9 +149,13 @@ function Shell({ email }: { email?: string }) {
             onAlternarMenu={() => setMenuAberto((v) => !v)}
           />
           <main className="fx-grid-bg min-w-0 flex-1 overflow-auto p-4 md:p-8">
-            <div key={aba} className="anim-tab-in">
-              <Painel />
-            </div>
+            {/* UM período pro Shell inteiro (padrão líder/beto): trocar de aba não reseta
+                mais o filtro — os painéis deixaram de montar providers próprios. */}
+            <PeriodoProvider>
+              <div key={aba} className="anim-tab-in">
+                <Painel />
+              </div>
+            </PeriodoProvider>
           </main>
         </div>
       </div>

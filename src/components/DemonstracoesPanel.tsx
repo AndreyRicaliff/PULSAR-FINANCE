@@ -37,11 +37,8 @@ const MODOS: readonly OpcaoSeg<Modo>[] = [
 ]
 
 export function DemonstracoesPanel() {
-  return (
-    <PeriodoProvider>
-      <Conteudo />
-    </PeriodoProvider>
-  )
+  // O período vem do Shell (filtro global) — montar um provider aqui isolava a aba.
+  return <Conteudo />
 }
 
 function Conteudo() {

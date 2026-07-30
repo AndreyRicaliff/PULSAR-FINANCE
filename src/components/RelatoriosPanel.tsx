@@ -53,11 +53,8 @@ const VISTAS: readonly OpcaoSeg<VistaRel>[] = [
 ]
 
 export function RelatoriosPanel({ inicial = 'visao' }: { inicial?: VistaRel } = {}) {
-  return (
-    <PeriodoProvider>
-      <Conteudo inicial={inicial} />
-    </PeriodoProvider>
-  )
+  // O período vem do Shell (filtro global) — montar um provider aqui isolava a aba.
+  return <Conteudo inicial={inicial} />
 }
 
 function Conteudo({ inicial }: { inicial: VistaRel }) {
