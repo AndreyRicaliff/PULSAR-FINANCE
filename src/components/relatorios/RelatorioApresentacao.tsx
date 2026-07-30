@@ -13,6 +13,7 @@ import { useClientes } from '@/lib/clientes'
 import { SECOES_SLIDE, ROTULO_SECAO, type FaixaMesesRel, type SlideItem } from '../apresentacao/tipos'
 import { EditorRico } from '../apresentacao/EditorRico.tsx'
 import { SeletorMeses, rotuloMes } from '../SeletorMeses.tsx'
+import { SeletorTema } from '../apresentacoes/SeletorTema.tsx'
 
 const ultimoDia = (mes: string): string => {
   const [a, m] = [Number(mes.slice(0, 4)), Number(mes.slice(5, 7))]
@@ -151,6 +152,10 @@ function CartaoPeriodo({ api }: { api: ApresentacaoApi }) {
 
   return (
     <section className="rounded-card border border-bd bg-surface p-5">
+      <div className="mb-4 flex flex-col gap-2 rounded-card border border-bd bg-surface p-4">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">Tema desta apresentação</h2>
+        <SeletorTema valor={api.estado.tema} onTrocar={api.definirTema} rotuloHeranca="Padrão da empresa" />
+      </div>
       <h2 className="mb-1 text-sm font-semibold uppercase tracking-wide text-muted">Período do relatório</h2>
       <p className="mb-3 text-xs text-muted">Escolha o mês (ou a faixa) antes de gerar — o HTML exportado já abre filtrado nesse período, pronto para imprimir.</p>
       <div className="flex flex-wrap items-center gap-4">

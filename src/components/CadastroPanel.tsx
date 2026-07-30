@@ -2,6 +2,53 @@
 import { useState } from 'react'
 import { ACME_ID, type Tenant } from '@/core/tenant'
 import { useClientes } from '@/lib/clientes'
+import { useFicha } from '@/lib/ficha'
+import { SeletorTema } from './apresentacoes/SeletorTema.tsx'
+
+/** Ficha da empresa ativa: informações úteis + tema padrão das apresentações dela. */
+function FichaEmpresa() {
+  const { ativo } = useClientes()
+  const { ficha, patch } = useFicha()
+  const campo = 'rounded-lg border border-bd bg-surface2 px-3 py-2 text-sm outline-none focus:border-primary'
+  return (
+    <section className="flex flex-col gap-4 rounded-card border border-bd bg-surface p-5">
+      <header>
+        <h2 className="text-[15px] font-semibold">Ficha de {ativo.nome}</h2>
+        <p className="text-xs text-muted">Informações da empresa e o tema padrão das apresentações dela. Salva sozinho.</p>
+      </header>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <label className="flex flex-col gap-1">
+          <span className="text-[11px] font-medium uppercase tracking-wide text-muted">Nome de exibição</span>
+          <input type="text" value={ficha.exibicao} onChange={(e) => patch({ exibicao: e.target.value })} placeholder={ativo.nome} className={campo} />
+        </label>
+        <label className="flex flex-col gap-1">
+          <span className="text-[11px] font-medium uppercase tracking-wide text-muted">CNPJ</span>
+          <input type="text" value={ficha.cnpj} onChange={(e) => patch({ cnpj: e.target.value })} placeholder="00.000.000/0000-00" className={campo} />
+        </label>
+        <label className="flex flex-col gap-1">
+          <span className="text-[11px] font-medium uppercase tracking-wide text-muted">Responsável</span>
+          <input type="text" value={ficha.responsavel} onChange={(e) => patch({ responsavel: e.target.value })} placeholder="Quem aprova/recebe" className={campo} />
+        </label>
+        <label className="flex flex-col gap-1">
+          <span className="text-[11px] font-medium uppercase tracking-wide text-muted">E-mail</span>
+          <input type="email" value={ficha.email} onChange={(e) => patch({ email: e.target.value })} placeholder="contato@empresa.com.br" className={campo} />
+        </label>
+        <label className="flex flex-col gap-1">
+          <span className="text-[11px] font-medium uppercase tracking-wide text-muted">Telefone</span>
+          <input type="text" value={ficha.telefone} onChange={(e) => patch({ telefone: e.target.value })} placeholder="(83) 9…" className={campo} />
+        </label>
+        <label className="flex flex-col gap-1 sm:col-span-2">
+          <span className="text-[11px] font-medium uppercase tracking-wide text-muted">Notas internas</span>
+          <input type="text" value={ficha.notas} onChange={(e) => patch({ notas: e.target.value })} placeholder="Particularidades, combinados…" className={campo} />
+        </label>
+      </div>
+      <div className="flex flex-col gap-2">
+        <span className="text-[11px] font-medium uppercase tracking-wide text-muted">Tema padrão das apresentações</span>
+        <SeletorTema valor={ficha.temaPadrao} onTrocar={(id) => patch({ temaPadrao: id })} rotuloHeranca="AG Clássico" />
+      </div>
+    </section>
+  )
+}
 
 export function CadastroPanel() {
   const { clientes, ativo, carregando } = useClientes()
@@ -14,6 +61,8 @@ export function CadastroPanel() {
           <strong className="text-text">{ativo.nome}</strong> — troque no topo.
         </p>
       </header>
+
+      <FichaEmpresa />
 
       <FormularioNovo />
 

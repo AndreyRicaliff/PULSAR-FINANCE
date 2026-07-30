@@ -58,6 +58,8 @@ export interface EstadoApresentacao {
   readonly roteiro: readonly SlideItem[]
   /** Período escolhido para o relatório exportado (vazio = todo o período). */
   readonly periodo: FaixaMesesRel
+  /** Tema visual (id de TEMAS_APRESENTACAO); null = herda o padrão da empresa. */
+  readonly tema: string | null
 }
 
 export const ROTULO_SECAO: Readonly<Record<SecaoSlideId, string>> = Object.fromEntries(
