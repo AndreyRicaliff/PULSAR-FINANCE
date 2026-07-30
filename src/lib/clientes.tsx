@@ -49,7 +49,7 @@ async function buscar(): Promise<readonly Tenant[]> {
   const { data, error } = await supabase
     .from('painel_clientes')
     .select('*')
-    .order('criado_em', { ascending: true })
+    .order('nome', { ascending: true })
   if (error || !data?.length) {
     if (error) console.error('[clientes] erro ao listar:', error.message)
     return [ACME]
