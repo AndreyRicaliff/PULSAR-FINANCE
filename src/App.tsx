@@ -116,7 +116,12 @@ function Shell({ email }: { email?: string }) {
     localStorage.setItem('lf-menu', menuAberto ? '1' : '0')
   }, [menuAberto])
   useAutoScrollDrag()
-  const Painel = PAINEIS[aba]
+  // Abas visitadas ficam MONTADAS (ocultas via CSS): voltar é instantâneo, sem o
+  // "carregamento" de remontar painel + refetch a cada troca (report 2026-07-30).
+  const [visitadas, setVisitadas] = useState<readonly Aba[]>(() => [aba])
+  useEffect(() => {
+    setVisitadas((v) => (v.includes(aba) ? v : [...v, aba]))
+  }, [aba])
 
   return (
     <OverridesProvider>
@@ -152,9 +157,14 @@ function Shell({ email }: { email?: string }) {
             {/* UM período pro Shell inteiro (padrão líder/beto): trocar de aba não reseta
                 mais o filtro — os painéis deixaram de montar providers próprios. */}
             <PeriodoProvider>
-              <div key={aba} className="anim-tab-in">
-                <Painel />
-              </div>
+              {visitadas.map((a) => {
+                const Painel = PAINEIS[a]
+                return (
+                  <div key={a} className={a === aba ? 'anim-tab-in' : 'hidden'}>
+                    <Painel />
+                  </div>
+                )
+              })}
             </PeriodoProvider>
           </main>
         </div>
