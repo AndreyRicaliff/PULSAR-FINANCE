@@ -127,6 +127,31 @@ function omiePagina(env, nPagina) {
   return omieCall(env, 'financas/mf', 'ListarMovimentos', { nPagina, nRegPorPagina: POR_PAGINA })
 }
 
+// A Omie devolve, para o MESMO título pago, o lançamento (MANP/RPTP/COMP…) E a linha de
+// baixa (BAXP/BAXR/BARP) — mesmo nCodTitulo, mesma natureza. Sem dedup, toda conta paga
+// somava em DOBRO na DRE/DFC (visto em produção: 1.243 títulos duplicados na MAGDIEL,
+// 79 na AUTAG 27; report 2026-07-30). Regra: dentro do grupo idTitulo|parcela|natureza,
+// se existe linha de lançamento, as linhas de baixa caem (o lançamento já carrega
+// dataPagamento/valorPago). Baixa SEM lançamento na janela fica — apagar perderia o
+// pagamento. A natureza na chave preserva as duas pernas de transferência (P+R, mesmo
+// título — legítimas), e idTitulo vazio/'0' (evento de extrato) não entra no dedup.
+const ORIGENS_BAIXA = new Set(['BAXP', 'BAXR', 'BARP', 'BARR'])
+
+function dedupBaixasDeTitulo(movs) {
+  // Chave SEM parcela de propósito: o lançamento vem com parcela ('001/001') e a baixa
+  // vem com parcela VAZIA — com parcela na chave nada casava (visto em prod).
+  const grupos = new Map()
+  for (const m of movs) {
+    if (!m.idTitulo || m.idTitulo === '0') continue
+    const k = `${m.idTitulo}|${m.natureza}`
+    grupos.set(k, (grupos.get(k) ?? 0) + (ORIGENS_BAIXA.has(m.origem) ? 0 : 1))
+  }
+  return movs.filter((m) => {
+    if (!m.idTitulo || m.idTitulo === '0' || !ORIGENS_BAIXA.has(m.origem)) return true
+    return (grupos.get(`${m.idTitulo}|${m.natureza}`) ?? 0) === 0
+  })
+}
+
 async function buscarOmie(env) {
   const todos = []
   let pagina = 1, totPaginas = 1
@@ -137,7 +162,7 @@ async function buscarOmie(env) {
     pagina++
   } while (pagina <= totPaginas && pagina <= MAX_PAGINAS)
   avisarSeTruncado('movimentos', totPaginas)
-  return todos
+  return dedupBaixasDeTitulo(todos)
 }
 
 const espera = (ms) => new Promise((r) => setTimeout(r, ms))
