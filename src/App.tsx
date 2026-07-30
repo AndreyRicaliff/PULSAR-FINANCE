@@ -31,6 +31,7 @@ import { ProjecaoPanel } from './components/ProjecaoPanel.tsx'
 import { ModeloPanel } from './components/ModeloPanel.tsx'
 import { DemonstracoesPanel } from './components/DemonstracoesPanel.tsx'
 import { RelatoriosPanel } from './components/RelatoriosPanel.tsx'
+import { ExploradorApresentacoes } from './components/apresentacoes/ExploradorApresentacoes.tsx'
 import { ConfiguracoesPanel } from './components/ConfiguracoesPanel.tsx'
 import { AcessosPanel } from './components/AcessosPanel.tsx'
 
@@ -47,7 +48,7 @@ const PAINEIS: Readonly<Record<Aba, () => JSX.Element>> = {
   modelo: ModeloPanel,
   demonstracoes: DemonstracoesPanel,
   relatorios: () => <RelatoriosPanel inicial="visao" />,
-  apresentacao: () => <RelatoriosPanel inicial="apresentacao" />,
+  apresentacao: ExploradorApresentacoes,
   hud: () => <HudCliente />,
   acessos: AcessosPanel,
   config: ConfiguracoesPanel,
