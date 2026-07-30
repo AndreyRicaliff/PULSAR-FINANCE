@@ -38,6 +38,7 @@ export function AprovacoesPanel() {
   const { titulos } = useTitulos()
   const { nomesContrapartes } = useCadastros()
   const [filtro, setFiltro] = useState<Filtro>('abertas')
+  const [marcadas, setMarcadas] = useState<ReadonlySet<string>>(new Set())
   const [criando, setCriando] = useState(false)
   const [decidindo, setDecidindo] = useState<Aprovacao | null>(null)
   const [erro, setErro] = useState('')
@@ -70,6 +71,8 @@ export function AprovacoesPanel() {
   }, [api.eventos])
 
   async function importar() {
+    const total = candidatos.reduce((s, t) => s + t.valorCentavos, 0)
+    if (!window.confirm(`Importar ${candidatos.length} título(s) em aberto — total ${brl(total)} — para a fila de aprovação?`)) return
     setErro('')
     const contas: NovaConta[] = candidatos.map((t) => ({
       fornecedor: nomesContrapartes.get(t.fornecedorCodigo) ?? t.fornecedorCodigo ?? 'FORNECEDOR',
@@ -121,6 +124,8 @@ export function AprovacoesPanel() {
         {erro ? <p className="text-[13px] text-danger">{erro}</p> : null}
       </div>
 
+      <BarraLote aprovacoes={api.aprovacoes} marcadas={marcadas} api={api} onLimpar={() => setMarcadas(new Set())} onErro={setErro} />
+
       {api.carregando ? (
         <p className="text-sm text-muted">Carregando…</p>
       ) : visiveis.length === 0 ? (
@@ -139,6 +144,18 @@ export function AprovacoesPanel() {
               onDecidir={() => setDecidindo(a)}
               onErro={setErro}
               api={api}
+              marcada={marcadas.has(a.id)}
+              onMarcar={
+                emAberto(a)
+                  ? (v) =>
+                      setMarcadas((m) => {
+                        const n = new Set(m)
+                        if (v) n.add(a.id)
+                        else n.delete(a.id)
+                        return n
+                      })
+                  : undefined
+              }
             />
           ))}
         </div>
@@ -146,6 +163,74 @@ export function AprovacoesPanel() {
 
       {criando ? <FormConta api={api} onFechar={() => setCriando(false)} /> : null}
       {decidindo ? <FormDecisao api={api} a={decidindo} onFechar={() => setDecidindo(null)} /> : null}
+    </div>
+  )
+}
+
+/**
+ * Barra de lote contextual: mostra só as ações válidas pro que está marcado, por status.
+ * Dia de pagamento: marcar todas as agendadas → "Marcar pagas" = 2 cliques, não 2N.
+ */
+function BarraLote({
+  aprovacoes,
+  marcadas,
+  api,
+  onLimpar,
+  onErro,
+}: {
+  aprovacoes: readonly Aprovacao[]
+  marcadas: ReadonlySet<string>
+  api: AprovacoesApi
+  onLimpar: () => void
+  onErro: (m: string) => void
+}) {
+  if (marcadas.size === 0) return null
+  const sel = aprovacoes.filter((a) => marcadas.has(a.id))
+  const por = (s: Aprovacao['status']) => sel.filter((a) => a.status === s)
+  const soma = (xs: readonly Aprovacao[]) => brl(xs.reduce((t, a) => t + a.valorCentavos, 0))
+
+  async function rodar(fn: () => Promise<void>) {
+    onErro('')
+    try {
+      await fn()
+      onLimpar()
+    } catch (e) {
+      onErro(e instanceof Error ? e.message : 'Falha no lote')
+    }
+  }
+
+  const pend = por('pendente')
+  const aprov = por('aprovada')
+  const agend = por('agendada')
+
+  return (
+    <div className="flex flex-wrap items-center gap-2 rounded-card border border-primary/40 bg-primary/5 px-4 py-2.5">
+      <span className="text-sm font-medium">{marcadas.size} selecionada(s)</span>
+      {pend.length ? (
+        <button
+          type="button"
+          onClick={() => {
+            if (window.confirm(`Registrar APROVAÇÃO do cliente para ${pend.length} conta(s) — ${soma(pend)}?`))
+              void rodar(() => api.decidirLote(pend.map((a) => a.id), 'aprovada', 'decisão recebida do cliente (canal externo)'))
+          }}
+          className="fx-press rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-white"
+        >
+          Registrar aprovação ({pend.length})
+        </button>
+      ) : null}
+      {aprov.length ? (
+        <button type="button" onClick={() => void rodar(() => api.transicaoLote(aprov.map((a) => a.id), 'agendada'))} className="fx-press rounded-lg border border-bd px-3 py-1.5 text-xs font-medium">
+          Agendar ({aprov.length})
+        </button>
+      ) : null}
+      {agend.length ? (
+        <button type="button" onClick={() => void rodar(() => api.transicaoLote(agend.map((a) => a.id), 'paga'))} className="fx-press rounded-lg border border-bd px-3 py-1.5 text-xs font-medium">
+          Marcar pagas ({agend.length})
+        </button>
+      ) : null}
+      <button type="button" onClick={onLimpar} className="ml-auto text-xs text-muted underline">
+        limpar
+      </button>
     </div>
   )
 }
@@ -166,12 +251,16 @@ function CartaoConta({
   onDecidir,
   onErro,
   api,
+  marcada,
+  onMarcar,
 }: {
   a: Aprovacao
   eventos: readonly EventoAprovacao[]
   onDecidir: () => void
   onErro: (m: string) => void
   api: AprovacoesApi
+  marcada?: boolean
+  onMarcar?: (v: boolean) => void
 }) {
   const [trilhaAberta, setTrilhaAberta] = useState(false)
   const [resposta, setResposta] = useState('')
@@ -209,6 +298,9 @@ function CartaoConta({
   return (
     <article className="rounded-card border border-bd bg-surface px-5 py-4">
       <div className="flex flex-wrap items-center gap-3">
+        {onMarcar ? (
+          <input type="checkbox" checked={marcada ?? false} onChange={(e) => onMarcar(e.target.checked)} className="h-4 w-4 shrink-0 accent-[rgb(var(--primary))]" aria-label="selecionar" />
+        ) : null}
         <div className="min-w-0 flex-1">
           <p className="truncate text-[14.5px] font-semibold">{a.fornecedor}</p>
           <p className="text-xs text-muted">

@@ -29,6 +29,8 @@ export interface AprovacoesApi {
   readonly decidir: (id: string, decisao: 'aprovada' | 'reprovada', comentario: string) => Promise<void>
   readonly comentar: (id: string, texto: string) => Promise<void>
   readonly transicao: (id: string, para: StatusAprovacao) => Promise<void>
+  readonly transicaoLote: (ids: readonly string[], para: StatusAprovacao) => Promise<void>
+  readonly decidirLote: (ids: readonly string[], decisao: 'aprovada' | 'reprovada', comentario: string) => Promise<void>
   readonly marcarMercadoria: (id: string, recebida: boolean) => Promise<void>
   readonly recarregar: () => Promise<void>
 }
@@ -180,6 +182,32 @@ export function useAprovacoes(): AprovacoesApi {
     [recarregar],
   )
 
+  // Lote: transição é UM update com .in() (o trigger valida linha a linha); decidir vai
+  // pelo RPC um a um (as validações de vínculo/estado moram lá) com erros agregados.
+  const transicaoLote = useCallback(
+    async (ids: readonly string[], para: StatusAprovacao) => {
+      if (!supabase || !ids.length) return
+      const { error } = await supabase.from('painel_aprovacoes').update({ status: para }).in('id', ids)
+      aErro(error, 'Erro na transição em lote')
+      await recarregar()
+    },
+    [recarregar],
+  )
+
+  const decidirLote = useCallback(
+    async (ids: readonly string[], decisao: 'aprovada' | 'reprovada', comentario: string) => {
+      const sb = supabase
+      if (!sb || !ids.length) return
+      const resultados = await Promise.allSettled(
+        ids.map((id) => sb.rpc('decidir_aprovacao', { p_id: id, p_decisao: decisao, p_comentario: comentario })),
+      )
+      await recarregar()
+      const falhas = resultados.filter((r) => r.status === 'rejected' || r.value?.error).length
+      if (falhas) throw new Error(`${falhas} de ${ids.length} não foram registradas — recarregue e confira.`)
+    },
+    [recarregar],
+  )
+
   // Fora do congelamento de propósito: a mercadoria chega DEPOIS da aprovação.
   const marcarMercadoria = useCallback(
     async (id: string, recebida: boolean) => {
@@ -191,5 +219,5 @@ export function useAprovacoes(): AprovacoesApi {
     [recarregar],
   )
 
-  return { aprovacoes, eventos, carregando, criar, decidir, comentar, transicao, marcarMercadoria, recarregar }
+  return { aprovacoes, eventos, carregando, criar, decidir, comentar, transicao, transicaoLote, decidirLote, marcarMercadoria, recarregar }
 }
