@@ -173,3 +173,25 @@ export function intervaloDoPreset(preset: Preset, hojeIso: string): Intervalo {
   }
   return INTERVALO_TUDO
 }
+
+/**
+ * Quebra um intervalo FECHADO em meses (bordas clampadas ao intervalo) — base da visão
+ * "trimestre aberto mês a mês" do comparativo. Intervalo aberto (sem início/fim) → [],
+ * porque "todo o histórico" mês a mês viraria uma matriz sem fim.
+ */
+export function mesesDoIntervalo(i: Intervalo, max = 13): readonly Intervalo[] {
+  if (!i.inicio || !i.fim || i.inicio > i.fim) return []
+  const meses: Intervalo[] = []
+  let a = Number(i.inicio.slice(0, 4))
+  let m = Number(i.inicio.slice(5, 7))
+  const fa = Number(i.fim.slice(0, 4))
+  const fm = Number(i.fim.slice(5, 7))
+  while ((a < fa || (a === fa && m <= fm)) && meses.length < max) {
+    const ini = fmt(a, m, 1)
+    const fim = fmt(a, m, ultimoDiaMes(a, m))
+    meses.push({ inicio: ini < i.inicio ? i.inicio : ini, fim: fim > i.fim ? i.fim : fim })
+    m += 1
+    if (m === 13) { m = 1; a += 1 }
+  }
+  return meses
+}

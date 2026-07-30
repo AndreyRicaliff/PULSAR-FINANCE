@@ -7,7 +7,7 @@ import { totaisEfetivos } from '@/core/classes'
 import { calcular, type Demonstracao, type LinhaCalc } from '@/core/demonstracao'
 import { filtrarPorFilial, mapaAuto } from '@/core/filial'
 import { movimentosCaixa } from '@/core/movimento'
-import { filtrarPorPeriodo, hojeLocalIso, intervaloDoPreset, type Intervalo, type Regime } from '@/core/periodo'
+import { filtrarPorPeriodo, hojeLocalIso, intervaloDoPreset, mesesDoIntervalo, type Intervalo, type Regime } from '@/core/periodo'
 import { useCadastros } from './cadastros'
 import { separarNeutros } from '@/core/neutros'
 import { useMovimentos } from './movimentos'
@@ -77,4 +77,38 @@ export function useMesAtual(): MesAtual {
     }
     return { dre: ef(movs, dem.demo.dre, 'dre'), dfc: ef(movimentosCaixa(movs), dem.demo.dfc, 'dfc'), intervalo, qtd: movs.length }
   }, [todos, regime, filial, modelo.centros, conc, cats, dem.demo.dre, dem.demo.dfc, nomesContrapartes])
+}
+
+export interface MesComparativo {
+  readonly intervalo: Intervalo
+  readonly dre: readonly LinhaCalc[]
+  readonly dfc: readonly LinhaCalc[]
+}
+
+/**
+ * Um cálculo POR MÊS do intervalo, pelo mesmo pipeline do lado (nada de fórmula paralela —
+ * a coluna Total e a soma dos meses saem da mesma fonte). Movido para fora do hook para
+ * rodar N vezes num único useMemo sem violar regra de hooks.
+ */
+export function useMesesDe(intervalo: Intervalo, regime: Regime): readonly MesComparativo[] {
+  const { modelo } = useModelo()
+  const dem = useDemonstracoes()
+  const { movimentos: todos } = useMovimentos()
+  const { categorias } = useCadastros()
+  const conc = modelo.contas
+  const cats = categorias.categorias
+
+  return useMemo(() => {
+    const calcJanela = (jan: Intervalo, demo: Demonstracao, tipo: 'dre' | 'dfc') => {
+      const movs = filtrarPorPeriodo(todos, jan, regime).dentro
+      const base = tipo === 'dfc' ? movimentosCaixa(movs) : movs
+      const e = totaisEfetivos(base, conc, cats, demo, tipo)
+      return calcular({ linhas: demo.linhas, mapa: e.mapaEfetivo }, e.totalPorChave)
+    }
+    return mesesDoIntervalo(intervalo).map((jan) => ({
+      intervalo: jan,
+      dre: calcJanela(jan, dem.demo.dre, 'dre'),
+      dfc: calcJanela(jan, dem.demo.dfc, 'dfc'),
+    }))
+  }, [todos, intervalo, regime, conc, cats, dem.demo.dre, dem.demo.dfc])
 }
