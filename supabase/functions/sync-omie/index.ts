@@ -662,6 +662,15 @@ async function gravarDoc(env, chave, movimentos) {
   })
 }
 
+// Status do sync em background — é o que o front consulta enquanto a varredura roda.
+async function gravarStatus(env, chave, status) {
+  await fetch(`${env.SUPABASE_URL}/rest/v1/painel_estado`, {
+    method: 'POST',
+    headers: { apikey: env.SUPABASE_SERVICE_ROLE_KEY, Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`, 'Content-Type': 'application/json', Prefer: 'resolution=merge-duplicates' },
+    body: JSON.stringify({ chave, dados: { ...status, em: new Date().toISOString() } }),
+  })
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors })
   try {
@@ -683,51 +692,63 @@ Deno.serve(async (req) => {
     // (diff, gravação, histórico) o pipeline não sabe a origem. Desconhecido = fail-closed.
     if (cred.provedor !== 'omie' && cred.provedor !== 'nibo') return naoImplementado(cred.provedor)
     const envProv = cred.env
-    let recebidosTodos, cadastros, titulos
-    const atuais = await lerDoc(env, chave)
-    if (cred.provedor === 'nibo') {
-      const nibo = await buscarTudoNibo(envProv)
-      recebidosTodos = nibo.movimentos
-      cadastros = nibo.cadastros
-      titulos = nibo.titulos
-    } else {
-      const [brutos, cads, tits] = await Promise.all([
-        buscarOmie(envProv), buscarCadastros(envProv), buscarTitulos(envProv),
-      ])
-      cadastros = cads
-      titulos = tits
-      recebidosTodos = await enriquecerDepartamentos(envProv, brutos)
-    }
-    // Piso de ingestão opcional (ISO 'aaaa-mm-dd'): só grava movimentos a partir desta data.
-    // Sem `desde`, comportamento inalterado (outros clientes não são afetados).
-    const isoBR = (s: string) => { const p = (s || '').split('/'); return p.length === 3 ? `${p[2]}-${p[1].padStart(2, '0')}-${p[0].padStart(2, '0')}` : '' }
-    const recebidos = desde
-      ? recebidosTodos.filter((m) => { const iso = isoBR(m.data); return !iso || iso >= desde })
-      : recebidosTodos
-    const d = diffDetalhado(atuais, recebidos)
-    const entrada = entradaHistorico(d, recebidos.length, atuais.length === 0)
-    await Promise.all([
-      gravarDoc(env, chave, recebidos),
-      gravarCadastros(env, chaveCad, cadastros),
-      gravarTitulos(env, chaveTit, titulos),
-      gravarHistorico(env, chaveHist, entrada),
-    ])
-    // Orçamento continua em background após a resposta (rate-limit exige ~4,5 min).
-    // Só Omie: NIBO não expõe orçamento equivalente (PLANO_NIBO — omitir, não inventar).
-    if (cred.provedor === 'omie') {
-      const tarefaOrcamento = atualizarOrcamento(envProv, chaveOrc)
-      if (typeof EdgeRuntime !== 'undefined' && EdgeRuntime.waitUntil) EdgeRuntime.waitUntil(tarefaOrcamento)
-      else await tarefaOrcamento
-    }
-    return new Response(
-      JSON.stringify({
-        novos: d.novos.length, atualizados: d.atualizados.length, removidos: d.removidos.length, total: recebidos.length,
-        cadastros: { categorias: cadastros.categorias.length, clientes: Object.keys(cadastros.clientes).length, departamentos: cadastros.departamentos.length },
-        titulos: titulos.length,
-      }),
-      { headers: { ...cors, 'Content-Type': 'application/json' } },
-    )
+    const chaveStatus = `cliente:${clienteId}:sync-status`
+
+    // A varredura roda em BACKGROUND (waitUntil): tenant grande (MAGDIEL: 24k movimentos =
+    // 244 páginas de Omie) estourava o teto de execução e o runtime matava a função no
+    // meio — o front via só "non-2xx". Agora a resposta sai na hora e o progresso vive em
+    // sync-status, que o front consulta até 'ok'/'erro'.
+    const trabalho = (async () => {
+      try {
+        let recebidosTodos, cadastros, titulos
+        const atuais = await lerDoc(env, chave)
+        if (cred.provedor === 'nibo') {
+          const nibo = await buscarTudoNibo(envProv)
+          recebidosTodos = nibo.movimentos
+          cadastros = nibo.cadastros
+          titulos = nibo.titulos
+        } else {
+          const [brutos, cads, tits] = await Promise.all([
+            buscarOmie(envProv), buscarCadastros(envProv), buscarTitulos(envProv),
+          ])
+          cadastros = cads
+          titulos = tits
+          recebidosTodos = await enriquecerDepartamentos(envProv, brutos)
+        }
+        // Piso de ingestão opcional (ISO 'aaaa-mm-dd'): só grava movimentos a partir desta data.
+        const isoBR = (s: string) => { const p = (s || '').split('/'); return p.length === 3 ? `${p[2]}-${p[1].padStart(2, '0')}-${p[0].padStart(2, '0')}` : '' }
+        const recebidos = desde
+          ? recebidosTodos.filter((m) => { const iso = isoBR(m.data); return !iso || iso >= desde })
+          : recebidosTodos
+        const d = diffDetalhado(atuais, recebidos)
+        const entrada = entradaHistorico(d, recebidos.length, atuais.length === 0)
+        await Promise.all([
+          gravarDoc(env, chave, recebidos),
+          gravarCadastros(env, chaveCad, cadastros),
+          gravarTitulos(env, chaveTit, titulos),
+          gravarHistorico(env, chaveHist, entrada),
+        ])
+        await gravarStatus(env, chaveStatus, {
+          estado: 'ok',
+          resumo: {
+            novos: d.novos.length, atualizados: d.atualizados.length, removidos: d.removidos.length, total: recebidos.length,
+            titulos: titulos.length,
+          },
+        })
+        // Orçamento segue depois, ainda dentro do mesmo background (rate-limit ~4,5 min).
+        if (cred.provedor === 'omie') await atualizarOrcamento(envProv, chaveOrc)
+      } catch (e) {
+        await gravarStatus(env, chaveStatus, { estado: 'erro', msg: e instanceof Error ? e.message : String(e) })
+      }
+    })()
+
+    await gravarStatus(env, chaveStatus, { estado: 'rodando' })
+    if (typeof EdgeRuntime !== 'undefined' && EdgeRuntime.waitUntil) EdgeRuntime.waitUntil(trabalho)
+    else await trabalho
+    return new Response(JSON.stringify({ rodando: true }), { headers: { ...cors, 'Content-Type': 'application/json' } })
   } catch (e) {
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : 'erro' }), { status: 500, headers: { ...cors, 'Content-Type': 'application/json' } })
+    // 200 com {error}: o supabase-js engole o corpo de non-2xx — status 500 aqui era o
+    // motivo de a tela mostrar o inútil "non-2xx status code" no lugar da mensagem real.
+    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : 'erro' }), { headers: { ...cors, 'Content-Type': 'application/json' } })
   }
 })

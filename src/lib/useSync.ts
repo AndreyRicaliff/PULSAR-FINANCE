@@ -86,8 +86,25 @@ export function useSync(clienteId: string, nomeCliente: string): SyncApi {
       })
       if (error) throw error
       if (data && typeof data === 'object' && 'error' in data && data.error) throw new Error(String(data.error))
-      const carga = await carregar() // a função já gravou a entrada — só recarrega
-      setEstado({ status: 'ok', etapa: 'Concluído', ...carga })
+
+      // A edge responde na hora e varre em BACKGROUND (tenant grande estourava o teto de
+      // execução). Daqui acompanhamos o sync-status até 'ok'/'erro' — só aceitando status
+      // gravado DEPOIS do disparo (o doc pode carregar o resultado de uma rodada antiga).
+      const disparo = ((await lerDoc(clienteId, 'sync-status')) as { em?: string } | null)?.em ?? ''
+      const inicio = Date.now()
+      setEstado((e) => ({ ...e, etapa: 'Sincronizando no servidor… (bases grandes levam minutos)' }))
+      while (Date.now() - inicio < 15 * 60_000) {
+        await new Promise((r) => setTimeout(r, 5000))
+        const st = (await lerDoc(clienteId, 'sync-status')) as { estado?: string; em?: string; msg?: string } | null
+        if (!st?.em || st.em < disparo) continue
+        if (st.estado === 'ok') {
+          const carga = await carregar() // a função já gravou a entrada — só recarrega
+          setEstado({ status: 'ok', etapa: 'Concluído', ...carga })
+          return
+        }
+        if (st.estado === 'erro') throw new Error(st.msg ?? 'Falha na sincronização')
+      }
+      throw new Error('O sync ainda está rodando no servidor — confira o histórico em alguns minutos.')
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'Falha na sincronização'
       setEstado((prev) => ({ ...prev, status: 'erro', etapa: '', msg: traduzir(msg) }))
