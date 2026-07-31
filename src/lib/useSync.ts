@@ -18,6 +18,10 @@ interface Estado {
   readonly msg?: string
   readonly ultimo?: ResumoSync
   readonly historico: readonly EntradaSync[]
+  /** Partes acessórias que falharam (ex.: ['cadastros']) — sync concluiu, mas incompleto. */
+  readonly parcial?: readonly string[]
+  /** Fontes truncadas pelo teto de páginas (dado PARCIAL com cara de completo). */
+  readonly truncado?: readonly string[]
 }
 
 const META = 'sync-meta' // legado: só leitura, até a 1ª sync gravar histórico
@@ -95,11 +99,13 @@ export function useSync(clienteId: string, nomeCliente: string): SyncApi {
       setEstado((e) => ({ ...e, etapa: 'Sincronizando no servidor… (bases grandes levam minutos)' }))
       while (Date.now() - inicio < 15 * 60_000) {
         await new Promise((r) => setTimeout(r, 5000))
-        const st = (await lerDoc(clienteId, 'sync-status')) as { estado?: string; em?: string; msg?: string } | null
+        const st = (await lerDoc(clienteId, 'sync-status')) as
+          | { estado?: string; em?: string; msg?: string; parcial?: string[]; truncado?: string[] }
+          | null
         if (!st?.em || st.em < disparo) continue
         if (st.estado === 'ok') {
           const carga = await carregar() // a função já gravou a entrada — só recarrega
-          setEstado({ status: 'ok', etapa: 'Concluído', ...carga })
+          setEstado({ status: 'ok', etapa: 'Concluído', ...carga, parcial: st.parcial, truncado: st.truncado })
           return
         }
         if (st.estado === 'erro') throw new Error(st.msg ?? 'Falha na sincronização')

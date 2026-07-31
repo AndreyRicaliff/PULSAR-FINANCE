@@ -17,9 +17,15 @@ const MAX_PAGINAS = 500
 
 // Dado financeiro parcial com cara de completo é o pior modo de falha (revisão 2026-07-16):
 // se a Omie diz que há mais páginas do que o teto, gritar no log em vez de truncar em silêncio.
+// Coletor de truncamento da requisição atual: avisarSeTruncado é chamado fundo na pilha,
+// então em vez de threadar o array por toda a cadeia, o handler aponta este ref pro seu
+// array local antes de coletar (sync manual e raro — sem corrida real entre requisições).
+let truncadoRef: string[] = []
+
 function avisarSeTruncado(rotulo, totPaginas) {
   if (totPaginas > MAX_PAGINAS) {
     console.error(`[sync-omie] TRUNCADO: ${rotulo} tem ${totPaginas} páginas, buscamos só ${MAX_PAGINAS} (teto MAX_PAGINAS). Dado PARCIAL — aumente o teto.`)
+    truncadoRef.push(rotulo)
   }
 }
 
@@ -169,10 +175,10 @@ const espera = (ms) => new Promise((r) => setTimeout(r, ms))
 
 async function omieCall(env, endpoint, call, param) {
   for (let tentativa = 1; ; tentativa++) {
-    const res = await fetch(`${env.OMIE_BASE_URL}/${endpoint}/`, {
+    const res = await fetchComTimeout(`${env.OMIE_BASE_URL}/${endpoint}/`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ app_key: env.OMIE_APP_KEY, app_secret: env.OMIE_APP_SECRET, call, param: [param] }),
-    })
+    }, 60_000)
     const json = await res.json()
     if (!json?.faultstring) return json
     if (tentativa >= 3 || !/redundante|requisição desse método/i.test(json.faultstring)) throw new Error(`Omie: ${json.faultstring}`)
@@ -329,11 +335,7 @@ async function buscarTitulos(env) {
 }
 
 async function gravarTitulos(env, chave, titulos) {
-  await fetch(`${env.SUPABASE_URL}/rest/v1/painel_estado`, {
-    method: 'POST',
-    headers: { apikey: env.SUPABASE_SERVICE_ROLE_KEY, Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`, 'Content-Type': 'application/json', Prefer: 'resolution=merge-duplicates' },
-    body: JSON.stringify({ chave, dados: { titulos, geradoEm: new Date().toISOString() } }),
-  })
+  await postEstado(env, chave, { titulos, geradoEm: new Date().toISOString() }, 'titulos')
 }
 
 // ── Orçamento de caixa (previsto × realizado por baixa) ─────────────────────
@@ -363,11 +365,7 @@ function mesesOrcamento() {
 }
 
 async function gravarOrcamento(env, chave, meses) {
-  await fetch(`${env.SUPABASE_URL}/rest/v1/painel_estado`, {
-    method: 'POST',
-    headers: { apikey: env.SUPABASE_SERVICE_ROLE_KEY, Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`, 'Content-Type': 'application/json', Prefer: 'resolution=merge-duplicates' },
-    body: JSON.stringify({ chave, dados: { meses, geradoEm: new Date().toISOString() } }),
-  })
+  await postEstado(env, chave, { meses, geradoEm: new Date().toISOString() }, 'orcamento')
 }
 
 // Best-effort, roda em segundo plano (waitUntil): falha nunca derruba o sync principal.
@@ -377,8 +375,13 @@ async function atualizarOrcamento(env, chave) {
     const doc = (await lerDados(env, chave)) ?? { meses: {} }
     const meses = { ...(doc.meses ?? {}) }
     for (const { ano, mes } of mesesOrcamento()) {
-      meses[`${ano}-${String(mes).padStart(2, '0')}`] = await buscarOrcamentoMes(env, ano, mes)
-      await gravarOrcamento(env, chave, meses)
+      try {
+        meses[`${ano}-${String(mes).padStart(2, '0')}`] = await buscarOrcamentoMes(env, ano, mes)
+        await gravarOrcamento(env, chave, meses)
+      } catch (e) {
+        // Um mês problemático não zera o resto do ano — pula e segue (best-effort granular).
+        console.error(`[orcamento] ${ano}-${mes} falhou:`, e instanceof Error ? e.message : e)
+      }
       await espera(21000)
     }
     return true
@@ -388,11 +391,7 @@ async function atualizarOrcamento(env, chave) {
 }
 
 async function gravarCadastros(env, chave, cadastros) {
-  await fetch(`${env.SUPABASE_URL}/rest/v1/painel_estado`, {
-    method: 'POST',
-    headers: { apikey: env.SUPABASE_SERVICE_ROLE_KEY, Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`, 'Content-Type': 'application/json', Prefer: 'resolution=merge-duplicates' },
-    body: JSON.stringify({ chave, dados: { ...cadastros, geradoEm: new Date().toISOString() } }),
-  })
+  await postEstado(env, chave, { ...cadastros, geradoEm: new Date().toISOString() }, 'cadastros')
 }
 
 // ── NIBO (Fase 2): adapter → MESMA forma canônica do Omie ─────────────────────
@@ -417,7 +416,7 @@ async function niboGet(env, recurso, params) {
   const url = new URL(`${env.NIBO_BASE_URL}/${recurso}`)
   for (const [k, v] of Object.entries(params ?? {})) url.searchParams.set(k, v)
   for (let tentativa = 1; ; tentativa++) {
-    const res = await fetch(url, { headers: { ApiToken: env.NIBO_APITOKEN, Accept: 'application/json' } })
+    const res = await fetchComTimeout(url, { headers: { ApiToken: env.NIBO_APITOKEN, Accept: 'application/json' } }, 60_000)
     if ((res.status === 429 || res.status >= 500) && tentativa < 3) { await espera(8000); continue }
     if (!res.ok) throw new Error(`NIBO ${recurso}: HTTP ${res.status} ${(await res.text()).slice(0, 180)}`)
     return res.json()
@@ -633,6 +632,32 @@ function naoImplementado(provedor) {
   )
 }
 
+// Toda gravação confere res.ok: fetch NÃO rejeita em 4xx/5xx, e um upsert recusado
+// virava sync "ok" sem dado gravado — falso sincronizado (revisão 2026-07-31).
+async function postEstado(env, chave, dados, rotulo) {
+  const res = await fetch(`${env.SUPABASE_URL}/rest/v1/painel_estado`, {
+    method: 'POST',
+    headers: { apikey: env.SUPABASE_SERVICE_ROLE_KEY, Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`, 'Content-Type': 'application/json', Prefer: 'resolution=merge-duplicates' },
+    body: JSON.stringify({ chave, dados }),
+  })
+  if (!res.ok) throw new Error(`gravação falhou (${rotulo}): HTTP ${res.status} ${(await res.text()).slice(0, 140)}`)
+}
+
+// Timeout em chamada externa: com o sync em background, uma página pendurada deixava o
+// sync-status 'rodando' órfão até o teto do polling — aborta com mensagem clara.
+async function fetchComTimeout(url, init, ms) {
+  const ctl = new AbortController()
+  const timer = setTimeout(() => ctl.abort(), ms)
+  try {
+    return await fetch(url, { ...init, signal: ctl.signal })
+  } catch (e) {
+    if (e instanceof Error && e.name === 'AbortError') throw new Error(`ERP sem resposta em ${Math.round(ms / 1000)}s — tente de novo`)
+    throw e
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
 async function lerDados(env, chave) {
   const res = await fetch(`${env.SUPABASE_URL}/rest/v1/painel_estado?chave=eq.${encodeURIComponent(chave)}&select=dados`, {
     headers: { apikey: env.SUPABASE_SERVICE_ROLE_KEY, Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}` },
@@ -647,28 +672,22 @@ async function lerDoc(env, chave) {
 
 async function gravarHistorico(env, chave, entrada) {
   const entradas = (await lerDados(env, chave))?.entradas ?? []
-  await fetch(`${env.SUPABASE_URL}/rest/v1/painel_estado`, {
-    method: 'POST',
-    headers: { apikey: env.SUPABASE_SERVICE_ROLE_KEY, Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`, 'Content-Type': 'application/json', Prefer: 'resolution=merge-duplicates' },
-    body: JSON.stringify({ chave, dados: { entradas: [entrada, ...entradas].slice(0, HIST_MAX) } }),
-  })
+  await postEstado(env, chave, { entradas: [entrada, ...entradas].slice(0, HIST_MAX) }, 'historico')
 }
 
 async function gravarDoc(env, chave, movimentos) {
-  await fetch(`${env.SUPABASE_URL}/rest/v1/painel_estado`, {
-    method: 'POST',
-    headers: { apikey: env.SUPABASE_SERVICE_ROLE_KEY, Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`, 'Content-Type': 'application/json', Prefer: 'resolution=merge-duplicates' },
-    body: JSON.stringify({ chave, dados: { movimentos, geradoEm: new Date().toISOString() } }),
-  })
+  await postEstado(env, chave, { movimentos, geradoEm: new Date().toISOString() }, 'movimentos')
 }
 
 // Status do sync em background — é o que o front consulta enquanto a varredura roda.
 async function gravarStatus(env, chave, status) {
-  await fetch(`${env.SUPABASE_URL}/rest/v1/painel_estado`, {
-    method: 'POST',
-    headers: { apikey: env.SUPABASE_SERVICE_ROLE_KEY, Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`, 'Content-Type': 'application/json', Prefer: 'resolution=merge-duplicates' },
-    body: JSON.stringify({ chave, dados: { ...status, em: new Date().toISOString() } }),
-  })
+  // Nunca lança: roda inclusive dentro do catch do trabalho — falhar aqui não pode
+  // mascarar o erro original nem derrubar o background.
+  try {
+    await postEstado(env, chave, { ...status, em: new Date().toISOString() }, 'sync-status')
+  } catch (e) {
+    console.error('[sync] gravarStatus falhou:', e instanceof Error ? e.message : e)
+  }
 }
 
 Deno.serve(async (req) => {
@@ -698,6 +717,9 @@ Deno.serve(async (req) => {
     // 244 páginas de Omie) estourava o teto de execução e o runtime matava a função no
     // meio — o front via só "non-2xx". Agora a resposta sai na hora e o progresso vive em
     // sync-status, que o front consulta até 'ok'/'erro'.
+    const avisos: string[] = [] // partes acessórias que falharam (degradação parcial)
+    const truncado: string[] = []
+    truncadoRef = truncado // avisarSeTruncado (fundo na pilha) coleta aqui
     const trabalho = (async () => {
       try {
         let recebidosTodos, cadastros, titulos
@@ -708,18 +730,31 @@ Deno.serve(async (req) => {
           cadastros = nibo.cadastros
           titulos = nibo.titulos
         } else {
-          const [brutos, cads, tits] = await Promise.all([
+          // allSettled: throttle nos endpoints ACESSÓRIOS (cadastros/títulos) não derruba
+          // os MOVIMENTOS, que são o dado principal (padrão sync-erp: degradar, não abortar).
+          const [rBrutos, rCads, rTits] = await Promise.allSettled([
             buscarOmie(envProv), buscarCadastros(envProv), buscarTitulos(envProv),
           ])
-          cadastros = cads
-          titulos = tits
-          recebidosTodos = await enriquecerDepartamentos(envProv, brutos)
+          if (rBrutos.status === 'rejected') throw rBrutos.reason // sem movimentos não há sync
+          cadastros = rCads.status === 'fulfilled' ? rCads.value : { categorias: [], clientes: {}, departamentos: [] }
+          titulos = rTits.status === 'fulfilled' ? rTits.value : []
+          if (rCads.status === 'rejected') avisos.push('cadastros')
+          if (rTits.status === 'rejected') avisos.push('títulos')
+          recebidosTodos = await enriquecerDepartamentos(envProv, rBrutos.value)
         }
         // Piso de ingestão opcional (ISO 'aaaa-mm-dd'): só grava movimentos a partir desta data.
         const isoBR = (s: string) => { const p = (s || '').split('/'); return p.length === 3 ? `${p[2]}-${p[1].padStart(2, '0')}-${p[0].padStart(2, '0')}` : '' }
         const recebidos = desde
           ? recebidosTodos.filter((m) => { const iso = isoBR(m.data); return !iso || iso >= desde })
           : recebidosTodos
+
+        // Guarda de zero: nunca APAGAR um espelho cheio porque a Omie devolveu vazio num
+        // glitch (200 sem movimentos). Sem `desde`, zero recebido com doc atual cheio é
+        // suspeito — aborta em vez de zerar a DRE. (Cliente novo, atuais.length 0, passa.)
+        if (recebidos.length === 0 && atuais.length > 0 && !desde) {
+          throw new Error('O ERP retornou zero movimentos, mas já havia dados — sync abortado para não apagar o histórico. Tente de novo.')
+        }
+
         const d = diffDetalhado(atuais, recebidos)
         const entrada = entradaHistorico(d, recebidos.length, atuais.length === 0)
         await Promise.all([
@@ -734,6 +769,8 @@ Deno.serve(async (req) => {
             novos: d.novos.length, atualizados: d.atualizados.length, removidos: d.removidos.length, total: recebidos.length,
             titulos: titulos.length,
           },
+          parcial: avisos.length ? avisos : undefined,
+          truncado: truncado.length ? truncado : undefined,
         })
         // Orçamento segue depois, ainda dentro do mesmo background (rate-limit ~4,5 min).
         if (cred.provedor === 'omie') await atualizarOrcamento(envProv, chaveOrc)
