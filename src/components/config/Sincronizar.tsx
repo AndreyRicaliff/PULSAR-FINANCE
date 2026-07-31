@@ -4,6 +4,7 @@ import { useClientes, useProvedor } from '@/lib/clientes'
 import { dataHora } from '@/lib/datas'
 import { useCadastros } from '@/lib/cadastros'
 import { useMovimentos } from '@/lib/movimentos'
+import { useTitulos } from '@/lib/useTitulos'
 import { somSucesso } from '@/lib/som'
 import { useSync } from '@/lib/useSync'
 import { HistoricoSync } from './HistoricoSync.tsx'
@@ -14,19 +15,22 @@ export function Sincronizar() {
   const sync = useSync(ativo.id, ativo.nome)
   const { recarregar } = useMovimentos()
   const { recarregar: recarregarCadastros } = useCadastros()
+  const { recarregar: recarregarTitulos } = useTitulos()
   const rodando = sync.status === 'rodando'
 
-  // Acorde de pulso + recarga dos movimentos quando o sync conclui (só na transição
-  // rodando→ok, nunca no mount) — é o que faz o dado novo entrar nas estatísticas sem F5.
+  // Acorde de pulso + recarga de TODAS as fontes quando o sync conclui (só na transição
+  // rodando→ok, nunca no mount) — é o que faz o dado novo entrar sem F5. Títulos ficava
+  // de fora e a aba de Títulos a Pagar/Receber mostrava dado velho até trocar de cliente.
   const statusAnterior = useRef(sync.status)
   useEffect(() => {
     if (statusAnterior.current === 'rodando' && sync.status === 'ok') {
       somSucesso()
       void recarregar()
       void recarregarCadastros()
+      void recarregarTitulos?.()
     }
     statusAnterior.current = sync.status
-  }, [sync.status, recarregar, recarregarCadastros])
+  }, [sync.status, recarregar, recarregarCadastros, recarregarTitulos])
 
   return (
     <div className="flex max-w-2xl flex-col gap-5">
@@ -68,6 +72,14 @@ export function Sincronizar() {
 
         {rodando ? <Progresso etapa={sync.etapa} /> : null}
         {sync.status === 'ok' && sync.ultimo ? <Resultado novos={sync.ultimo.novos} atualizados={sync.ultimo.atualizados} /> : null}
+        {sync.status === 'ok' && (sync.truncado?.length || sync.parcial?.length) ? (
+          <p className="mt-3 rounded-lg border border-warn/40 bg-warn/10 px-3 py-2 text-[13px] text-warn">
+            {sync.truncado?.length
+              ? `Atenção: dado PARCIAL — ${sync.truncado.join(', ')} passou do limite de páginas e não veio inteiro. `
+              : ''}
+            {sync.parcial?.length ? `Não foi possível atualizar: ${sync.parcial.join(', ')} (o resto sincronizou).` : ''}
+          </p>
+        ) : null}
         {sync.status === 'erro' ? <p className="mt-4 text-sm text-danger">{sync.msg}</p> : null}
       </div>
 

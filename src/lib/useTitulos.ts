@@ -15,6 +15,7 @@ export interface TitulosApi {
   readonly titulos: readonly Titulo[]
   readonly geradoEm: string | null
   readonly origem: 'local' | 'sync'
+  readonly recarregar?: () => Promise<void>
 }
 
 function fallbackLocal(clienteId: string): TitulosApi {
@@ -54,5 +55,7 @@ export function useTitulos(): TitulosApi {
     void carregar()
   }, [ativo.id, carregar])
 
-  return estado
+  // Exposto para o Sincronizar puxar os títulos novos na transição rodando→ok (antes só
+  // recarregava em mount/troca de tenant — a aba de Títulos ficava velha até F5).
+  return Object.assign(estado, { recarregar: carregar })
 }
