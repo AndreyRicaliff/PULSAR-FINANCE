@@ -13,12 +13,28 @@ interface LinhaEstado {
   readonly dados: unknown
 }
 
+// Chaves que a apresentação NÃO usa — backup e telemetria de sync só inflam o HTML.
+const CHAVE_INUTIL = /-backup-|:sync-status$|:sync-historico$/
+
 /** Junta painel_estado (remoto) + edições locais ainda não sincronizadas do cliente ativo. */
 async function coletarSnapshot(ativo: Tenant): Promise<SnapshotApresentacao> {
   const estado: Record<string, unknown> = {}
   if (supabase) {
-    const { data } = await supabase.from('painel_estado').select('chave, dados').like('chave', `cliente:${ativo.id}:%`)
-    for (const row of (data as LinhaEstado[] | null) ?? []) estado[row.chave] = row.dados
+    // Erro era ENGOLIDO aqui (report 2026-08-02: "falha ao criar os arquivos"): leitura
+    // recusada gerava HTML sem dado, sem mensagem. Agora: lista as chaves e baixa UMA A
+    // UMA — doc gigante (MAGDIEL, 24k movimentos) não derruba a coleta inteira, e a falha
+    // nomeia exatamente qual chave não veio.
+    const { data: lista, error: eLista } = await supabase
+      .from('painel_estado')
+      .select('chave')
+      .like('chave', `cliente:${ativo.id}:%`)
+    if (eLista) throw new Error(`Não foi possível listar os dados do cliente: ${eLista.message}`)
+    const chaves = (lista ?? []).map((r) => r.chave as string).filter((c) => !CHAVE_INUTIL.test(c))
+    for (const chave of chaves) {
+      const { data, error } = await supabase.from('painel_estado').select('dados').eq('chave', chave).maybeSingle()
+      if (error) throw new Error(`Falha ao baixar "${chave.split(':').pop()}": ${error.message}`)
+      if (data) estado[chave] = (data as LinhaEstado).dados
+    }
   }
   const prefixo = `cliente:${ativo.id}:`
   for (let i = 0; i < localStorage.length; i++) {

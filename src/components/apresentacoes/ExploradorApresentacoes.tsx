@@ -177,6 +177,40 @@ export function ExploradorApresentacoes() {
     await carregar()
   }
 
+  async function publicar(item: Item) {
+    if (!supabase || item.status !== 'rascunho') return
+    setErro('')
+    // Guard pedido (2026-08-02): publicar "compartilha com a conta do cliente" — se o
+    // cliente NÃO TEM conta criada, isso precisa aparecer, não falhar em silêncio.
+    const { data: contas, error: eConta } = await supabase
+      .from('painel_acessos')
+      .select('id')
+      .eq('cliente_id', ativo.id)
+      .eq('papel', 'cliente')
+      .limit(1)
+    if (eConta) return setErro(eConta.message)
+    if (!contas?.length) {
+      const segue = window.confirm(
+        `${ativo.nome} ainda NÃO TEM CONTA CRIADA — a apresentação ficará publicada, mas o cliente não consegue vê-la até você convidar (aba Acessos → Convidar por e-mail). Publicar mesmo assim?`,
+      )
+      if (!segue) return
+    } else if (!window.confirm(`Publicar "${item.titulo}" (${mesLegivel(item.competencia)})? O conteúdo congela — corrigir depois é publicar uma nova versão.`)) {
+      return
+    }
+    const { error } = await supabase
+      .from('painel_apresentacoes')
+      .update({ status: 'publicada', publicado_em: new Date().toISOString() })
+      .eq('id', item.id)
+    if (error) {
+      return setErro(
+        /unique|duplicate/i.test(error.message)
+          ? `Já existe uma publicada de ${mesLegivel(item.competencia)} — arquive-a antes de publicar outra do mesmo mês.`
+          : error.message,
+      )
+    }
+    await carregar()
+  }
+
   async function excluir(item: Item) {
     if (!supabase || item.status === 'publicada') return
     if (!window.confirm(`Excluir "${item.titulo}"? Não há desfazer.`)) return
@@ -247,6 +281,7 @@ export function ExploradorApresentacoes() {
             aceitaDrop={false}
             onAbrir={abrir}
             onExcluir={excluir}
+            onPublicar={publicar}
             vazio="Nenhum rascunho — crie em + Nova."
           />
           <Coluna titulo="Publicadas" itens={colunas.publicada} aceitaDrop={false} onAbrir={abrir} onExcluir={excluir} vazio="Nada publicado ainda." />
@@ -272,6 +307,7 @@ function Coluna({
   onDrop,
   onAbrir,
   onExcluir,
+  onPublicar,
   vazio,
 }: {
   titulo: string
@@ -280,6 +316,7 @@ function Coluna({
   onDrop?: (id: string) => void
   onAbrir: (i: Item, editar: boolean) => Promise<void>
   onExcluir: (i: Item) => Promise<void>
+  onPublicar?: (i: Item) => Promise<void>
   vazio: string
 }) {
   const [sobre, setSobre] = useState(false)
@@ -314,13 +351,23 @@ function Coluna({
       {itens.length === 0 ? (
         <p className="rounded-lg border border-dashed border-bd p-5 text-center text-xs text-muted">{vazio}</p>
       ) : (
-        itens.map((i) => <Cartao key={i.id} item={i} onAbrir={onAbrir} onExcluir={onExcluir} />)
+        itens.map((i) => <Cartao key={i.id} item={i} onAbrir={onAbrir} onExcluir={onExcluir} onPublicar={onPublicar} />)
       )}
     </section>
   )
 }
 
-function Cartao({ item, onAbrir, onExcluir }: { item: Item; onAbrir: (i: Item, editar: boolean) => Promise<void>; onExcluir: (i: Item) => Promise<void> }) {
+function Cartao({
+  item,
+  onAbrir,
+  onExcluir,
+  onPublicar,
+}: {
+  item: Item
+  onAbrir: (i: Item, editar: boolean) => Promise<void>
+  onExcluir: (i: Item) => Promise<void>
+  onPublicar?: (i: Item) => Promise<void>
+}) {
   const { ficha } = useFicha()
   const tema = temaPorId(item.conteudo?.tema ?? ficha.temaPadrao, ficha.temasCustom)
   const slides = item.conteudo?.roteiro?.length ?? 0
@@ -366,6 +413,11 @@ function Cartao({ item, onAbrir, onExcluir }: { item: Item; onAbrir: (i: Item, e
         <button type="button" onClick={() => void onAbrir(item, true)} className="text-xs font-medium text-secondary hover:underline">
           Abrir e editar
         </button>
+        {onPublicar && item.status === 'rascunho' ? (
+          <button type="button" onClick={() => void onPublicar(item)} className="text-xs font-medium text-accent hover:underline">
+            Publicar
+          </button>
+        ) : null}
         {item.status !== 'publicada' ? (
           <button type="button" onClick={() => void onExcluir(item)} className="ml-auto text-xs text-muted hover:text-danger">
             Excluir
