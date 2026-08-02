@@ -690,10 +690,38 @@ async function gravarStatus(env, chave, status) {
   }
 }
 
+// Autorização: verify_jwt só prova que o JWT é válido — NÃO escopa o chamador. Sem este
+// gate, qualquer conta autenticada (inclusive papel 'cliente' de outra empresa) dispararia
+// sync/overwrite de QUALQUER tenant com service_role (revisão 2026-08-02). Mesmo padrão do
+// manage-user: papel 'operador' em painel_acessos. Bearer com o próprio service_role
+// (chamada máquina-a-máquina: cron/CLI) passa direto.
+async function chamadorAutorizado(env, req) {
+  const token = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '')
+  if (!token) return false
+  if (token === env.SUPABASE_SERVICE_ROLE_KEY) return true
+  const uRes = await fetch(`${env.SUPABASE_URL}/auth/v1/user`, {
+    headers: { apikey: env.SUPABASE_ANON_KEY ?? '', Authorization: `Bearer ${token}` },
+  })
+  if (!uRes.ok) return false
+  const user = await uRes.json()
+  if (!user?.id) return false
+  const aRes = await fetch(
+    `${env.SUPABASE_URL}/rest/v1/painel_acessos?user_id=eq.${encodeURIComponent(user.id)}&papel=eq.operador&select=id&limit=1`,
+    { headers: { apikey: env.SUPABASE_SERVICE_ROLE_KEY, Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}` } },
+  )
+  if (!aRes.ok) return false
+  const rows = await aRes.json()
+  return Array.isArray(rows) && rows.length > 0
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors })
   try {
     const env = Deno.env.toObject()
+    // 200 com payload de erro: o supabase-js engole o corpo de respostas non-2xx (contrato do projeto).
+    if (!(await chamadorAutorizado(env, req))) {
+      return new Response(JSON.stringify({ error: 'Apenas operador pode sincronizar' }), { headers: { ...cors, 'Content-Type': 'application/json' } })
+    }
     const { clienteId, desde } = await req.json()
     if (!clienteId) throw new Error('clienteId obrigatório')
     const chave = `cliente:${clienteId}:movimentos-raw`

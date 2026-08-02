@@ -872,3 +872,13 @@ DRE calculada ponta a ponta no motor real: RL R$ 767,7 mil; MC negativa (-R$ 159
 **Opções:** A) abrir signup público e confiar na RLS; B) convite por edge service-role com marcador `app_metadata.convite_ag`; C) SMTP custom no Supabase Auth.
 **Decisão:** B — `app_metadata` não é editável pelo usuário (diferente de `user_metadata`), então o marcador é prova de origem; a edge exige operador + sessão 2FA, cria a conta com senha aleatória que ninguém vê e manda link de definir senha via Resend. Conta órfã é deletada se o vínculo falhar.
 **Em entrevista (30s):** "Signup continua fechado; quem abre a porta é o operador. A conta nasce marcada no app_metadata — que o usuário não consegue forjar — e o convidado define a própria senha por link. Nunca vemos nem transportamos senha de cliente."
+
+## 2026-08-02 — [revisão] Lote de fixes da revisão multi-agente (conciliação · classes · export · sync)
+**Problema:** três sintomas de prod (conciliação "some" itens; reclassificação de classe sem efeito na DRE/DFC; HTML que "não baixa") + edge sync-omie sem autorização de papel.
+**Opções e decisões:**
+1. Órfã-por-nó (mapa aponta p/ nó que sumiu após "Restaurar padrão"/lote da matriz): (A) restaurar limpar o mapa · (B) detectar e AVISAR como órfã. **B** — o diálogo do restaurar já promete "fica órfã" (recuperável); limpar destruiria trabalho. `orfasDaConciliacao` ganhou `motivo: 'chave' | 'no'`; centros fica fora da checagem de nó (estrutura injetada em runtime → falso positivo transitório).
+2. Override por classe sem agrupadora ancestral: `totaisEfetivos` passa a consultar `mapaClasse` pela MESMA chave que a árvore do editor grava (`classeDe(...)?.codigo ?? código da folha`) — antes a chave gravada nunca era lida e a reclassificação era chip sem efeito. Espelhar o fallback (e não proibi-lo no editor) preserva o que o operador já gravou.
+3. Download: âncora entra no DOM + `revokeObjectURL` adiado 30s (revoke no mesmo tick do click pode abortar blob grande). Sem lib externa — 4 linhas.
+4. sync-omie: gate papel 'operador' (padrão manage-user) com passe para bearer = service_role (cron/CLI máquina-a-máquina). **Exige deploy** — ver PENDENCIAS.
+5. Resultado por Filial passou a cortar neutros (Regra Mãe) como TODOS os outros relatórios — era o único que somava transferência como receita de filial e nunca fechava com a DRE.
+**Em entrevista (30s):** "A revisão multi-agente confirmou cada bug com cadeia de código antes de eu tocar em qualquer coisa. O mais sutil era um override que a UI gravava numa chave que o motor nunca lia — o fix não foi mudar o editor, foi fazer o motor derivar a chave pelo mesmo fallback, então tudo que o operador já tinha gravado passou a valer retroativamente."
