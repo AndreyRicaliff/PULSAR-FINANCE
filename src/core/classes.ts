@@ -84,7 +84,10 @@ export function totaisEfetivos(
     if (!entraNaDemonstracao(noPorId.get(grupoId)?.meta, tipo)) continue
     if (no.paiId && !entraNaDemonstracao(no.meta, tipo)) continue
     const subId = no.paiId ? no.id : null
-    const classe = classeDe(m.categoria, catPorCodigo)
+    // Sem agrupadora ancestral, a árvore do editor (chaveClasse) chaveia a classe pelo código
+    // da PRÓPRIA folha — o override gravado nessa chave precisa ser lido pelo mesmo código
+    // aqui, senão a reclassificação vira chip sem efeito (categoria de raiz Omie / Nibo sem pai).
+    const codClasse = classeDe(m.categoria, catPorCodigo)?.codigo ?? m.categoria
 
     let chave = grupoId
     let linha: string | undefined = demo.mapa[grupoId]
@@ -94,9 +97,9 @@ export function totaisEfetivos(
       chave = `${CHAVE_SUB}${subId}`
       linha = mapaSub[subId]
     }
-    if (classe && mapaClasse[classe.codigo] !== undefined && mapaClasse[classe.codigo] !== linha) {
-      chave = `${CHAVE_CLASSE}${classe.codigo}`
-      linha = mapaClasse[classe.codigo]
+    if (mapaClasse[codClasse] !== undefined && mapaClasse[codClasse] !== linha) {
+      chave = `${CHAVE_CLASSE}${codClasse}`
+      linha = mapaClasse[codClasse]
     }
     totalPorChave.set(chave, (totalPorChave.get(chave) ?? 0) + comSinal(m))
     // LINHA_FORA = removido desta demonstração: não entra em nenhuma linha.
