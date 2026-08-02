@@ -26,6 +26,7 @@ const ITENS: readonly Item[] = [
   { titulo: 'Análise de Receita Líquida', desc: 'Evolução mensal e fontes de receita (mix por UN e drivers ainda dependem de dado).', status: 'parcial', abrir: 'receita', falta: 'segmentação por unidade de negócio + drivers (volume/preço/mix/câmbio)' },
   { titulo: 'Resultado por Filial / Centro de Custo', desc: 'Receitas e despesas separadas por filial — rateio {provedor} automático + atribuição manual por movimento no detalhamento.', status: 'ok', abrir: 'filiais' },
   { titulo: 'Painel de Capital de Giro', desc: 'Títulos em aberto e aging de recebíveis/pagáveis.', status: 'parcial', abrir: 'giro', falta: 'estoque para PME e período p/ PMR/PMP (CCC)' },
+  { titulo: 'CAPEX — Investimento × Manutenção', desc: 'Adesão do CAPEX na base de caixa: expansão × reposição, com orçado × realizado {em} — configurável por empresa na Matriz.', status: 'ok', abrir: 'capex' },
   { titulo: 'Movimentos Neutros', desc: 'Trilha de auditoria das transferências, aportes e estornos (Regra Mãe) — fora de DRE/DFC e indicadores.', status: 'ok', abrir: 'neutros' },
   { titulo: 'Apresentação HTML', desc: 'Todos os relatórios num arquivo único navegável — intro animada, filtros e gráficos offline, pronto para enviar ao cliente.', status: 'ok', abrir: 'apresentacao' },
   { titulo: 'Previsto × Realizado (mensal)', desc: 'Realizado por baixas (auditável contra o ERP) + realizável de títulos em aberto, mês a mês.', status: 'parcial', abrir: 'previsto', falta: 'orçamento (previsto) preenchido {em}' },

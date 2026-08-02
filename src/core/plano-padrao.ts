@@ -98,7 +98,8 @@ const DEF_CONTAS: readonly DefGrupo[] = [
       { id: 'adm_terceiros', nome: 'Serviços de Terceiros (Contábil/Jurídico)' },
       { id: 'adm_software', nome: 'Software / TI / SaaS' },
       { id: 'adm_material', nome: 'Material de Escritório' },
-      { id: 'adm_manutencao', nome: 'Manutenção e Conservação' },
+      // meta de sub SUBSTITUI a do grupo (demonstracoesDoNo) — repetir papel/atividade ao marcar capex.
+      { id: 'adm_manutencao', nome: 'Manutenção e Conservação', meta: { papelDRE: 'despesa_operacional', atividadeDFC: OPERACIONAL, capex: 'manutencao' } },
     ],
   },
   {
@@ -148,12 +149,14 @@ const DEF_CONTAS: readonly DefGrupo[] = [
     nome: '10. Investimento (CAPEX) — DFC',
     meta: { atividadeDFC: 'investimento' },
     subs: [
-      { id: 'inv_imobilizado', nome: 'Aquisição de Imobilizado' },
-      { id: 'inv_intangivel', nome: 'Aquisição de Intangível' },
+      // capex: formação de ativo entra no indicador; aplicações/resgates/empréstimos são
+      // movimentação financeira — atividade de investimento na DFC, mas NÃO CAPEX.
+      { id: 'inv_imobilizado', nome: 'Aquisição de Imobilizado', meta: { atividadeDFC: 'investimento', capex: 'investimento' } },
+      { id: 'inv_intangivel', nome: 'Aquisição de Intangível', meta: { atividadeDFC: 'investimento', capex: 'investimento' } },
       { id: 'inv_aplicacoes', nome: 'Aplicações Financeiras (Principal)' },
       { id: 'inv_resgates', nome: 'Resgate de Aplicações / Venda de Ativos' },
       { id: 'inv_emprestimos', nome: 'Empréstimos Concedidos a Terceiros' },
-      { id: 'inv_consorcios', nome: 'Consórcios (formação de ativo)' },
+      { id: 'inv_consorcios', nome: 'Consórcios (formação de ativo)', meta: { atividadeDFC: 'investimento', capex: 'investimento' } },
     ],
   },
   {

@@ -17,6 +17,7 @@ import { RelatorioCapitalGiro } from './relatorios/RelatorioCapitalGiro.tsx'
 import { RelatorioEvolucao } from './relatorios/RelatorioEvolucao.tsx'
 import { RelatorioFiliais } from './relatorios/RelatorioFiliais.tsx'
 import { RelatorioApresentacao } from './relatorios/RelatorioApresentacao.tsx'
+import { RelatorioCapex } from './relatorios/RelatorioCapex.tsx'
 import { RelatorioNeutros } from './relatorios/RelatorioNeutros.tsx'
 import { RelatorioPrevistoRealizado } from './relatorios/RelatorioPrevistoRealizado.tsx'
 import { IndicadoresPanel } from './IndicadoresPanel.tsx'
@@ -34,6 +35,7 @@ export type VistaRel =
   | 'giro'
   | 'neutros'
   | 'previsto'
+  | 'capex'
   | 'apresentacao'
 
 const VISTAS: readonly OpcaoSeg<VistaRel>[] = [
@@ -48,6 +50,7 @@ const VISTAS: readonly OpcaoSeg<VistaRel>[] = [
   { id: 'filiais', rotulo: 'Filiais' },
   { id: 'giro', rotulo: 'Capital de Giro' },
   { id: 'previsto', rotulo: 'Previsto × Realizado' },
+  { id: 'capex', rotulo: 'CAPEX' },
   { id: 'neutros', rotulo: 'Neutros' },
   // 'apresentacao' saiu do menu: agora é a aba própria "Apresentações" (explorador).
   // O tipo/render ficam para o deep-link inicial="apresentacao" não quebrar.
@@ -91,6 +94,7 @@ function Conteudo({ inicial }: { inicial: VistaRel }) {
       {vista === 'giro' ? <RelatorioCapitalGiro /> : null}
       {vista === 'neutros' ? <RelatorioNeutros neutros={neutros} conc={conc} /> : null}
       {vista === 'previsto' ? <RelatorioPrevistoRealizado /> : null}
+      {vista === 'capex' ? <RelatorioCapex /> : null}
       {vista === 'apresentacao' ? <RelatorioApresentacao /> : null}
     </div>
   )
