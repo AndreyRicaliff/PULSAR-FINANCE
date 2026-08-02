@@ -1,7 +1,7 @@
 /** @file Board da conciliação: estrutura à esquerda, pendentes à direita, menu de contexto e collapse — coração da Matriz de Classificações. */
 import { useState, type MouseEvent } from 'react'
 import type { Sugestao } from '@/core/matriz-classificacao'
-import type { Conciliacao, RegimeDemo } from '@/core/modelo'
+import type { Conciliacao, RegimeDemo, TipoCapex } from '@/core/modelo'
 import { AConciliar } from './AConciliar.tsx'
 import { MenuContexto, type AlvoMenu } from './MenuContexto.tsx'
 import { RaizCard } from './RaizCard.tsx'
@@ -17,6 +17,7 @@ interface Props {
   readonly onRemoveNo: (id: string) => void
   readonly onRenomearNo: (id: string, nome: string) => void
   readonly onDefinirRegime: (id: string, regime: RegimeDemo) => void
+  readonly onDefinirCapex: (id: string, capex: TipoCapex | null) => void
   readonly onMapear: (chave: string, noId: string) => void
   readonly onDesmapear: (chave: string) => void
   readonly onVerMovimentos: (chave: string) => void
@@ -102,6 +103,7 @@ export function ConciliacaoBoard(props: Props) {
           onRemoveNo={onRemoveNo}
           onRenomearNo={props.onRenomearNo}
           onDefinirRegime={props.onDefinirRegime}
+          onDefinirCapex={props.onDefinirCapex}
           onVerMovimentos={props.onVerMovimentos}
           onAlternarRecolhido={alternarRecolhido}
           onRecolherTodos={recolherTodos}

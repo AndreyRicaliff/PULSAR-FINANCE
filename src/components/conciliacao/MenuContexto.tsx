@@ -6,7 +6,7 @@
 import { useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { PREMISSAS, type Sugestao } from '@/core/matriz-classificacao'
-import type { No, RegimeDemo } from '@/core/modelo'
+import { ROTULO_CAPEX, type No, type RegimeDemo, type TipoCapex } from '@/core/modelo'
 import type { ItemConc } from './tipos'
 import { FormRenomeItem, FormRenomeNo, ListaMover } from './MenuFormularios.tsx'
 import { opcoesSelect } from './util'
@@ -17,11 +17,17 @@ const REGIMES: [RegimeDemo, string][] = [
   ['dfc', 'Só DFC'],
 ]
 
+const CAPEX: [TipoCapex | null, string][] = [
+  [null, 'Fora do indicador'],
+  ['investimento', `${ROTULO_CAPEX.investimento} (expansão / formação de ativo)`],
+  ['manutencao', `${ROTULO_CAPEX.manutencao} (reposição / conservação)`],
+]
+
 export type AlvoMenu =
   | { readonly tipo: 'item'; readonly chave: string; readonly conciliado: boolean; readonly x: number; readonly y: number }
   | { readonly tipo: 'no'; readonly noId: string; readonly raiz: boolean; readonly x: number; readonly y: number }
 
-type Vista = 'acoes' | 'mover' | 'renome-item' | 'renome-no' | 'regime'
+type Vista = 'acoes' | 'mover' | 'renome-item' | 'renome-no' | 'regime' | 'capex'
 
 export interface AcoesMenu {
   readonly onMapear: (chave: string, noId: string) => void
@@ -29,6 +35,7 @@ export interface AcoesMenu {
   readonly onRemoveNo: (id: string) => void
   readonly onRenomearNo: (id: string, nome: string) => void
   readonly onDefinirRegime: (id: string, regime: RegimeDemo) => void
+  readonly onDefinirCapex: (id: string, capex: TipoCapex | null) => void
   readonly onVerMovimentos: (chave: string) => void
   readonly onAlternarRecolhido: (id: string) => void
   readonly onRecolherTodos: (recolher: boolean) => void
@@ -71,6 +78,17 @@ function Conteudo(props: Props & { vista: Vista; onVista: (v: Vista) => void }) 
         <p className="px-3 py-1.5 text-[11px] uppercase tracking-wide text-muted">Entra em qual demonstração?</p>
         {REGIMES.map(([r, l]) => (
           <Acao key={r} rotulo={`${atual === r ? '✓ ' : ''}${l}`} onClick={() => fechar(onFechar, () => props.onDefinirRegime(alvo.noId, r))} />
+        ))}
+      </div>
+    )
+  }
+  if (vista === 'capex' && alvo.tipo === 'no') {
+    const atual = props.estrutura.find((n) => n.id === alvo.noId)?.meta?.capex ?? null
+    return (
+      <div className="py-1">
+        <p className="px-3 py-1.5 text-[11px] uppercase tracking-wide text-muted">Entra no indicador de CAPEX?</p>
+        {CAPEX.map(([c, l]) => (
+          <Acao key={c ?? 'fora'} rotulo={`${atual === c ? '✓ ' : ''}${l}`} onClick={() => fechar(onFechar, () => props.onDefinirCapex(alvo.noId, c))} />
         ))}
       </div>
     )
@@ -123,7 +141,10 @@ function AcoesNo(props: Props & { alvo: Extract<AlvoMenu, { tipo: 'no' }>; onVis
     <div className="py-1">
       <Acao rotulo="✎ Renomear" onClick={() => onVista('renome-no')} />
       {props.entidade === 'categoria' ? (
-        <Acao rotulo={`Regime (DRE/DFC) → ${alvo.raiz ? 'grupo' : 'subgrupo'}`} onClick={() => onVista('regime')} />
+        <>
+          <Acao rotulo={`Regime (DRE/DFC) → ${alvo.raiz ? 'grupo' : 'subgrupo'}`} onClick={() => onVista('regime')} />
+          <Acao rotulo={`CAPEX (investimento/manutenção) → ${alvo.raiz ? 'grupo' : 'subgrupo'}`} onClick={() => onVista('capex')} />
+        </>
       ) : null}
       {alvo.raiz ? (
         <>

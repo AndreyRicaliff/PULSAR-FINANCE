@@ -31,6 +31,9 @@ export type AtividadeDFC = 'operacional' | 'investimento' | 'financiamento'
 /** Regimes em que o GRUPO entra. Ausente = ambos (compat). */
 export type RegimeDemo = 'dre' | 'dfc' | 'ambos'
 
+/** Balde do indicador de CAPEX: expansão (investimento) × reposição/conservação (manutenção). */
+export type TipoCapex = 'investimento' | 'manutencao'
+
 export interface MetaContabil {
   readonly papelDRE?: PapelDRE
   readonly atividadeDFC?: AtividadeDFC
@@ -40,6 +43,8 @@ export interface MetaContabil {
   readonly intercompany?: boolean
   /** Em quais demonstrações o grupo entra (escolhido na Matriz). Ausente = ambos. */
   readonly regime?: RegimeDemo
+  /** Marca o nó no indicador de CAPEX (por empresa, via Matriz). Ausente = fora do indicador. */
+  readonly capex?: TipoCapex
 }
 
 /** O grupo entra na demonstração `tipo`? (regime ausente = ambos). Neutro nunca entra por padrão. */
@@ -104,12 +109,18 @@ export const ROTULO_ATIVIDADE_DFC: Readonly<Record<AtividadeDFC, string>> = {
 /** Etiquetas curtas legíveis para exibir o papel contábil de um nó. */
 const ROTULO_REGIME: Readonly<Record<RegimeDemo, string>> = { ambos: 'DRE + DFC', dre: 'Só DRE', dfc: 'Só DFC' }
 
+export const ROTULO_CAPEX: Readonly<Record<TipoCapex, string>> = {
+  investimento: 'Investimento',
+  manutencao: 'Manutenção',
+}
+
 export function etiquetasContabeis(meta?: MetaContabil): string[] {
   if (!meta) return ['DRE + DFC']
   if (meta.neutra) return ['Neutra · Regra Mãe']
   const tags: string[] = [ROTULO_REGIME[meta.regime ?? 'ambos']]
   if (meta.papelDRE) tags.push(`DRE · ${ROTULO_PAPEL_DRE[meta.papelDRE]}`)
   if (meta.atividadeDFC) tags.push(`DFC · ${ROTULO_ATIVIDADE_DFC[meta.atividadeDFC]}`)
+  if (meta.capex) tags.push(`CAPEX · ${ROTULO_CAPEX[meta.capex]}`)
   if (meta.intercompany) tags.push('Intercompany')
   return tags
 }

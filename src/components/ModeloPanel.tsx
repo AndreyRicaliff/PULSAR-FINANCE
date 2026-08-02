@@ -186,6 +186,7 @@ export function ModeloPanel() {
         onRemoveNo={(id) => api.removeNo(dim, id)}
         onRenomearNo={(id, nome) => api.renomearNo(dim, id, nome)}
         onDefinirRegime={(id, regime) => api.definirRegime(dim, id, regime)}
+        onDefinirCapex={(id, capex) => api.definirCapex(dim, id, capex)}
         onMapear={(chave, noId) => api.mapear(dim, chave, noId)}
         onDesmapear={(chave) => api.desmapear(dim, chave)}
         onVerMovimentos={setModalChave}

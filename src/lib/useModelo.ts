@@ -1,6 +1,6 @@
 /** @file Estado da Matriz de Classificações por cliente: estruturas, de-paras e migração de ids aposentados. */
 import { useCallback, useMemo } from 'react'
-import type { Conciliacao, Dimensao, Modelo, No, RegimeDemo } from '@/core/modelo'
+import type { Conciliacao, Dimensao, Modelo, No, RegimeDemo, TipoCapex } from '@/core/modelo'
 import { ESTRUTURA_PADRAO, reordenarRaiz } from '@/core/modelo'
 import { MIGRACAO_NOS } from '@/core/plano-padrao'
 import { useCadastros } from './cadastros'
@@ -46,6 +46,8 @@ export interface ModeloApi {
   readonly reordenarNo: (dim: Dimensao, id: string, novoIndice: number) => void
   /** Define em quais demonstrações o grupo entra (DRE/DFC/ambos). */
   readonly definirRegime: (dim: Dimensao, id: string, regime: RegimeDemo) => void
+  /** Marca/desmarca o nó no indicador de CAPEX (null = fora do indicador). */
+  readonly definirCapex: (dim: Dimensao, id: string, capex: TipoCapex | null) => void
   readonly mapear: (dim: Dimensao, chave: string, noId: string) => void
   readonly desmapear: (dim: Dimensao, chave: string) => void
   readonly restaurar: (dim: Dimensao) => void
@@ -82,6 +84,16 @@ export function useModelo(): ModeloApi {
       aplicar(dim, (c) => ({
         ...c,
         estrutura: c.estrutura.map((n) => (n.id === id ? { ...n, meta: { ...n.meta, regime } } : n)),
+      }))
+    },
+    [aplicar],
+  )
+
+  const definirCapex = useCallback(
+    (dim: Dimensao, id: string, capex: TipoCapex | null) => {
+      aplicar(dim, (c) => ({
+        ...c,
+        estrutura: c.estrutura.map((n) => (n.id === id ? { ...n, meta: { ...n.meta, capex: capex ?? undefined } } : n)),
       }))
     },
     [aplicar],
@@ -142,7 +154,7 @@ export function useModelo(): ModeloApi {
     [aplicar, padrao],
   )
 
-  return { modelo, addNo, removeNo, renomearNo, reordenarNo, definirRegime, mapear, desmapear, restaurar }
+  return { modelo, addNo, removeNo, renomearNo, reordenarNo, definirRegime, definirCapex, mapear, desmapear, restaurar }
 }
 
 function filtrarMapa(
