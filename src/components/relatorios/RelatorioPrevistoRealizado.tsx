@@ -32,7 +32,8 @@ interface Saldo {
 }
 
 const rotuloMes = (mes: string): string => `${mes.slice(5, 7)}/${mes.slice(2, 4)}`
-const ANO_ATUAL = '2026'
+// Dinâmico: hardcoded ('2026') congelava os KPIs anuais no ano velho na virada.
+const ANO_ATUAL = String(new Date().getFullYear())
 
 export function RelatorioPrevistoRealizado() {
   const provedor = useProvedor()
