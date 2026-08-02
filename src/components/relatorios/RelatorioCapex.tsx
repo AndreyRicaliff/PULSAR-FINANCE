@@ -15,6 +15,7 @@ import { brl } from '@/lib/money'
 import { pctExecucao } from '@/lib/orcadoCategorias'
 import { useOrcamento } from '@/lib/useOrcamento'
 import { useResultado } from '@/lib/useResultado'
+import { BarrasCapexMensal } from '../charts/BarrasCapexMensal.tsx'
 import { Donut } from '../charts/Donut.tsx'
 import { GraficoExpansivel } from '../charts/GraficoExpansivel.tsx'
 import { KpiCard } from '../KpiCard.tsx'
@@ -99,6 +100,10 @@ export function RelatorioCapex() {
             </p>
           ) : (
             <>
+              <BarraComposicao investimento={resumo.investimentoCentavos} manutencao={resumo.manutencaoCentavos} />
+              <GraficoExpansivel titulo="Evolução mensal · investimento × manutenção">
+                <BarrasCapexMensal dados={resumo.porMes} />
+              </GraficoExpansivel>
               {fatias.length > 0 ? (
                 <GraficoExpansivel titulo="Composição do CAPEX por grupo">
                   <Donut fatias={fatias} />
@@ -110,6 +115,32 @@ export function RelatorioCapex() {
         </>
       )}
     </div>
+  )
+}
+
+/** Composição 100%: quanto do CAPEX veio de cada balde — valor + % em texto, cor como reforço. */
+function BarraComposicao({ investimento, manutencao }: { investimento: number; manutencao: number }) {
+  const invPos = Math.max(0, investimento)
+  const manPos = Math.max(0, manutencao)
+  const base = invPos + manPos
+  if (base === 0) return null
+  const pctInv = Math.round((invPos / base) * 100)
+  return (
+    <section className="flex flex-col gap-2 rounded-card border border-bd bg-surface p-4">
+      <h3 className="text-sm font-semibold uppercase tracking-wide text-muted">De onde vem o CAPEX</h3>
+      <div className="flex h-4 overflow-hidden rounded-full bg-surface2" role="img" aria-label={`Investimento ${pctInv}%, manutenção ${100 - pctInv}%`}>
+        {invPos > 0 ? <div className="h-full bg-accent" style={{ width: `${pctInv}%` }} /> : null}
+        {manPos > 0 ? <div className="h-full bg-warn" style={{ width: `${100 - pctInv}%` }} /> : null}
+      </div>
+      <div className="flex flex-wrap justify-between gap-2 text-xs">
+        <span className="text-accent">
+          Investimento: <strong className="tabular-nums">{brl(investimento)}</strong> · {pctInv}%
+        </span>
+        <span className="text-warn">
+          Manutenção e reparos: <strong className="tabular-nums">{brl(manutencao)}</strong> · {100 - pctInv}%
+        </span>
+      </div>
+    </section>
   )
 }
 
