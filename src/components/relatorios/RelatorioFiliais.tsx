@@ -6,6 +6,7 @@
  */
 import { useMemo } from 'react'
 import { resultadoPorFilial, type FiltroFilial, type LinhaFilial } from '@/core/filial'
+import { separarNeutros } from '@/core/neutros'
 import { useCadastros } from '@/lib/cadastros'
 import { useProvedor } from '@/lib/clientes'
 import { brl } from '@/lib/money'
@@ -16,9 +17,12 @@ import { KpiCard } from '../KpiCard.tsx'
 
 export function RelatorioFiliais() {
   const provedor = useProvedor()
-  const { movimentos } = useResultado()
+  const { movimentos: todosMovs, conc } = useResultado()
   const { modelo } = useModelo()
   const { nomesContrapartes } = useCadastros()
+  // Regra Mãe: neutro (transferência/aporte/estorno) não é receita nem despesa de filial —
+  // sem este corte o relatório era o único que somava neutros e nunca fechava com a DRE.
+  const movimentos = useMemo(() => separarNeutros(todosMovs, conc).operacionais, [todosMovs, conc])
   const r = useMemo(
     () => resultadoPorFilial(movimentos, modelo.centros, nomesContrapartes),
     [movimentos, modelo.centros, nomesContrapartes],

@@ -283,7 +283,7 @@ function AvisoOrfas({
   return (
     <div className="mt-1 text-xs">
       <button type="button" onClick={() => setAberto((v) => !v)} className="font-medium text-danger underline-offset-2 hover:underline">
-        {orfas.length} classificação(ões) órfã(s) — a chave sumiu do ERP · {aberto ? 'ocultar' : 'ver'}
+        {orfas.length} classificação(ões) órfã(s) · {aberto ? 'ocultar' : 'ver'}
       </button>
       {aberto ? (
         <ul className="mt-1 flex flex-col gap-0.5">
@@ -293,7 +293,9 @@ function AvisoOrfas({
               <span className="truncate" title={o.chave}>
                 {o.dimensao === 'contas' ? resolvedor.categoria(o.chave).nome : o.dimensao === 'fornecedores' ? resolvedor.contraparte(o.chave).nome : o.chave}
               </span>
-              <span className="text-muted/60">→ {o.noId}</span>
+              <span className="text-muted/60">
+                → {o.noId} · {o.motivo === 'no' ? 'o grupo de destino não existe mais' : 'a chave sumiu do ERP'}
+              </span>
               <button type="button" onClick={() => onLimpar(o)} className="ml-auto text-danger hover:underline">
                 limpar
               </button>

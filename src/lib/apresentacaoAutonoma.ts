@@ -136,8 +136,12 @@ function baixar(nome: string, html: string): void {
   const a = document.createElement('a')
   a.href = url
   a.download = nome
+  // Âncora no DOM e revoke adiado: âncora solta + revoke no mesmo tick do click pode abortar
+  // o download deste blob de vários MB (bundle + snapshot) — a UI dizia sucesso sem arquivo.
+  document.body.appendChild(a)
   a.click()
-  URL.revokeObjectURL(url)
+  a.remove()
+  setTimeout(() => URL.revokeObjectURL(url), 30_000)
 }
 
 const slug = (s: string) => s.toLowerCase().normalize('NFD').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')

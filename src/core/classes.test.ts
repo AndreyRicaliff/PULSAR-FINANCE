@@ -118,6 +118,33 @@ describe('regime do subgrupo (DRE/DFC)', () => {
   })
 })
 
+describe('override por classe SEM agrupadora ancestral (chaveada pelo código da folha)', () => {
+  const linhas = [{ id: 'rb', nome: 'Receita', tipo: 'entrada' as const }]
+  // Categoria de raiz (paiCodigo null): chaveClasse cai no fallback do código da própria folha.
+  const catsRaiz = [cat('3.01', null, false)]
+  const concRaiz: Conciliacao = {
+    estrutura: [
+      { id: 'g_rec', nome: 'Receita', paiId: null },
+      { id: 's_vendas', nome: 'Vendas', paiId: 'g_rec' },
+    ],
+    mapa: { '3.01': 's_vendas' },
+  }
+
+  it('override gravado no código da folha move o valor (antes era silenciosamente ignorado)', () => {
+    const demo: Demonstracao = { linhas, mapa: { g_rec: 'rb' }, mapaClasse: { '3.01': 'y' } }
+    const ef = totaisEfetivos([mov('3.01', 1000)], concRaiz, catsRaiz, demo, 'dre')
+    expect(ef.totalPorChave.get('cls:3.01')).toBe(1000)
+    expect(ef.mapaEfetivo['cls:3.01']).toBe('y')
+    expect(ef.totalPorChave.get('g_rec')).toBeUndefined()
+  })
+
+  it('sem override, categoria de raiz segue no grupo normalmente', () => {
+    const demo: Demonstracao = { linhas, mapa: { g_rec: 'rb' } }
+    const ef = totaisEfetivos([mov('3.01', 1000)], concRaiz, catsRaiz, demo, 'dre')
+    expect(ef.totalPorChave.get('g_rec')).toBe(1000)
+  })
+})
+
 describe('override redundante (mesma linha do pai) não vira chip', () => {
   const linhasR = [{ id: 'rb', nome: 'Receita', tipo: 'entrada' as const }]
   it('classe apontando para a MESMA linha do grupo fica no grupo (sem cls:)', () => {
