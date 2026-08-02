@@ -5,7 +5,10 @@
 import { useMemo } from 'react'
 import type { Conciliacao } from '@/core/modelo'
 import type { Movimento } from '@/core/movimento'
+import { serieMensalEntradaSaida } from '@/lib/graficos'
 import { brl } from '@/lib/money'
+import { GraficoExpansivel } from '../charts/GraficoExpansivel.tsx'
+import { LinhasEntradaSaida } from '../charts/LinhasEntradaSaida.tsx'
 import { KpiCard } from '../KpiCard.tsx'
 
 interface Props {
@@ -17,6 +20,7 @@ export function RelatorioNeutros({ neutros, conc }: Props) {
   const nomes = useMemo(() => new Map(conc.estrutura.map((n) => [n.id, n.nome])), [conc.estrutura])
   const entradas = useMemo(() => soma(neutros, 'R'), [neutros])
   const saidas = useMemo(() => soma(neutros, 'P'), [neutros])
+  const serie = useMemo(() => serieMensalEntradaSaida(neutros), [neutros])
 
   return (
     <div className="flex flex-col gap-6">
@@ -39,7 +43,12 @@ export function RelatorioNeutros({ neutros, conc }: Props) {
           Nenhum movimento neutro no período — nada classificado em grupos da Regra Mãe.
         </p>
       ) : (
-        <Tabela neutros={neutros} nomes={nomes} mapa={conc.mapa} />
+        <>
+          <GraficoExpansivel titulo="Oscilação mensal · entradas × saídas neutras">
+            <LinhasEntradaSaida dados={serie} />
+          </GraficoExpansivel>
+          <Tabela neutros={neutros} nomes={nomes} mapa={conc.mapa} />
+        </>
       )}
     </div>
   )

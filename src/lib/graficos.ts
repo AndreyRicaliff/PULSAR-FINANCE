@@ -42,10 +42,18 @@ export function gruposPorValor(grupos: readonly GrupoEspelho[]): Fatia[] {
 
 export function movimentacaoMensal(movs: readonly Movimento[], conc: Conciliacao): BarraMes[] {
   const idx = new Map(conc.estrutura.map((n) => [n.id, n]))
+  return serieMensalEntradaSaida(
+    movs.filter((m) => {
+      const no = idx.get(conc.mapa[m.categoria] ?? '')
+      return no !== undefined && !no.meta?.neutra
+    }),
+  )
+}
+
+/** Série mensal entrada×saída de uma lista JÁ recortada (ex.: os neutros do relatório de auditoria). */
+export function serieMensalEntradaSaida(movs: readonly Movimento[]): BarraMes[] {
   const acc = new Map<string, { e: number; s: number }>()
   for (const m of movs) {
-    const no = idx.get(conc.mapa[m.categoria] ?? '')
-    if (!no || no.meta?.neutra) continue
     const chave = chaveMes(m.data)
     if (!chave) continue
     const a = acc.get(chave) ?? { e: 0, s: 0 }
