@@ -10,6 +10,7 @@ import {
 } from '@/core/projecao-semanal'
 import { A_CONCILIAR } from '@/core/projecao'
 import { brl } from '@/lib/money'
+import { AnelExecucao } from '../charts/AnelExecucao.tsx'
 
 interface Props {
   readonly semanas: readonly Semana[]
@@ -64,40 +65,91 @@ export function FluxoSemanal({ semanas, estrutura, fluxo, saldoInicial }: Props)
     setter(n)
   }
 
+  const totalMes = agg(todosIds, todosDias)
+
   return (
-    <div className="overflow-x-auto rounded-card border border-bd bg-surface">
-      <table className="w-full border-collapse text-xs">
-        <Cabecalho colunas={colunas} onExpandir={(id) => alternar(semExpandida, setSemExpandida, id)} expandidas={semExpandida} />
-        <tbody>
-          <LinhaSaldo rotulo="Saldo inicial" valor={saldoInicial} colunas={colunas} primeira />
-          {raiz.map((g) => (
-            <GrupoLinhas
-              key={g.id}
-              grupo={g}
-              subs={subsDe(g.id)}
-              colunas={colunas}
-              aberto={grupoAberto.has(g.id)}
-              onAlternar={() => alternar(grupoAberto, setGrupoAberto, g.id)}
-              agg={agg}
-              idsDoGrupo={idsDoGrupo}
-            />
-          ))}
-          {fluxo.has(A_CONCILIAR) ? (
-            <GrupoLinhas
-              grupo={{ id: A_CONCILIAR, nome: 'A conciliar', paiId: null }}
-              subs={[]}
-              colunas={colunas}
-              aberto={false}
-              onAlternar={() => {}}
-              agg={agg}
-              idsDoGrupo={() => [A_CONCILIAR]}
-            />
-          ) : null}
-          <LinhaResultado rotulo="Resultado" colunas={colunas} fluxoCol={resultadoCol} forte />
-          <LinhaAcumulado rotulo="Resultado acumulado" colunas={colunas} fluxoCol={resultadoCol} base={0} />
-          <LinhaAcumulado rotulo="Saldo / Limite disponível" colunas={colunas} fluxoCol={resultadoCol} base={saldoInicial} forte />
-        </tbody>
-      </table>
+    <div className="flex flex-col gap-4">
+      <ResumoExecucao total={totalMes} />
+      <div className="overflow-x-auto rounded-card border border-bd bg-surface">
+        <table className="w-full border-collapse text-xs">
+          <Cabecalho colunas={colunas} onExpandir={(id) => alternar(semExpandida, setSemExpandida, id)} expandidas={semExpandida} />
+          <tbody>
+            <LinhaSaldo rotulo="Saldo inicial" valor={saldoInicial} colunas={colunas} primeira />
+            {raiz.map((g) => (
+              <GrupoLinhas
+                key={g.id}
+                grupo={g}
+                subs={subsDe(g.id)}
+                colunas={colunas}
+                todosDias={todosDias}
+                aberto={grupoAberto.has(g.id)}
+                onAlternar={() => alternar(grupoAberto, setGrupoAberto, g.id)}
+                agg={agg}
+                idsDoGrupo={idsDoGrupo}
+              />
+            ))}
+            {fluxo.has(A_CONCILIAR) ? (
+              <GrupoLinhas
+                grupo={{ id: A_CONCILIAR, nome: 'A conciliar', paiId: null }}
+                subs={[]}
+                colunas={colunas}
+                todosDias={todosDias}
+                aberto={false}
+                onAlternar={() => {}}
+                agg={agg}
+                idsDoGrupo={() => [A_CONCILIAR]}
+              />
+            ) : null}
+            <LinhaResultado rotulo="Resultado" colunas={colunas} fluxoCol={resultadoCol} exec={totalMes} forte />
+            <LinhaAcumulado rotulo="Resultado acumulado" colunas={colunas} fluxoCol={resultadoCol} base={0} />
+            <LinhaAcumulado rotulo="Saldo / Limite disponível" colunas={colunas} fluxoCol={resultadoCol} base={saldoInicial} forte />
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+/** Anéis estilo "Orçado vs. Atual" (referência 02/08): % EXECUTADO do mês por lado —
+ * pago ÷ (pago + em aberto). Nesta tela "previsto" é o que resta em aberto, então
+ * % executado é a leitura honesta (não % do orçado — orçamento é outra fonte). */
+function ResumoExecucao({ total }: { total: Fluxo }) {
+  return (
+    <section className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <CardExecucao natureza="R" titulo="Entradas do mês" real={total.realEntrada} aberto={total.prevEntrada} descReal="recebido" descAberto="a receber" />
+      <CardExecucao natureza="P" titulo="Saídas do mês" real={total.realSaida} aberto={total.prevSaida} descReal="pago" descAberto="a pagar" />
+    </section>
+  )
+}
+
+function CardExecucao({
+  natureza,
+  titulo,
+  real,
+  aberto,
+  descReal,
+  descAberto,
+}: {
+  natureza: 'R' | 'P'
+  titulo: string
+  real: number
+  aberto: number
+  descReal: string
+  descAberto: string
+}) {
+  const base = real + aberto
+  const pct = base > 0 ? Math.round((real / base) * 100) : null
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-card border border-bd bg-surface p-4">
+      <div className="min-w-0">
+        <h3 className="text-sm font-semibold uppercase tracking-wide text-muted">{titulo} · % executado</h3>
+        <p className="mt-1 text-xs text-muted">
+          <strong className={natureza === 'R' ? 'text-accent' : 'text-danger'}>{brl(real)}</strong> {descReal} ·{' '}
+          {brl(aberto)} {descAberto}
+        </p>
+        {pct === null ? <p className="mt-1 text-xs text-muted">Sem movimento nem título em aberto neste mês.</p> : null}
+      </div>
+      <AnelExecucao pct={pct} natureza={natureza} rotulo={`${titulo}: % executado`} />
     </div>
   )
 }
@@ -120,20 +172,17 @@ function Cabecalho({
         {colunas.map((c) => (
           <th key={c.id} colSpan={2} className="border-l border-bd px-2 py-1.5 text-center">
             {c.semana ? (
-              <button type="button" onClick={() => onExpandir(c.semana!.id)} className="hover:text-text" title="Ver dias da semana">
-                <span className={`mr-1 inline-block transition-transform ${expandidas.has(c.semana.id) ? 'rotate-90' : ''}`}>▸</span>
-                {c.rotulo}
-              </button>
+              <ThSemana c={c} expandidas={expandidas} onExpandir={onExpandir} />
             ) : c.recolherSemanaId ? (
-              <button type="button" onClick={() => onExpandir(c.recolherSemanaId!)} className="hover:text-text" title="Recolher semana">
-                <span className="mr-1 inline-block rotate-90">▸</span>
-                {c.rotulo}
-              </button>
+              <ThSemana c={c} expandidas={expandidas} onExpandir={onExpandir} />
             ) : (
               c.rotulo
             )}
           </th>
         ))}
+        <th rowSpan={2} className="border-l border-bd px-2 py-1.5 text-center">
+          Execução
+        </th>
       </tr>
       <tr className="border-b border-bd text-[9px] uppercase tracking-wide text-muted/70">
         {colunas.map((c) => (
@@ -141,6 +190,32 @@ function Cabecalho({
         ))}
       </tr>
     </thead>
+  )
+}
+
+function ThSemana({
+  c,
+  expandidas,
+  onExpandir,
+}: {
+  c: Coluna
+  expandidas: ReadonlySet<string>
+  onExpandir: (id: string) => void
+}) {
+  const s = c.semana
+  if (s) {
+    return (
+      <button type="button" onClick={() => onExpandir(s.id)} className="hover:text-text" title="Ver dias da semana">
+        <span className={`mr-1 inline-block transition-transform ${expandidas.has(s.id) ? 'rotate-90' : ''}`}>▸</span>
+        {c.rotulo}
+      </button>
+    )
+  }
+  return (
+    <button type="button" onClick={() => onExpandir(c.recolherSemanaId!)} className="hover:text-text" title="Recolher semana">
+      <span className="mr-1 inline-block rotate-90">▸</span>
+      {c.rotulo}
+    </button>
   )
 }
 
@@ -169,6 +244,7 @@ function GrupoLinhas({
   grupo,
   subs,
   colunas,
+  todosDias,
   aberto,
   onAlternar,
   agg,
@@ -177,6 +253,7 @@ function GrupoLinhas({
   grupo: No
   subs: readonly No[]
   colunas: readonly Coluna[]
+  todosDias: readonly string[]
   aberto: boolean
   onAlternar: () => void
   agg: (ids: readonly string[], dias: readonly string[]) => Fluxo
@@ -202,6 +279,7 @@ function GrupoLinhas({
           const f = agg(ids, c.dias)
           return <Par key={c.id} prev={liquidoPrevisto(f)} real={liquidoRealizado(f)} />
         })}
+        <CelExec f={agg(ids, todosDias)} />
       </tr>
       {aberto
         ? subs.map((s) => (
@@ -211,6 +289,7 @@ function GrupoLinhas({
                 const f = agg([s.id], c.dias)
                 return <Par key={c.id} prev={liquidoPrevisto(f)} real={liquidoRealizado(f)} />
               })}
+              <CelExec f={agg([s.id], todosDias)} />
             </tr>
           ))
         : null}
@@ -218,15 +297,38 @@ function GrupoLinhas({
   )
 }
 
+/** Barra de execução do mês (estilo "% do Orçado" da referência): pago ÷ (pago + em aberto). */
+function CelExec({ f }: { f: Fluxo }) {
+  const realMag = f.realEntrada + f.realSaida
+  const base = realMag + f.prevEntrada + f.prevSaida
+  if (base === 0) {
+    return <td className="border-l border-bd px-2 py-1 text-right text-muted/50">–</td>
+  }
+  const pct = Math.round((realMag / base) * 100)
+  const entrada = f.prevEntrada + f.realEntrada >= f.prevSaida + f.realSaida
+  return (
+    <td className="border-l border-bd px-2 py-1">
+      <div className="flex min-w-[6rem] items-center gap-1.5" title={`Executado: ${brl(realMag)} de ${brl(base)} do mês (${pct}%)`}>
+        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-surface2">
+          <div className={`h-full rounded-full ${entrada ? 'bg-accent' : 'bg-danger'}`} style={{ width: `${pct}%` }} />
+        </div>
+        <span className="w-8 shrink-0 text-right tabular-nums text-muted">{pct}%</span>
+      </div>
+    </td>
+  )
+}
+
 function LinhaResultado({
   rotulo,
   colunas,
   fluxoCol,
+  exec,
   forte,
 }: {
   rotulo: string
   colunas: readonly Coluna[]
   fluxoCol: (c: Coluna) => Fluxo
+  exec: Fluxo
   forte?: boolean
 }) {
   return (
@@ -236,6 +338,7 @@ function LinhaResultado({
         const f = fluxoCol(c)
         return <Par key={c.id} prev={liquidoPrevisto(f)} real={liquidoRealizado(f)} forte={forte} />
       })}
+      <CelExec f={exec} />
     </tr>
   )
 }
@@ -268,6 +371,7 @@ function LinhaAcumulado({
         accReal += liquidoRealizado(f)
         return <Par key={c.id} prev={accPrev} real={accReal} forte={forte} />
       })}
+      <td className="border-l border-bd" />
     </tr>
   )
 }
@@ -279,6 +383,7 @@ function LinhaSaldo({ rotulo, valor, colunas, primeira }: { rotulo: string; valo
       {colunas.map((c, i) => (
         <Par key={c.id} prev={primeira && i === 0 ? valor : 0} real={primeira && i === 0 ? valor : 0} forte />
       ))}
+      <td className="border-l border-bd" />
     </tr>
   )
 }
