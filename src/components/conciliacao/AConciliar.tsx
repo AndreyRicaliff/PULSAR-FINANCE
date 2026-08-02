@@ -26,7 +26,7 @@ export function AConciliar({ itens, estrutura, termo, sugerir, onMapear, onDesma
   const opcoes = useMemo(() => opcoesSelect(estrutura), [estrutura])
   const filtrados = useMemo(() => filtrar(itens, busca), [itens, busca])
   const nomePorNo = useMemo(() => new Map(estrutura.map((n) => [n.id, n.nome])), [estrutura])
-  const aplicaveis = useMemo(() => sugestoesLimpas(itens, sugerir), [itens, sugerir])
+  const aplicaveis = useMemo(() => sugestoesLimpas(itens, nomePorNo, sugerir), [itens, nomePorNo, sugerir])
 
   return (
     <DropZone
@@ -86,15 +86,18 @@ function Topo({
   )
 }
 
-/** Pendentes cuja sugestão tem destino E nenhuma premissa de erro — únicas elegíveis ao lote. */
+/** Pendentes cuja sugestão tem destino EXISTENTE na estrutura e nenhuma premissa de erro — únicas elegíveis ao lote. */
 function sugestoesLimpas(
   itens: readonly ItemConc[],
+  nomePorNo: ReadonlyMap<string, string>,
   sugerir?: (titulo: string) => Sugestao | null,
 ): { chave: string; noId: string }[] {
   if (!sugerir) return []
   return itens.flatMap((i) => {
     const s = sugerir(i.titulo)
-    return s?.noId && s.premissas.length === 0 ? [{ chave: i.chave, noId: s.noId }] : []
+    // Estrutura customizada pode não ter o nó-semente da matriz — sem a guarda o lote grava
+    // destino fantasma e o item some das duas colunas. O chip individual já tem essa checagem.
+    return s?.noId && s.premissas.length === 0 && nomePorNo.has(s.noId) ? [{ chave: i.chave, noId: s.noId }] : []
   })
 }
 

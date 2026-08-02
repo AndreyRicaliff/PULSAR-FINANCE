@@ -16,6 +16,8 @@ export interface Orfa {
   readonly chave: string
   /** Nó da estrutura para onde ela apontava. */
   readonly noId: string
+  /** 'chave' = o código sumiu do ERP; 'no' = o grupo de destino sumiu da estrutura. */
+  readonly motivo: 'chave' | 'no'
 }
 
 /** Baldes estáveis por construção — nunca são órfãos. */
@@ -50,8 +52,14 @@ export function orfasDaConciliacao(
 
   const orfas: Orfa[] = []
   for (const dimensao of ['contas', 'fornecedores', 'centros'] as const) {
+    // Nó de destino sumido ("Restaurar estrutura padrão" preserva o mapa; lote da matriz
+    // pode gravar id-semente inexistente): o item some das DUAS colunas sem este aviso.
+    // Só contas/fornecedores — a estrutura de centros é injetada do cadastro em runtime
+    // (chega depois da hidratação) e a checagem daria falso positivo transitório.
+    const nos = dimensao === 'centros' ? null : new Set(modelo[dimensao].estrutura.map((n) => n.id))
     for (const [chave, noId] of Object.entries(modelo[dimensao].mapa)) {
-      if (!viva(dimensao, chave)) orfas.push({ dimensao, chave, noId })
+      if (nos && !nos.has(noId)) orfas.push({ dimensao, chave, noId, motivo: 'no' })
+      else if (!viva(dimensao, chave)) orfas.push({ dimensao, chave, noId, motivo: 'chave' })
     }
   }
   return orfas
