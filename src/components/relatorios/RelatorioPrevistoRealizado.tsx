@@ -17,10 +17,11 @@ import { useClientes, useProvedor } from '@/lib/clientes'
 import { dataHora } from '@/lib/datas'
 import { brl, pctVariacao } from '@/lib/money'
 import { useMovimentos } from '@/lib/movimentos'
-import { agregarOrcadoPorCategoria } from '@/lib/orcadoCategorias'
+import { agregarOrcadoPorCategoria, matrizOrcado } from '@/lib/orcadoCategorias'
 import { useOverrides } from '@/lib/overrides'
 import { useOrcamento, type LinhaOrcamento } from '@/lib/useOrcamento'
 import { KpiCard } from '../KpiCard.tsx'
+import { MatrizOrcado } from './MatrizOrcado.tsx'
 import { OrcadoPorCategoria } from './OrcadoPorCategoria.tsx'
 
 interface LinhaMes {
@@ -68,10 +69,12 @@ export function RelatorioPrevistoRealizado() {
     () => (codigo: string) => rotuloCategoria(codigo, resolvedor.categoria(codigo).nome, ambiguas),
     [resolvedor, ambiguas],
   )
-  const orcado = useMemo(() => {
-    const alvo = mesSel ? [mesSel] : Object.keys(orc.meses).filter((m) => m.startsWith(ANO_ATUAL))
-    return agregarOrcadoPorCategoria(orc.meses, alvo)
-  }, [orc.meses, mesSel])
+  const mesesAlvo = useMemo(
+    () => (mesSel ? [mesSel] : Object.keys(orc.meses).filter((m) => m.startsWith(ANO_ATUAL))),
+    [orc.meses, mesSel],
+  )
+  const orcado = useMemo(() => agregarOrcadoPorCategoria(orc.meses, mesesAlvo), [orc.meses, mesesAlvo])
+  const matriz = useMemo(() => matrizOrcado(orc.meses, mesesAlvo), [orc.meses, mesesAlvo])
 
   return (
     <div className="flex flex-col gap-6">
@@ -116,7 +119,10 @@ export function RelatorioPrevistoRealizado() {
       </section>
 
       {orcamentoNaFonte && temOrc ? (
-        <OrcadoPorCategoria receitas={orcado.receitas} despesas={orcado.despesas} nomeDe={nomeDe} rotuloRecorte={rotuloRecorte} />
+        <>
+          <OrcadoPorCategoria receitas={orcado.receitas} despesas={orcado.despesas} nomeDe={nomeDe} rotuloRecorte={rotuloRecorte} />
+          <MatrizOrcado dados={matriz} nomeDe={nomeDe} />
+        </>
       ) : null}
 
       {!orcamentoNaFonte ? (

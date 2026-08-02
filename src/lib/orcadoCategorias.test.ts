@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { agregarOrcadoPorCategoria, dentroDoOrcado, pctExecucao } from './orcadoCategorias'
+import { agregarOrcadoPorCategoria, dentroDoOrcado, matrizOrcado, pctExecucao } from './orcadoCategorias'
 
 const MESES = {
   '2026-01': [
@@ -47,5 +47,34 @@ describe('pctExecucao / dentroDoOrcado', () => {
     expect(dentroDoOrcado('R', 92)).toBe(false)
     expect(dentroDoOrcado('P', 80)).toBe(true)
     expect(dentroDoOrcado('P', 102)).toBe(false)
+  })
+})
+
+describe('matrizOrcado (pivot categoria × mês)', () => {
+  const MESES = {
+    '2026-01': [
+      { categoria: '1.01.01', previstoCentavos: 100_000, realizadoCentavos: 90_000 },
+      { categoria: '2.05.01', previstoCentavos: 40_000, realizadoCentavos: 45_000 },
+      { categoria: '3.01', previstoCentavos: 10_000, realizadoCentavos: 10_000 }, // transferência: fora
+    ],
+    '2026-02': [{ categoria: '1.01.01', previstoCentavos: 120_000, realizadoCentavos: 0 }],
+    '2026-03': [{ categoria: '1.01.01', previstoCentavos: 0, realizadoCentavos: 0 }], // zerado: mês fora
+  }
+
+  it('pivota por mês, separa lados pelo prefixo e ignora mês todo-zerado', () => {
+    const m = matrizOrcado(MESES, ['2026-01', '2026-02', '2026-03'])
+    expect(m.meses).toEqual(['2026-01', '2026-02'])
+    expect(m.receitas).toHaveLength(1)
+    expect(m.receitas[0]!.codigo).toBe('1.01.01')
+    expect(m.receitas[0]!.porMes.get('2026-01')).toEqual({ previstoCentavos: 100_000, realizadoCentavos: 90_000 })
+    expect(m.receitas[0]!.totalPrevistoCentavos).toBe(220_000)
+    expect(m.despesas[0]!.porMes.get('2026-02')).toBeUndefined()
+  })
+
+  it('recorte de um mês limita colunas e totais', () => {
+    const m = matrizOrcado(MESES, ['2026-02'])
+    expect(m.meses).toEqual(['2026-02'])
+    expect(m.receitas[0]!.totalPrevistoCentavos).toBe(120_000)
+    expect(m.despesas).toHaveLength(0)
   })
 })
