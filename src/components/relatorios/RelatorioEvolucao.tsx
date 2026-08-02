@@ -20,7 +20,8 @@ const METODOS: readonly OpcaoSeg<MetodoProj>[] = [
   { id: 'media-movel', rotulo: 'Média móvel' },
 ]
 const COR: Readonly<Record<Metrica, string>> = {
-  saldo: 'rgb(var(--c-primary))',
+  // secondary (#9187B6): o primary v3 é escuro demais contra o navy — a série sumia (report 02/08).
+  saldo: 'rgb(var(--c-secondary))',
   entrada: 'rgb(var(--c-accent))',
   saida: 'rgb(var(--c-danger))',
 }

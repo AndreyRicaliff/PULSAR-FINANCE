@@ -7,16 +7,21 @@
  * módulo de orçamento (Nibo) as duas colunas ficam vazias por FALTA DE FONTE, não por bug:
  * a tela diz isso em vez de repetir a copy do Omie.
  */
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
+import { descricoesAmbiguas, rotuloCategoria } from '@/core/categoria'
 import type { Movimento } from '@/core/movimento'
 import { isoDeMov } from '@/core/periodo'
 import { temOrcamento, type RotulosProvedor } from '@/core/provedor'
+import { useCadastros } from '@/lib/cadastros'
 import { useClientes, useProvedor } from '@/lib/clientes'
 import { dataHora } from '@/lib/datas'
 import { brl, pctVariacao } from '@/lib/money'
 import { useMovimentos } from '@/lib/movimentos'
+import { agregarOrcadoPorCategoria } from '@/lib/orcadoCategorias'
+import { useOverrides } from '@/lib/overrides'
 import { useOrcamento, type LinhaOrcamento } from '@/lib/useOrcamento'
 import { KpiCard } from '../KpiCard.tsx'
+import { OrcadoPorCategoria } from './OrcadoPorCategoria.tsx'
 
 interface LinhaMes {
   readonly mes: string // 'aaaa-mm'
@@ -42,14 +47,31 @@ export function RelatorioPrevistoRealizado() {
   const orc = useOrcamento()
   const { movimentos } = useMovimentos()
 
+  const { categorias: cad } = useCadastros()
+  const { resolvedor } = useOverrides()
+
   const linhas = useMemo(() => montarLinhas(orc.meses, movimentos), [orc.meses, movimentos])
-  const doAno = linhas.filter((l) => l.mes.startsWith(ANO_ATUAL))
   const temOrc = linhas.some((l) => l.previsto.entrada !== 0 || l.previsto.saida !== 0)
   const temRealizado = linhas.some((l) => l.realizado.entrada !== 0 || l.realizado.saida !== 0)
 
-  const totalPrev = soma(doAno.map((l) => l.previsto))
-  const totalReal = soma(doAno.map((l) => l.realizado))
-  const totalRzv = soma(doAno.map((l) => l.realizavel))
+  // Recorte local: null = ano corrente inteiro; 'aaaa-mm' = um mês (KPIs, anéis e categorias seguem).
+  const [mesSel, setMesSel] = useState<string | null>(null)
+  const doRecorte = mesSel ? linhas.filter((l) => l.mes === mesSel) : linhas.filter((l) => l.mes.startsWith(ANO_ATUAL))
+  const rotuloRecorte = mesSel ? rotuloMes(mesSel) : `ano ${ANO_ATUAL}`
+
+  const totalPrev = soma(doRecorte.map((l) => l.previsto))
+  const totalReal = soma(doRecorte.map((l) => l.realizado))
+  const totalRzv = soma(doRecorte.map((l) => l.realizavel))
+
+  const ambiguas = useMemo(() => descricoesAmbiguas(cad.categorias), [cad])
+  const nomeDe = useMemo(
+    () => (codigo: string) => rotuloCategoria(codigo, resolvedor.categoria(codigo).nome, ambiguas),
+    [resolvedor, ambiguas],
+  )
+  const orcado = useMemo(() => {
+    const alvo = mesSel ? [mesSel] : Object.keys(orc.meses).filter((m) => m.startsWith(ANO_ATUAL))
+    return agregarOrcadoPorCategoria(orc.meses, alvo)
+  }, [orc.meses, mesSel])
 
   return (
     <div className="flex flex-col gap-6">
@@ -68,11 +90,34 @@ export function RelatorioPrevistoRealizado() {
         ) : null}
       </header>
 
+      <div className="flex items-center gap-3">
+        <label htmlFor="pr-recorte" className="text-xs uppercase tracking-wide text-muted">
+          Recorte
+        </label>
+        <select
+          id="pr-recorte"
+          value={mesSel ?? ''}
+          onChange={(e) => setMesSel(e.target.value || null)}
+          className="rounded-lg border border-bd bg-surface px-3 py-1.5 text-sm outline-none focus:border-primary"
+        >
+          <option value="">Ano {ANO_ATUAL}</option>
+          {linhas.map((l) => (
+            <option key={l.mes} value={l.mes}>
+              {l.rotulo}
+            </option>
+          ))}
+        </select>
+      </div>
+
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <KpiCard rotulo={`Previsto ${ANO_ATUAL} (saldo)`} valor={brl(totalPrev.entrada - totalPrev.saida)} cor="warn" nota={notaPrevisto(orcamentoNaFonte, temOrc, provedor)} />
-        <KpiCard rotulo={`Realizável (em aberto)`} valor={brl(totalRzv.entrada - totalRzv.saida)} cor="secondary" nota="Títulos em aberto, por vencimento" />
-        <KpiCard rotulo={`Realizado ${ANO_ATUAL} (saldo)`} valor={brl(totalReal.entrada - totalReal.saida)} cor={totalReal.entrada - totalReal.saida >= 0 ? 'accent' : 'danger'} nota={`Baixas ${provedor.nome}, regime caixa`} />
+        <KpiCard rotulo={`Previsto · ${rotuloRecorte}`} valor={brl(totalPrev.entrada - totalPrev.saida)} cor="warn" nota={notaPrevisto(orcamentoNaFonte, temOrc, provedor)} />
+        <KpiCard rotulo={`Realizável · ${rotuloRecorte}`} valor={brl(totalRzv.entrada - totalRzv.saida)} cor="secondary" nota="Títulos em aberto, por vencimento" />
+        <KpiCard rotulo={`Realizado · ${rotuloRecorte}`} valor={brl(totalReal.entrada - totalReal.saida)} cor={totalReal.entrada - totalReal.saida >= 0 ? 'accent' : 'danger'} nota={`Baixas ${provedor.nome}, regime caixa`} />
       </section>
+
+      {orcamentoNaFonte && temOrc ? (
+        <OrcadoPorCategoria receitas={orcado.receitas} despesas={orcado.despesas} nomeDe={nomeDe} rotuloRecorte={rotuloRecorte} />
+      ) : null}
 
       {!orcamentoNaFonte ? (
         <p className="rounded-card border border-warn/40 bg-warn/10 p-4 text-sm text-warn">
@@ -95,7 +140,7 @@ export function RelatorioPrevistoRealizado() {
         </p>
       ) : null}
 
-      <Tabela linhas={linhas} />
+      <Tabela linhas={linhas} mesSel={mesSel} onSelecionar={(mes) => setMesSel(mesSel === mes ? null : mes)} />
     </div>
   )
 }
@@ -148,7 +193,15 @@ function soma(saldos: readonly Saldo[]): Saldo {
   return saldos.reduce((a, s) => ({ entrada: a.entrada + s.entrada, saida: a.saida + s.saida }), { entrada: 0, saida: 0 })
 }
 
-function Tabela({ linhas }: { linhas: readonly LinhaMes[] }) {
+function Tabela({
+  linhas,
+  mesSel,
+  onSelecionar,
+}: {
+  linhas: readonly LinhaMes[]
+  mesSel: string | null
+  onSelecionar: (mes: string) => void
+}) {
   if (linhas.length === 0) return null
   return (
     <div className="max-h-[34rem] overflow-auto rounded-card border border-bd">
@@ -161,7 +214,8 @@ function Tabela({ linhas }: { linhas: readonly LinhaMes[] }) {
             <th className="px-4 py-2 text-right font-medium">Realizado entradas</th>
             <th className="px-4 py-2 text-right font-medium">Realizado saídas</th>
             <th className="px-4 py-2 text-right font-medium">Realizado (saldo)</th>
-            <th className="px-4 py-2 text-right font-medium">Δ vs previsto</th>
+            <th className="px-4 py-2 text-right font-medium">Variação ($)</th>
+            <th className="px-4 py-2 text-right font-medium">Variação (%)</th>
           </tr>
         </thead>
         <tbody>
@@ -169,15 +223,24 @@ function Tabela({ linhas }: { linhas: readonly LinhaMes[] }) {
             const prev = l.previsto.entrada - l.previsto.saida
             const real = l.realizado.entrada - l.realizado.saida
             const rzv = l.realizavel.entrada - l.realizavel.saida
-            const delta = prev !== 0 ? (real - prev) / Math.abs(prev) : null
+            const varAbs = real - prev
+            const delta = prev !== 0 ? varAbs / Math.abs(prev) : null
             return (
-              <tr key={l.mes} className="border-t border-bd/50">
+              <tr
+                key={l.mes}
+                onClick={() => onSelecionar(l.mes)}
+                title={mesSel === l.mes ? 'Clique para voltar ao ano inteiro' : 'Clique para recortar KPIs e categorias neste mês'}
+                className={`cursor-pointer border-t border-bd/50 hover:bg-surface2/40 ${mesSel === l.mes ? 'bg-primary/10' : ''}`}
+              >
                 <td className="px-4 py-2 tabular-nums">{l.rotulo}</td>
                 <td className="px-4 py-2 text-right tabular-nums text-muted">{prev !== 0 ? brl(prev) : '—'}</td>
                 <td className="px-4 py-2 text-right tabular-nums text-secondary">{rzv !== 0 ? brl(rzv) : '—'}</td>
                 <td className="px-4 py-2 text-right tabular-nums text-accent">{l.realizado.entrada !== 0 ? brl(l.realizado.entrada) : '—'}</td>
                 <td className="px-4 py-2 text-right tabular-nums text-danger">{l.realizado.saida !== 0 ? brl(l.realizado.saida) : '—'}</td>
                 <td className={`px-4 py-2 text-right font-semibold tabular-nums ${real >= 0 ? 'text-accent' : 'text-danger'}`}>{real !== 0 ? brl(real) : '—'}</td>
+                <td className={`px-4 py-2 text-right tabular-nums ${varAbs === 0 ? 'text-muted' : varAbs > 0 ? 'text-accent' : 'text-danger'}`}>
+                  {prev !== 0 || real !== 0 ? brl(varAbs) : '—'}
+                </td>
                 <td className="px-4 py-2 text-right tabular-nums text-muted">{pctVariacao(delta)}</td>
               </tr>
             )
