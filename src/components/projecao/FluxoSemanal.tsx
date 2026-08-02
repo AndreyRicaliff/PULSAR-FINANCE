@@ -11,6 +11,7 @@ import {
 import { A_CONCILIAR } from '@/core/projecao'
 import { brl } from '@/lib/money'
 import { AnelExecucao } from '../charts/AnelExecucao.tsx'
+import { Segmento, type OpcaoSeg } from '../Segmento.tsx'
 
 interface Props {
   readonly semanas: readonly Semana[]
@@ -37,7 +38,14 @@ const somaFluxo = (a: Fluxo, b: Fluxo): Fluxo => ({
   realSaida: a.realSaida + b.realSaida,
 })
 
+type VistaFluxo = 'visual' | 'matriz'
+const VISTAS_FLUXO: readonly OpcaoSeg<VistaFluxo>[] = [
+  { id: 'visual', rotulo: 'Resumo visual' },
+  { id: 'matriz', rotulo: 'Matriz semanal' },
+]
+
 export function FluxoSemanal({ semanas, estrutura, fluxo, saldoInicial }: Props) {
+  const [vista, setVista] = useState<VistaFluxo>('visual')
   const [semExpandida, setSemExpandida] = useState<ReadonlySet<string>>(new Set())
   const [grupoAberto, setGrupoAberto] = useState<ReadonlySet<string>>(new Set())
 
@@ -67,10 +75,27 @@ export function FluxoSemanal({ semanas, estrutura, fluxo, saldoInicial }: Props)
 
   const totalMes = agg(todosIds, todosDias)
 
+  // Resumo visual: grupos-raiz com o fluxo do mês inteiro, separados pelo lado dominante.
+  const magnitude = (f: Fluxo) => f.prevEntrada + f.prevSaida + f.realEntrada + f.realSaida
+  const gruposMes = [
+    ...raiz.map((g) => ({ id: g.id, nome: g.nome, f: agg(idsDoGrupo(g), todosDias) })),
+    ...(fluxo.has(A_CONCILIAR) ? [{ id: A_CONCILIAR, nome: 'A conciliar', f: agg([A_CONCILIAR], todosDias) }] : []),
+  ]
+    .filter((g) => magnitude(g.f) !== 0)
+    .sort((a, b) => magnitude(b.f) - magnitude(a.f))
+  const ehEntrada = (f: Fluxo) => f.prevEntrada + f.realEntrada >= f.prevSaida + f.realSaida
+
   return (
     <div className="flex flex-col gap-4">
       <ResumoExecucao total={totalMes} />
-      <div className="overflow-x-auto rounded-card border border-bd bg-surface">
+      <Segmento opcoes={VISTAS_FLUXO} valor={vista} onTrocar={setVista} />
+      {vista === 'visual' ? (
+        <section className="grid min-w-0 grid-cols-1 gap-4 xl:grid-cols-2">
+          <CardLadoFluxo titulo="Entradas" natureza="R" descReal="Recebido" grupos={gruposMes.filter((g) => ehEntrada(g.f))} />
+          <CardLadoFluxo titulo="Saídas" natureza="P" descReal="Pago" grupos={gruposMes.filter((g) => !ehEntrada(g.f))} />
+        </section>
+      ) : null}
+      <div className={`overflow-x-auto rounded-card border border-bd bg-surface ${vista === 'visual' ? 'hidden' : ''}`}>
         <table className="w-full border-collapse text-xs">
           <Cabecalho colunas={colunas} onExpandir={(id) => alternar(semExpandida, setSemExpandida, id)} expandidas={semExpandida} />
           <tbody>
@@ -106,6 +131,95 @@ export function FluxoSemanal({ semanas, estrutura, fluxo, saldoInicial }: Props)
           </tbody>
         </table>
       </div>
+    </div>
+  )
+}
+
+interface GrupoMes {
+  readonly id: string
+  readonly nome: string
+  readonly f: Fluxo
+}
+
+/** Card no desenho da referência "Orçado vs. Atual": linhas com barra LARGA de execução.
+ * Realizado/Em aberto são magnitudes do grupo (mesma base da barra: pago ÷ pago+aberto). */
+function CardLadoFluxo({
+  titulo,
+  natureza,
+  descReal,
+  grupos,
+}: {
+  titulo: string
+  natureza: 'R' | 'P'
+  descReal: string
+  grupos: readonly GrupoMes[]
+}) {
+  const totReal = grupos.reduce((s, g) => s + g.f.realEntrada + g.f.realSaida, 0)
+  const totAberto = grupos.reduce((s, g) => s + g.f.prevEntrada + g.f.prevSaida, 0)
+  return (
+    <div className="flex min-w-0 flex-col gap-3 rounded-card border border-bd bg-surface p-4">
+      <h3 className="text-sm font-semibold uppercase tracking-wide text-muted">{titulo} · execução do mês</h3>
+      {grupos.length === 0 ? (
+        <p className="rounded-card border border-dashed border-bd p-6 text-center text-sm text-muted">
+          Nenhum grupo com movimento neste mês.
+        </p>
+      ) : (
+        <table className="w-full text-sm">
+          <thead className="text-left text-xs uppercase tracking-wide text-muted">
+            <tr>
+              <th className="py-1.5 pr-3 font-medium">Grupo</th>
+              <th className="py-1.5 pr-3 text-right font-medium">{descReal}</th>
+              <th className="py-1.5 pr-3 text-right font-medium">Em aberto</th>
+              <th className="w-[36%] py-1.5 font-medium">% executado</th>
+            </tr>
+          </thead>
+          <tbody>
+            {grupos.map((g) => (
+              <LinhaVisual key={g.id} natureza={natureza} nome={g.nome} real={g.f.realEntrada + g.f.realSaida} aberto={g.f.prevEntrada + g.f.prevSaida} />
+            ))}
+          </tbody>
+          <tfoot>
+            <tr className="border-t-2 border-bd font-semibold">
+              <td className="py-2 pr-3">Total {titulo}</td>
+              <td className="py-2 pr-3 text-right tabular-nums">{brl(totReal)}</td>
+              <td className="py-2 pr-3 text-right tabular-nums text-muted">{brl(totAberto)}</td>
+              <td className="py-2">
+                <BarraExec natureza={natureza} real={totReal} aberto={totAberto} />
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+      )}
+    </div>
+  )
+}
+
+function LinhaVisual({ natureza, nome, real, aberto }: { natureza: 'R' | 'P'; nome: string; real: number; aberto: number }) {
+  return (
+    <tr className="border-t border-bd/50">
+      <td className="max-w-0 truncate py-1.5 pr-3" title={nome}>
+        {nome}
+      </td>
+      <td className="py-1.5 pr-3 text-right tabular-nums">{real !== 0 ? brl(real) : '—'}</td>
+      <td className="py-1.5 pr-3 text-right tabular-nums text-muted">{aberto !== 0 ? brl(aberto) : '—'}</td>
+      <td className="py-1.5">
+        <BarraExec natureza={natureza} real={real} aberto={aberto} />
+      </td>
+    </tr>
+  )
+}
+
+function BarraExec({ natureza, real, aberto }: { natureza: 'R' | 'P'; real: number; aberto: number }) {
+  const base = real + aberto
+  const pct = base > 0 ? Math.round((real / base) * 100) : null
+  return (
+    <div className="flex min-w-[9rem] items-center gap-2" title={pct === null ? 'Sem base no mês' : `${brl(real)} de ${brl(base)} (${pct}%)`}>
+      <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-surface2">
+        {pct !== null ? (
+          <div className={`h-full rounded-full ${natureza === 'R' ? 'bg-accent' : 'bg-danger'}`} style={{ width: `${pct}%` }} />
+        ) : null}
+      </div>
+      <span className="w-9 shrink-0 text-right text-xs tabular-nums text-muted">{pct === null ? '—' : `${pct}%`}</span>
     </div>
   )
 }
