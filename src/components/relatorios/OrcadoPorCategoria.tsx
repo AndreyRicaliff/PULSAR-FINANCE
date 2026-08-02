@@ -6,6 +6,7 @@
  */
 import { dentroDoOrcado, pctExecucao, type LinhaCategoria, type OrcadoPorLado } from '@/lib/orcadoCategorias'
 import { brl } from '@/lib/money'
+import { AnelExecucao } from '../charts/AnelExecucao.tsx'
 
 interface Props {
   readonly receitas: OrcadoPorLado
@@ -62,36 +63,6 @@ function StatusOrcado({ natureza, pct }: { natureza: 'R' | 'P'; pct: number | nu
   const bom = dentroDoOrcado(natureza, pct)
   const rotulo = pct === 100 ? 'exato no orçado' : pct > 100 ? `${pct - 100}% acima do orçado` : `${100 - pct}% abaixo do orçado`
   return <p className={`mt-1 text-xs font-semibold ${bom ? 'text-accent' : 'text-danger'}`}>{rotulo}</p>
-}
-
-/** Anel de progresso (uma medida só — não é o Donut de composição). Arco trava em 100%; o número diz o real. */
-function AnelExecucao({ pct, natureza, rotulo }: { pct: number | null; natureza: 'R' | 'P'; rotulo: string }) {
-  const R = 26
-  const CIRC = 2 * Math.PI * R
-  const frac = pct === null ? 0 : Math.min(Math.max(pct, 0), 100) / 100
-  const cor = natureza === 'R' ? 'rgb(var(--c-accent))' : 'rgb(var(--c-danger))'
-  return (
-    <div className="relative h-16 w-16 shrink-0" role="img" aria-label={`${rotulo}: ${pct === null ? 'sem base' : `${pct}%`}`}>
-      <svg viewBox="0 0 64 64" className="h-16 w-16 -rotate-90">
-        <circle cx="32" cy="32" r={R} fill="none" strokeWidth="6" stroke="rgb(var(--c-surface2))" />
-        {frac > 0 ? (
-          <circle
-            cx="32"
-            cy="32"
-            r={R}
-            fill="none"
-            strokeWidth="6"
-            strokeLinecap="round"
-            stroke={cor}
-            strokeDasharray={`${frac * CIRC} ${CIRC}`}
-          />
-        ) : null}
-      </svg>
-      <span className="absolute inset-0 grid place-items-center text-xs font-bold tabular-nums">
-        {pct === null ? '—' : `${pct}%`}
-      </span>
-    </div>
-  )
 }
 
 function TabelaLado({ natureza, lado, nomeDe }: { natureza: 'R' | 'P'; lado: OrcadoPorLado; nomeDe: (codigo: string) => string }) {
