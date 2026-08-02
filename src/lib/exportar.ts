@@ -28,6 +28,9 @@ export function baixarCsv(nome: string, conteudo: string): void {
   const a = document.createElement('a')
   a.href = url
   a.download = nome
+  // Âncora no DOM e revoke adiado — revoke no mesmo tick do click pode abortar o download.
+  document.body.appendChild(a)
   a.click()
-  URL.revokeObjectURL(url)
+  a.remove()
+  setTimeout(() => URL.revokeObjectURL(url), 30_000)
 }
