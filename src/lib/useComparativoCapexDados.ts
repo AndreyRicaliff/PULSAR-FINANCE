@@ -3,6 +3,14 @@
  * alinhadas (CAPEX realizado, linhas de DFC/DRE via useMesesDe — MESMO pipeline das
  * Demonstrações, nada de fórmula paralela —, orçado por adesaoCapex e projeção).
  * O catálogo de séries comparáveis vive aqui: só entra série com fonte REAL no app.
+ *
+ * Duas simetrias garantidas (review 03/08):
+ * — FILIAL: o mesmo filtro de filial do CAPEX é aplicado às linhas de DFC/DRE — sem isso
+ *   a razão misturava numerador de uma filial com denominador consolidado.
+ * — REGIME: as séries da DFC são SEMPRE ancoradas pela baixa (regime caixa), igual ao
+ *   CAPEX — bucketizá-las pela emissão (regime competência do filtro) deslocava o mesmo
+ *   desembolso 2 meses no gráfico. A DRE segue o regime do filtro (competência é a
+ *   natureza dela) e carrega o aviso de base mista na UI.
  */
 import { useMemo } from 'react'
 import type { ResumoCapex } from '@/core/capex'
@@ -16,11 +24,12 @@ import {
   type BaseSerie,
   type SerieDesenho,
 } from '@/core/capexComparativo'
+import type { FiltroFilial } from '@/core/filial'
 import type { Conciliacao } from '@/core/modelo'
 import type { Intervalo, Regime } from '@/core/periodo'
 import type { MetodoProj } from '@/core/serie'
 import { adesaoCapex } from './capexOrcado'
-import { useMesesDe } from './useComparativo'
+import { useMesesDe, type MesComparativo } from './useComparativo'
 import type { LinhaOrcamento } from './useOrcamento'
 
 const COR_CAPEX = 'rgb(var(--c-accent))'
@@ -39,7 +48,7 @@ export type IdComparavel = 'dfc_inv' | 'dfc_op' | 'dfc_var' | 'dre_depreciacao' 
 export interface DadosComparativo {
   /** Meses REAIS (contínuos) do comparativo. */
   readonly eixo: readonly string[]
-  /** Eixo real + meses projetados (quando há projeção). */
+  /** Eixo real + meses projetados além dele (quando há projeção). */
   readonly eixoTotal: readonly string[]
   /** CAPEX primeiro, depois as selecionadas, projeção por último. */
   readonly series: readonly SerieDesenho[]
@@ -55,6 +64,7 @@ interface Entrada {
   readonly conc: Conciliacao
   readonly intervalo: Intervalo
   readonly regime: Regime
+  readonly filial: FiltroFilial
   readonly balde: BaldeCapex
   readonly selecionadas: readonly IdComparavel[]
   readonly horizonte: number
@@ -63,17 +73,18 @@ interface Entrada {
 }
 
 export function useComparativoCapexDados(e: Entrada): DadosComparativo {
-  const mesesDemo = useMesesDe(e.intervalo, e.regime)
+  // DFC sempre em caixa (mesma âncora do CAPEX); DRE no regime do filtro (natureza dela).
+  const mesesCaixa = useMesesDe(e.intervalo, 'caixa', e.filial)
+  const mesesRegime = useMesesDe(e.intervalo, e.regime, e.filial)
   return useMemo(() => {
-    // useMesesDe devolve janelas mensais fechadas; inicio null (janela aberta) não ocorre — filtrar cala o TS sem mascarar.
-    const demo = mesesDemo.flatMap((m) => (m.intervalo.inicio ? [{ mes: m.intervalo.inicio.slice(0, 7), dre: m.dre, dfc: m.dfc }] : []))
-    const eixo = eixoContinuo([...e.resumo.porMes.map((p) => p.mes), ...demo.map((d) => d.mes)])
+    const aMeses = (ms: readonly MesComparativo[], lado: 'dre' | 'dfc') =>
+      ms.flatMap((m) => (m.intervalo.inicio ? [{ mes: m.intervalo.inicio.slice(0, 7), linhas: lado === 'dre' ? m.dre : m.dfc }] : []))
+    const demoDfc = aMeses(mesesCaixa, 'dfc')
+    const demoDre = aMeses(mesesRegime, 'dre')
+    const eixo = eixoContinuo([...e.resumo.porMes.map((p) => p.mes), ...demoDfc.map((d) => d.mes), ...demoDre.map((d) => d.mes)])
 
     const sCapex = alinhar(eixo, serieCapex(e.resumo.porMes, e.balde), 0) as number[]
     const capexPeriodo = sCapex.reduce((s, v) => s + v, 0)
-
-    const porLinha = (id: string, tipo: 'dre' | 'dfc') =>
-      serieLinha(demo.map((d) => ({ mes: d.mes, linhas: tipo === 'dre' ? d.dre : d.dfc })), id)
 
     const valoresDe = (id: IdComparavel): (number | null)[] => {
       if (id === 'orcado') {
@@ -86,12 +97,15 @@ export function useComparativoCapexDados(e: Entrada): DadosComparativo {
           return a.investimento.previstoCentavos + a.manutencao.previstoCentavos
         })
       }
-      return alinhar(eixo, porLinha(id, id.startsWith('dre') ? 'dre' : 'dfc'), 0)
+      const fonte = id.startsWith('dre') ? demoDre : demoDfc
+      return alinhar(eixo, serieLinha(fonte, id), 0)
     }
 
-    const proj = e.horizonte > 0 ? projetarCapex(eixo, sCapex, e.metodo, e.horizonte) : { meses: [], valores: [] }
-    const eixoTotal = [...eixo, ...proj.meses]
-    const caudaNula = proj.meses.map(() => null)
+    const proj = projetarCapex(eixo, sCapex, e.metodo, e.horizonte)
+    const ultimoReal = eixo[eixo.length - 1] ?? ''
+    const mesesExtras = proj.meses.filter((m) => m > ultimoReal)
+    const eixoTotal = [...eixo, ...mesesExtras]
+    const caudaNula = mesesExtras.map(() => null)
 
     const series: SerieDesenho[] = [
       { id: 'capex', rotulo: 'CAPEX realizado', cor: COR_CAPEX, valores: [...sCapex, ...caudaNula] },
@@ -101,9 +115,11 @@ export function useComparativoCapexDados(e: Entrada): DadosComparativo {
         .map((c) => ({ id: c.id, rotulo: c.rotulo, cor: c.cor, valores: [...valoresDe(c.id), ...caudaNula] })),
     ]
     if (proj.meses.length > 0) {
-      // Conecta no último mês real pra linha não nascer solta no ar.
-      const valores: (number | null)[] = eixo.map((_, i) => (i === eixo.length - 1 ? (sCapex[i] ?? null) : null))
-      series.push({ id: 'capex-proj', rotulo: 'CAPEX · projeção', cor: COR_CAPEX, tracejada: true, valores: [...valores, ...proj.valores] })
+      // Conecta na âncora (último mês COM atividade) — meses projetados podem cair DENTRO
+      // do eixo real (período que segue depois da última baixa de CAPEX).
+      const projPorMes = new Map(proj.meses.map((m, i) => [m, proj.valores[i] ?? null]))
+      const valores = eixoTotal.map((mes) => (mes === proj.ancora ? (sCapex[eixo.indexOf(mes)] ?? null) : (projPorMes.get(mes) ?? null)))
+      series.push({ id: 'capex-proj', rotulo: 'CAPEX · projeção', cor: COR_CAPEX, tracejada: true, valores })
     }
 
     // Razões sobre o PERÍODO REAL (projeção fica fora). Sinal honesto: o fluxo de
@@ -115,7 +131,7 @@ export function useComparativoCapexDados(e: Entrada): DadosComparativo {
     const razaoDep = somaDep !== 0 ? Math.round((capexPeriodo / Math.abs(somaDep)) * 100) : null
 
     return { eixo, eixoTotal, series, capexPeriodo, razaoInv, razaoDep }
-  }, [mesesDemo, e.resumo, e.conc, e.balde, e.selecionadas, e.horizonte, e.metodo, e.orcMeses])
+  }, [mesesCaixa, mesesRegime, e.resumo, e.conc, e.balde, e.selecionadas, e.horizonte, e.metodo, e.orcMeses])
 }
 
 const somar = (vs: readonly (number | null)[]): number => vs.reduce((s: number, v) => s + (v ?? 0), 0)

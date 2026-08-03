@@ -40,8 +40,9 @@ describe('serieLinha + alinhar', () => {
 })
 
 describe('projetarCapex', () => {
-  it('linear estende a tendência e nomeia os meses seguintes', () => {
+  it('linear estende a tendência, ancora no último mês ativo e nomeia os seguintes', () => {
     const p = projetarCapex(['2026-01', '2026-02', '2026-03'], [100, 200, 300], 'linear', 2)
+    expect(p.ancora).toBe('2026-03')
     expect(p.meses).toEqual(['2026-04', '2026-05'])
     expect(p.valores).toEqual([400, 500])
   })
@@ -49,8 +50,19 @@ describe('projetarCapex', () => {
     const p = projetarCapex(['2026-01', '2026-02', '2026-03'], [90, 120, 150], 'media-movel', 1)
     expect(p.valores).toEqual([120])
   })
-  it('sem horizonte ou com série curta devolve vazio (projeção nunca é fabricada)', () => {
+  it('zeros de gap-fill na cauda NÃO entram no ajuste — a âncora recua pro último mês ativo', () => {
+    const p = projetarCapex(['2026-01', '2026-02', '2026-03', '2026-04', '2026-05'], [90, 120, 150, 0, 0], 'media-movel', 2)
+    expect(p.ancora).toBe('2026-03')
+    expect(p.meses).toEqual(['2026-04', '2026-05'])
+    expect(p.valores).toEqual([120, 120]) // média de 90/120/150 — não de 150/0/0
+  })
+  it('zeros à frente também ficam fora do ajuste', () => {
+    const p = projetarCapex(['2026-01', '2026-02', '2026-03'], [0, 100, 200], 'linear', 1)
+    expect(p.valores).toEqual([300])
+  })
+  it('sem horizonte, sem atividade ou com base curta devolve vazio (projeção nunca é fabricada)', () => {
     expect(projetarCapex(['2026-01'], [100], 'linear', 3).meses).toEqual([])
     expect(projetarCapex(['2026-01', '2026-02'], [1, 2], 'linear', 0).meses).toEqual([])
+    expect(projetarCapex(['2026-01', '2026-02'], [0, 0], 'linear', 3).meses).toEqual([])
   })
 })

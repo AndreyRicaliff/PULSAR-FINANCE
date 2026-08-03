@@ -53,6 +53,7 @@ export function ComparativoCapexPanel() {
     conc: r.conc,
     intervalo: r.periodo.intervalo,
     regime: r.periodo.regime,
+    filial: r.periodo.filial,
     balde,
     selecionadas,
     horizonte: Number(horizonte),
@@ -71,10 +72,12 @@ export function ComparativoCapexPanel() {
   const abrirMes = (mes: string) => {
     const noPorId = new Map(r.conc.estrutura.map((n) => [n.id, n]))
     setDrill({
-      titulo: `CAPEX · ${rotuloMes(mes)}`,
+      // O drill respeita o BALDE selecionado — o modal tem que fechar com a célula clicada.
+      titulo: `CAPEX${balde === 'total' ? '' : ` · ${ROTULO_BALDE[balde]}`} · ${rotuloMes(mes)}`,
       movimentos: caixa.filter((m) => {
         const no = noPorId.get(r.conc.mapa[m.categoria] ?? '')
-        if (!no || !capexDoNo(no, no.paiId ? noPorId.get(no.paiId) : undefined)) return false
+        const tipo = no ? capexDoNo(no, no.paiId ? noPorId.get(no.paiId) : undefined) : undefined
+        if (!tipo || (balde !== 'total' && tipo !== balde)) return false
         return (dataDoMovimento(m, 'caixa') ?? '').slice(0, 7) === mes
       }),
     })
@@ -148,12 +151,16 @@ export function ComparativoCapexPanel() {
                   <button
                     key={c.id}
                     type="button"
-                    disabled={semFonte || lotado}
+                    // Chip SELECIONADO nunca trava: precisa continuar clicável pra desmarcar
+                    // (série ficava presa ao trocar pra cliente sem orçamento — review 03/08).
+                    disabled={(semFonte || lotado) && !sel}
                     onClick={() => alternar(c.id)}
                     aria-pressed={sel}
                     title={
                       semFonte
-                        ? `O ${provedor.nome} não expõe módulo de orçamento — série sem fonte para este cliente.`
+                        ? sel
+                          ? `O ${provedor.nome} não expõe módulo de orçamento — clique para remover a série sem fonte.`
+                          : `O ${provedor.nome} não expõe módulo de orçamento — série sem fonte para este cliente.`
                         : lotado
                           ? `Até ${MAX_SELECIONADAS} séries além do CAPEX — desmarque uma para trocar.`
                           : undefined
@@ -169,6 +176,10 @@ export function ComparativoCapexPanel() {
                 )
               })}
             </div>
+            <p className="text-xs text-muted">
+              Séries da DFC são ancoradas pela <strong>baixa</strong> (caixa), igual ao CAPEX — independem do
+              regime do filtro. Projeção é sempre estimativa (tracejada), ajustada só nos meses com atividade.
+            </p>
             {temCompetencia ? (
               <p className="rounded-card border border-warn/40 bg-warn/10 p-3 text-xs text-warn">
                 Base mista: CAPEX é <strong>caixa</strong> (baixas) e a Depreciação da DRE é{' '}

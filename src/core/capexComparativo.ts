@@ -65,21 +65,36 @@ export function alinhar(eixo: readonly string[], porMes: ReadonlyMap<string, num
 }
 
 export interface ProjecaoCapex {
-  /** Meses NOVOS além do eixo real. */
+  /** Meses projetados, consecutivos a partir da âncora (podem cair DENTRO do eixo real). */
   readonly meses: readonly string[]
-  /** Valores projetados, um por mês novo (sempre estimativa — nunca dado real). */
+  /** Valores projetados, um por mês (sempre estimativa — nunca dado real). */
   readonly valores: readonly number[]
+  /** Último mês COM atividade — onde a linha tracejada conecta na real. null = sem base. */
+  readonly ancora: string | null
 }
 
-/** Projeção do CAPEX: estende a série real (já alinhada, gaps = 0) por `horizonte` meses. */
+const SEM_PROJECAO: ProjecaoCapex = { meses: [], valores: [], ancora: null }
+
+/**
+ * Projeção do CAPEX sobre a janela de ATIVIDADE (primeiro..último mês com valor ≠ 0):
+ * zeros de preenchimento do período NÃO entram no ajuste — senão a cauda vazia de um
+ * período largo projeta zero pra um CAPEX recorrente, e a mesma história de CAPEX geraria
+ * projeções diferentes conforme o recorte de visualização.
+ */
 export function projetarCapex(eixo: readonly string[], valores: readonly number[], metodo: MetodoProj, horizonte: number): ProjecaoCapex {
-  const ultimo = eixo[eixo.length - 1]
-  if (!ultimo || valores.length < 2 || horizonte <= 0) return { meses: [], valores: [] }
+  if (horizonte <= 0) return SEM_PROJECAO
+  const ini = valores.findIndex((v) => v !== 0)
+  if (ini === -1) return SEM_PROJECAO
+  let fim = valores.length - 1
+  while (fim > ini && valores[fim] === 0) fim--
+  const base = valores.slice(ini, fim + 1)
+  const ancora = eixo[fim]
+  if (!ancora || base.length < 2) return SEM_PROJECAO
   const meses: string[] = []
-  let mes = ultimo
+  let mes = ancora
   for (let k = 0; k < horizonte; k++) {
     mes = proximoMes(mes)
     meses.push(mes)
   }
-  return { meses, valores: projetarValores(valores, metodo, horizonte) }
+  return { meses, valores: projetarValores(base, metodo, horizonte), ancora }
 }
