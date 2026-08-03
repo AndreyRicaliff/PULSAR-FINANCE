@@ -30,10 +30,11 @@ export interface ResumoCapex {
   readonly temNoMarcado: boolean
 }
 
-/** capex efetivo do nó: meta própria SUBSTITUI a da raiz (mesma regra de demonstracoesDoNo). */
+/** capex efetivo do nó: meta própria SUBSTITUI a da raiz (mesma regra de demonstracoesDoNo).
+ * `null` (opt-out explícito) normaliza para undefined — fora do indicador. */
 export function capexDoNo(no: No, raiz: No | undefined): TipoCapex | undefined {
   const efetiva: MetaContabil | undefined = no.meta ?? raiz?.meta
-  return efetiva?.capex
+  return efetiva?.capex ?? undefined
 }
 
 export function resumoCapex(movs: readonly Movimento[], conc: Conciliacao): ResumoCapex {

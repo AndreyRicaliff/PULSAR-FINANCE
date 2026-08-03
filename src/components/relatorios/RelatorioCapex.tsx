@@ -33,6 +33,22 @@ export function RelatorioCapex() {
     return Object.keys(orc.meses).filter((m) => (!ini || m >= ini) && (!fim || m <= fim))
   }, [orc.meses, periodo.intervalo])
   const adesao = useMemo(() => adesaoCapex(orc.meses, mesesAlvo, conc), [orc.meses, mesesAlvo, conc])
+  // Período completo: um mês AO LADO do outro (pedido 02/08), não tudo somado.
+  const adesaoMeses = useMemo(
+    () =>
+      mesesAlvo
+        .slice()
+        .sort()
+        .map((mes) => ({ mes, a: adesaoCapex(orc.meses, [mes], conc) }))
+        .filter(
+          ({ a }) =>
+            a.investimento.previstoCentavos > 0 ||
+            a.investimento.realizadoCentavos > 0 ||
+            a.manutencao.previstoCentavos > 0 ||
+            a.manutencao.realizadoCentavos > 0,
+        ),
+    [orc.meses, mesesAlvo, conc],
+  )
 
   const total = resumo.investimentoCentavos + resumo.manutencaoCentavos
   const porGrupo = useMemo(() => resumo.porNo.filter((n) => n.valorCentavos > 0), [resumo.porNo])
@@ -76,10 +92,13 @@ export function RelatorioCapex() {
           </section>
 
           {temAdesao ? (
-            <section className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <CardAdesao rotulo="Adesão · Investimento" lado={adesao.investimento} cor="rgb(var(--c-accent))" />
-              <CardAdesao rotulo="Adesão · Manutenção" lado={adesao.manutencao} cor="rgb(var(--c-warn))" />
-            </section>
+            <>
+              <section className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <CardAdesao rotulo="Adesão · Investimento" lado={adesao.investimento} cor="rgb(var(--c-accent))" />
+                <CardAdesao rotulo="Adesão · Manutenção" lado={adesao.manutencao} cor="rgb(var(--c-warn))" />
+              </section>
+              {adesaoMeses.length > 1 ? <AdesaoMensal meses={adesaoMeses} /> : null}
+            </>
           ) : (
             <p className="rounded-card border border-warn/40 bg-warn/10 p-4 text-sm text-warn">
               {temOrcamento(ativo.provedor)
@@ -151,6 +170,68 @@ function CardAdesao({ rotulo, lado, cor }: { rotulo: string; lado: AdesaoLado; c
       </div>
       <AnelExecucao pct={pct} natureza="P" cor={cor} rotulo={`${rotulo}: % do orçado`} />
     </div>
+  )
+}
+
+/** Adesão mês a mês: um mês AO LADO do outro (período completo não soma tudo num anel só). */
+function AdesaoMensal({ meses }: { meses: readonly { mes: string; a: { investimento: AdesaoLado; manutencao: AdesaoLado } }[] }) {
+  const rotuloMesCol = (mes: string): string => `${mes.slice(5, 7)}/${mes.slice(2, 4)}`
+  return (
+    <section className="flex flex-col gap-3 rounded-card border border-bd bg-surface p-4">
+      <h3 className="text-sm font-semibold uppercase tracking-wide text-muted">Adesão mês a mês · % do orçado</h3>
+      <div className="overflow-x-auto">
+        <table className="w-full text-xs">
+          <thead className="text-left uppercase tracking-wide text-muted">
+            <tr>
+              <th className="py-1.5 pr-3 font-medium">Balde</th>
+              {meses.map(({ mes }) => (
+                <th key={mes} className="min-w-[8.5rem] border-l border-bd/40 px-3 py-1.5 text-center font-semibold tabular-nums">
+                  {rotuloMesCol(mes)}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            <LinhaAdesaoMes rotulo="Investimento" corBarra="bg-accent" corTexto="text-accent" meses={meses} lado={(a) => a.investimento} />
+            <LinhaAdesaoMes rotulo="Manutenção" corBarra="bg-warn" corTexto="text-warn" meses={meses} lado={(a) => a.manutencao} />
+          </tbody>
+        </table>
+      </div>
+    </section>
+  )
+}
+
+function LinhaAdesaoMes({
+  rotulo,
+  corBarra,
+  corTexto,
+  meses,
+  lado,
+}: {
+  rotulo: string
+  corBarra: string
+  corTexto: string
+  meses: readonly { mes: string; a: { investimento: AdesaoLado; manutencao: AdesaoLado } }[]
+  lado: (a: { investimento: AdesaoLado; manutencao: AdesaoLado }) => AdesaoLado
+}) {
+  return (
+    <tr className="border-t border-bd/50">
+      <td className={`whitespace-nowrap py-2 pr-3 font-medium ${corTexto}`}>{rotulo}</td>
+      {meses.map(({ mes, a }) => {
+        const l = lado(a)
+        const pct = pctExecucao(l.realizadoCentavos, l.previstoCentavos)
+        return (
+          <td key={mes} className="border-l border-bd/40 px-3 py-2">
+            <div className="flex items-center gap-1.5" title={`${brl(l.realizadoCentavos)} realizados de ${brl(l.previstoCentavos)} orçados`}>
+              <div className="h-2 flex-1 overflow-hidden rounded-full bg-surface2">
+                {pct !== null ? <div className={`h-full rounded-full ${corBarra}`} style={{ width: `${Math.min(Math.max(pct, 0), 100)}%` }} /> : null}
+              </div>
+              <span className="w-9 shrink-0 text-right tabular-nums text-muted">{pct === null ? '—' : `${pct}%`}</span>
+            </div>
+          </td>
+        )
+      })}
+    </tr>
   )
 }
 
