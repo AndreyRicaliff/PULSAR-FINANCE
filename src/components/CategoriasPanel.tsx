@@ -121,9 +121,11 @@ function Tabela({ categorias, profundidades }: { categorias: readonly Categoria[
 }
 
 function Linha({ c, nivel }: { c: Categoria; nivel: number }) {
-  // Etiqueta de estado embutida no nome pelo BPO ("(EXCLUÍDA)") vira pill; o nome
-  // aparece limpo — espelho continua fiel: o cru segue no title.
-  const { limpo, estado } = estadoDoNome(c.descricao)
+  // Estado ESTRUTURAL primeiro (ativa=false é como a Omie marca exclusão de verdade —
+  // 278 casos em prod 03/08); marcador no nome cobre quem etiqueta manualmente.
+  const doNome = estadoDoNome(c.descricao)
+  const limpo = doNome.limpo
+  const estado = doNome.estado ?? (c.ativa === false ? 'inativo' : undefined)
   return (
     <tr className="border-b border-bd/60 last:border-0 hover:bg-surface2/50">
       <td className="px-4 py-2.5 font-mono text-xs tabular-nums text-muted">{codigoExibivel(c.codigo) || '—'}</td>

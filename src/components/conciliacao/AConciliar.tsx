@@ -5,6 +5,7 @@ import { PREMISSAS } from '@/core/matriz-classificacao'
 import type { No } from '@/core/modelo'
 import { brl } from '@/lib/money'
 import { Grip } from '../demonstracao/atomos.tsx'
+import { EtiquetaEstado } from '../EtiquetaEstado.tsx'
 import { DropZone } from './DropZone.tsx'
 import { EtiquetaFluxo } from './EtiquetaFluxo.tsx'
 import type { ItemConc } from './tipos'
@@ -140,6 +141,7 @@ function Linha({ item, opcoes, sugerir, nomePorNo, onMapear, onContextItem }: Pr
       <td className="px-3 py-2">
         <div className="flex items-center gap-2">
           <span className="truncate">{item.titulo}</span>
+          {item.estado ? <EtiquetaEstado estado={item.estado} /> : null}
           <EtiquetaFluxo natureza={item.natureza} />
         </div>
         {item.qtd ? <div className="text-xs text-muted">{item.qtd} mov.</div> : null}
