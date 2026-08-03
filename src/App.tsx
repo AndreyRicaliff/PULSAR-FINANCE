@@ -20,6 +20,7 @@ import { BoasVindas } from './components/BoasVindas.tsx'
 import { Sidebar, ROTULO_ABA, type Aba } from './components/Sidebar.tsx'
 import { Topbar } from './components/Topbar.tsx'
 import { Carregando, Login } from './components/Login.tsx'
+import { RecuperarSenha } from './components/RecuperarSenha.tsx'
 import { CadastroPanel } from './components/CadastroPanel.tsx'
 import { InicioPanel } from './components/InicioPanel.tsx'
 import { CategoriasPanel } from './components/CategoriasPanel.tsx'
@@ -65,6 +66,9 @@ export function App() {
   if (AUTH_ATIVO) {
     if (auth.status === 'carregando') return <Carregando />
     if (auth.status === 'deslogado') return <Login />
+    // Link de convite/recuperação: definir a senha vem ANTES de qualquer gate — updateUser
+    // é Auth API (não passa por RLS), então funciona sem o 2º fator.
+    if (auth.status === 'recuperar-senha') return <RecuperarSenha email={auth.email} />
     // O 2º fator vem ANTES de ler o papel: sem ele a RLS devolve zero em painel_acessos,
     // e o app cairia em "sem acesso" em vez de pedir o código.
     if (dois.estado === 'checando') return <Carregando />

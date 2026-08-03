@@ -16,6 +16,8 @@ export type Auth =
   | { readonly status: 'carregando' }
   | { readonly status: 'deslogado' }
   | { readonly status: 'logado'; readonly session: Session; readonly email: string }
+  /** Chegou pelo link de convite/recuperação: definir a nova senha ANTES de entrar no app. */
+  | { readonly status: 'recuperar-senha'; readonly session: Session; readonly email: string }
 
 function avaliar(session: Session | null): Auth {
   if (!session) return { status: 'deslogado' }
@@ -24,17 +26,27 @@ function avaliar(session: Session | null): Auth {
 
 export function useAuth(): Auth {
   const [auth, setAuth] = useState<Auth>({ status: AUTH_ATIVO ? 'carregando' : 'deslogado' })
+  // O hash do link (#…type=recovery) existe antes do supabase-js processá-lo — detectar no
+  // boot cobre a corrida com o evento PASSWORD_RECOVERY (sem isso o convite caía no gate 2FA).
+  const [recuperando, setRecuperando] = useState<boolean>(
+    () => typeof window !== 'undefined' && /type=recovery/.test(window.location.hash),
+  )
 
   useEffect(() => {
     if (!supabase || !AUTH_ATIVO) {
       setAuth({ status: 'deslogado' })
       return
     }
-    supabase.auth.getSession().then(({ data }) => setAuth(avaliar(data.session)))
-    const { data } = supabase.auth.onAuthStateChange((_e, session) => setAuth(avaliar(session)))
+    // Assinar ANTES do getSession: o evento PASSWORD_RECOVERY dispara no processamento do hash.
+    const { data } = supabase.auth.onAuthStateChange((evento, session) => {
+      if (evento === 'PASSWORD_RECOVERY') setRecuperando(true)
+      setAuth(avaliar(session))
+    })
+    supabase.auth.getSession().then(({ data: d }) => setAuth((a) => (a.status === 'carregando' ? avaliar(d.session) : a)))
     return () => data.subscription.unsubscribe()
   }, [])
 
+  if (recuperando && auth.status === 'logado') return { status: 'recuperar-senha', session: auth.session, email: auth.email }
   return auth
 }
 
