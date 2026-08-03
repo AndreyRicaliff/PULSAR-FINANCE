@@ -713,59 +713,75 @@ async function gravarStatus(env, chave, status) {
 }
 
 // Autorização: verify_jwt só prova que o JWT é válido — NÃO escopa o chamador. Sem este
-// gate, qualquer conta autenticada (inclusive papel 'cliente' de outra empresa) dispararia
-// sync/overwrite de QUALQUER tenant com service_role (revisão 2026-08-02). Mesmo padrão do
-// manage-user: papel 'operador' em painel_acessos. Bearer com o próprio service_role
-// (chamada máquina-a-máquina: cron/CLI) passa direto.
-async function chamadorAutorizado(env, req) {
+// gate, qualquer conta autenticada dispararia sync/overwrite de QUALQUER tenant com
+// service_role (revisão 2026-08-02). Escopo por papel (pedido 03/08 — "qualquer conta
+// pode sincronizar"): operador sincroniza qualquer tenant; papel 'cliente' sincroniza SÓ
+// o tenant a que está vinculado (fail-closed) e respeita cooldown. Bearer com o próprio
+// service_role (máquina-a-máquina: cron/CLI) passa direto.
+async function chamadorAutorizado(env, req, clienteId) {
+  const NEGADO = { ok: false }
   const token = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '')
-  if (!token) return false
-  if (token === env.SUPABASE_SERVICE_ROLE_KEY) return true
+  if (!token) return NEGADO
+  if (token === env.SUPABASE_SERVICE_ROLE_KEY) return { ok: true, operador: true }
   const uRes = await fetch(`${env.SUPABASE_URL}/auth/v1/user`, {
     headers: { apikey: env.SUPABASE_ANON_KEY ?? '', Authorization: `Bearer ${token}` },
   })
-  if (!uRes.ok) return false
+  if (!uRes.ok) return NEGADO
   const user = await uRes.json()
-  if (!user?.id) return false
+  if (!user?.id) return NEGADO
   const aRes = await fetch(
-    `${env.SUPABASE_URL}/rest/v1/painel_acessos?user_id=eq.${encodeURIComponent(user.id)}&papel=eq.operador&select=id&limit=1`,
+    `${env.SUPABASE_URL}/rest/v1/painel_acessos?user_id=eq.${encodeURIComponent(user.id)}&select=papel,cliente_id`,
     { headers: { apikey: env.SUPABASE_SERVICE_ROLE_KEY, Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}` } },
   )
-  if (!aRes.ok) return false
+  if (!aRes.ok) return NEGADO
   const rows = await aRes.json()
-  if (!Array.isArray(rows) || rows.length === 0) return false
+  if (!Array.isArray(rows) || rows.length === 0) return NEGADO
+  const operador = rows.some((r) => r?.papel === 'operador')
+  const doProprioTenant = rows.some((r) => r?.papel === 'cliente' && String(r?.cliente_id ?? '') === String(clienteId ?? ''))
+  if (!operador && !doProprioTenant) return NEGADO
 
-  // 2º fator (auditoria 03/08): sync sobrescreve o espelho de um tenant inteiro — senha de
-  // operador vazada, sem o código, não dispara. Bearer service_role (cron) já retornou acima.
+  // 2º fator (auditoria 03/08): sync sobrescreve o espelho de um tenant inteiro — senha
+  // vazada, sem o código do PRÓPRIO e-mail, não dispara. Service_role (cron) já retornou.
   let sessionId = ''
   try {
     sessionId = String(JSON.parse(atob(token.split('.')[1] ?? '')).session_id ?? '')
   } catch {
-    return false
+    return NEGADO
   }
-  if (!sessionId) return false
+  if (!sessionId) return NEGADO
   const sRes = await fetch(
     `${env.SUPABASE_URL}/rest/v1/painel_sessoes_2fa?session_id=eq.${encodeURIComponent(sessionId)}&select=session_id&limit=1`,
     { headers: { apikey: env.SUPABASE_SERVICE_ROLE_KEY, Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}` } },
   )
-  if (!sRes.ok) return false
+  if (!sRes.ok) return NEGADO
   const s = await sRes.json()
-  return Array.isArray(s) && s.length > 0
+  if (!Array.isArray(s) || s.length === 0) return NEGADO
+  return { ok: true, operador }
 }
+
+// Conta de cliente não metralha a API do ERP: no máximo 1 sync a cada N minutos por tenant.
+const COOLDOWN_CLIENTE_MIN = 10
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors })
   try {
     const env = Deno.env.toObject()
-    // 200 com payload de erro: o supabase-js engole o corpo de respostas non-2xx (contrato do projeto).
-    if (!(await chamadorAutorizado(env, req))) {
-      return new Response(JSON.stringify({ error: 'Apenas operador pode sincronizar' }), { headers: { ...cors, 'Content-Type': 'application/json' } })
-    }
     const { clienteId, desde } = await req.json()
     if (!clienteId) throw new Error('clienteId obrigatório')
+    // 200 com payload de erro: o supabase-js engole o corpo de respostas non-2xx (contrato do projeto).
+    const quem = await chamadorAutorizado(env, req, clienteId)
+    if (!quem.ok) {
+      return new Response(JSON.stringify({ error: 'Conta sem permissão para sincronizar esta empresa' }), { headers: { ...cors, 'Content-Type': 'application/json' } })
+    }
     const chave = `cliente:${clienteId}:movimentos-raw`
     const chaveCad = `cliente:${clienteId}:cadastros-raw`
     const chaveHist = `cliente:${clienteId}:sync-historico`
+    if (!quem.operador) {
+      const ultimo = ((await lerDados(env, chaveHist))?.entradas ?? [])[0]?.em
+      if (ultimo && Date.now() - new Date(ultimo).getTime() < COOLDOWN_CLIENTE_MIN * 60_000) {
+        return new Response(JSON.stringify({ error: `Sincronizado há pouco — os dados já são recentes. Tente de novo em ${COOLDOWN_CLIENTE_MIN} minutos.` }), { headers: { ...cors, 'Content-Type': 'application/json' } })
+      }
+    }
     const chaveOrc = `cliente:${clienteId}:orcamento-raw`
     const chaveTit = `cliente:${clienteId}:titulos-raw`
     let cred

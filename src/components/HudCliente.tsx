@@ -3,16 +3,18 @@
  * Só delega às funções JÁ existentes do painel (useResultado → RelatorioDRE/DFC + motor de drill-down);
  * zero lógica de negócio nova, zero criação de relatório, sem a camada semântica do operador.
  */
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { separarNeutros } from '@/core/neutros'
 import type { Movimento } from '@/core/movimento'
 import { rotuloIntervalo } from '@/core/periodo'
 import { sair } from '@/lib/auth'
+import { useCadastros } from '@/lib/cadastros'
 import { useClientes } from '@/lib/clientes'
 import { FilialSelecaoProvider } from '@/lib/filialSelecao'
 import { useOverrides } from '@/lib/overrides'
 import { PeriodoProvider } from '@/lib/periodo'
 import { SomenteLeituraProvider } from '@/lib/somenteLeitura'
+import { useSync } from '@/lib/useSync'
 import { useTema } from '@/lib/useTema'
 import { useMovimentos } from '@/lib/movimentos'
 import { AprovacoesCliente } from './AprovacoesCliente.tsx'
@@ -132,6 +134,7 @@ function Kiosk() {
           ))}
         </nav>
         <div className="flex flex-col gap-2 border-t border-bd p-3">
+          <BotaoAtualizarDados />
           <button
             type="button"
             onClick={() => setModalSenha(true)}
@@ -161,6 +164,40 @@ function Kiosk() {
         <Corpo vista={vista} />
       </main>
       {modalSenha ? <DefinirSenha onFechar={() => setModalSenha(false)} /> : null}
+    </div>
+  )
+}
+
+/**
+ * Sync sob demanda pelo PRÓPRIO cliente (pedido 03/08 — "qualquer conta sincroniza").
+ * A edge escopa por vínculo (cliente só o próprio tenant) e aplica cooldown de 10 min;
+ * aqui é só o disparo + recarga das fontes na transição rodando→ok.
+ */
+function BotaoAtualizarDados() {
+  const { ativo } = useClientes()
+  const sync = useSync(ativo.id, ativo.nome)
+  const { recarregar } = useMovimentos()
+  const { recarregar: recarregarCadastros } = useCadastros()
+  const rodando = sync.status === 'rodando'
+  const statusAnterior = useRef(sync.status)
+  useEffect(() => {
+    if (statusAnterior.current === 'rodando' && sync.status === 'ok') {
+      void recarregar()
+      void recarregarCadastros()
+    }
+    statusAnterior.current = sync.status
+  }, [sync.status, recarregar, recarregarCadastros])
+  return (
+    <div className="flex flex-col gap-1">
+      <button
+        type="button"
+        onClick={() => void sync.sincronizar()}
+        disabled={rodando}
+        className="fx-press w-full rounded-lg border border-bd bg-surface2 px-3 py-2 text-sm text-muted transition-colors hover:border-primary hover:text-text disabled:opacity-60"
+      >
+        {rodando ? 'Atualizando…' : 'Atualizar dados'}
+      </button>
+      {sync.status === 'erro' ? <p className="px-1 text-[11px] leading-snug text-danger">{sync.msg}</p> : null}
     </div>
   )
 }
