@@ -34,6 +34,8 @@ export interface LancamentosApi {
   /** Já convertidos ao canônico e com o piso de dados do tenant aplicado. */
   readonly movimentosManuais: readonly Movimento[]
   readonly carregando: boolean
+  /** Falha de LEITURA — a lista pode estar incompleta; a UI avisa (nunca vazio silencioso). */
+  readonly erro: string | null
   readonly criar: (novo: NovoLancamento) => Promise<void>
   readonly atualizar: (id: string, mudancas: Partial<NovoLancamento>) => Promise<void>
   /** Soft-delete — a tabela não tem DELETE nem por policy nem por grant. */
@@ -77,6 +79,7 @@ export function LancamentosProvider({ children }: { children: ReactNode }) {
   const { ativo } = useClientes()
   const [lancamentos, setLancamentos] = useState<readonly LancamentoManual[]>([])
   const [carregando, setCarregando] = useState(true)
+  const [erro, setErro] = useState<string | null>(null)
 
   const recarregar = useCallback(async () => {
     if (!supabase) return setCarregando(false)
@@ -87,8 +90,15 @@ export function LancamentosProvider({ children }: { children: ReactNode }) {
       .is('removido_em', null)
       .order('data', { ascending: false })
       .order('criado_em', { ascending: false })
-    if (error) console.error('[lancamentos] erro ao carregar:', error.message)
-    else setLancamentos((data as Linha[]).map(mapear))
+    // Falha de leitura NÃO pode virar lista vazia silenciosa (revisão 03/08): lista []
+    // com cara de "sem lançamentos" subtrai receita do resultado sem ninguém perceber.
+    if (error) {
+      console.error('[lancamentos] erro ao carregar:', error.message)
+      setErro(`Não foi possível carregar os lançamentos manuais (${error.message}) — os totais podem estar incompletos.`)
+    } else {
+      setErro(null)
+      setLancamentos((data as Linha[]).map(mapear))
+    }
     setCarregando(false)
   }, [ativo.id])
 
@@ -96,6 +106,7 @@ export function LancamentosProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     setLancamentos([])
     setCarregando(true)
+    setErro(null)
     void recarregar()
   }, [ativo.id, recarregar])
 
@@ -158,8 +169,8 @@ export function LancamentosProvider({ children }: { children: ReactNode }) {
   )
 
   const valor = useMemo(
-    () => ({ lancamentos, movimentosManuais, carregando, criar, atualizar, remover, recarregar }),
-    [lancamentos, movimentosManuais, carregando, criar, atualizar, remover, recarregar],
+    () => ({ lancamentos, movimentosManuais, carregando, erro, criar, atualizar, remover, recarregar }),
+    [lancamentos, movimentosManuais, carregando, erro, criar, atualizar, remover, recarregar],
   )
   return <Ctx.Provider value={valor}>{children}</Ctx.Provider>
 }
