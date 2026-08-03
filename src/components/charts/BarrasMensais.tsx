@@ -9,6 +9,8 @@ import { useState } from 'react'
 import type { BarraMes } from '@/lib/graficos'
 import { brl, fracVariacao, pctVariacao } from '@/lib/money'
 import { TipLinha, TipTitulo, useTooltipGrafico } from '@/lib/tooltipGrafico'
+import { useZoomGrafico } from '@/lib/zoomGrafico'
+import { ControlesZoom } from './ControlesZoom.tsx'
 
 const BAR_W = 12
 const GAP = 12
@@ -33,6 +35,7 @@ export function BarrasMensais({ dados }: { dados: readonly BarraMes[] }) {
   const mediaSaida = dados.reduce((s, d) => s + d.saida, 0) / dados.length
   const PASSO = Math.max(PASSO_MIN, Math.min(72, Math.floor((LARGURA_ALVO - PAD_L - PAD_R) / Math.max(1, dados.length))))
   const largura = PAD_L + dados.length * PASSO - (PASSO - BAR_W) + PAD_R
+  const zoom = useZoomGrafico(largura, H)
   const xCentro = (i: number) => PAD_L + i * PASSO + BAR_W / 2
   const hDe = (v: number) => (v / max) * H_LADO
 
@@ -41,18 +44,26 @@ export function BarrasMensais({ dados }: { dados: readonly BarraMes[] }) {
 
   return (
     <div className="flex flex-col gap-3">
-      <Legenda mediaEntrada={mediaEntrada} mediaSaida={mediaSaida} />
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Legenda mediaEntrada={mediaEntrada} mediaSaida={mediaSaida} />
+        <ControlesZoom zoom={zoom} />
+      </div>
       <div className="pb-1">
         {/* ALTURA FIXA + preserveAspectRatio: com w-full e h-auto, poucos meses deixavam o
             viewBox mais ALTO que largo e o gráfico explodia pra ~1800px (report 03/08).
             Assim ele preenche a largura, mantém a proporção e, no modal (que força a altura
             por CSS), cresce junto sem deformar. */}
         <svg
-          viewBox={`0 0 ${largura} ${H}`}
+          viewBox={zoom.viewBox}
           width="100%"
           height={H}
           preserveAspectRatio="xMidYMid meet"
-          className="block"
+          className={`block touch-none ${zoom.ativo ? (zoom.arrastando ? 'cursor-grabbing' : 'cursor-grab') : ''}`}
+          onWheel={zoom.aoRolar}
+          onPointerDown={zoom.aoArrastarInicio}
+          onPointerMove={zoom.aoArrastar}
+          onPointerUp={zoom.aoArrastarFim}
+          onPointerCancel={zoom.aoArrastarFim}
           onMouseLeave={() => { setAtivo(null); tip.esconder() }}
         >
           <defs>

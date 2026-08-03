@@ -9,6 +9,8 @@ import { useState } from 'react'
 import type { CapexMes } from '@/core/capex'
 import { brl } from '@/lib/money'
 import { TipLinha, TipTitulo, useTooltipGrafico } from '@/lib/tooltipGrafico'
+import { useZoomGrafico } from '@/lib/zoomGrafico'
+import { ControlesZoom } from './ControlesZoom.tsx'
 
 const BAR_W = 16
 const GAP = 12
@@ -32,27 +34,36 @@ export function BarrasCapexMensal({ dados }: { dados: readonly CapexMes[] }) {
   const max = Math.max(1, ...dados.map(totalMes))
   const PASSO = Math.max(PASSO_MIN, Math.min(72, Math.floor((LARGURA_ALVO - PAD_L - PAD_R) / Math.max(1, dados.length))))
   const largura = PAD_L + dados.length * PASSO - (PASSO - BAR_W) + PAD_R
+  const zoom = useZoomGrafico(largura, H)
   const h = (v: number) => (Math.max(0, v) / max) * H_UTIL
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex flex-wrap gap-4 text-xs text-muted">
-        <span className="flex items-center gap-1.5">
-          <span className="h-3 w-3 rounded-sm bg-accent" /> Investimento (expansão)
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="h-3 w-3 rounded-sm bg-warn" /> Manutenção (reposição/reparos)
-        </span>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap gap-4 text-xs text-muted">
+          <span className="flex items-center gap-1.5">
+            <span className="h-3 w-3 rounded-sm bg-accent" /> Investimento (expansão)
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="h-3 w-3 rounded-sm bg-warn" /> Manutenção (reposição/reparos)
+          </span>
+        </div>
+        <ControlesZoom zoom={zoom} />
       </div>
       <div className="pb-1">
         {/* Altura fixa + preserveAspectRatio (report 03/08): sem isso, poucos meses faziam o
             viewBox ficar mais alto que largo e o gráfico explodia com w-full. */}
         <svg
-          viewBox={`0 0 ${largura} ${H}`}
+          viewBox={zoom.viewBox}
           width="100%"
           height={H}
           preserveAspectRatio="xMidYMid meet"
-          className="block"
+          className={`block touch-none ${zoom.ativo ? (zoom.arrastando ? 'cursor-grabbing' : 'cursor-grab') : ''}`}
+          onWheel={zoom.aoRolar}
+          onPointerDown={zoom.aoArrastarInicio}
+          onPointerMove={zoom.aoArrastar}
+          onPointerUp={zoom.aoArrastarFim}
+          onPointerCancel={zoom.aoArrastarFim}
           onMouseLeave={() => { setAtivo(null); tip.esconder() }}
         >
           {dados.map((d, i) => {
