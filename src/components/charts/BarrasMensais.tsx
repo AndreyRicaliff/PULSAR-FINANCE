@@ -12,7 +12,10 @@ import { TipLinha, TipTitulo, useTooltipGrafico } from '@/lib/tooltipGrafico'
 
 const BAR_W = 12
 const GAP = 12
-const PASSO = BAR_W + GAP
+const PASSO_MIN = BAR_W + GAP
+// Largura-alvo do desenho: com poucos meses as barras se espalham em vez de virar um
+// tufo minúsculo no canto de um card largo (report 03/08).
+const LARGURA_ALVO = 620
 const PAD_L = 8
 const PAD_R = 8
 const PAD_T = 6
@@ -28,7 +31,8 @@ export function BarrasMensais({ dados }: { dados: readonly BarraMes[] }) {
   const max = Math.max(1, ...dados.flatMap((d) => [d.entrada, d.saida]))
   const mediaEntrada = dados.reduce((s, d) => s + d.entrada, 0) / dados.length
   const mediaSaida = dados.reduce((s, d) => s + d.saida, 0) / dados.length
-  const largura = PAD_L + dados.length * PASSO - GAP + PAD_R
+  const PASSO = Math.max(PASSO_MIN, Math.min(72, Math.floor((LARGURA_ALVO - PAD_L - PAD_R) / Math.max(1, dados.length))))
+  const largura = PAD_L + dados.length * PASSO - (PASSO - BAR_W) + PAD_R
   const xCentro = (i: number) => PAD_L + i * PASSO + BAR_W / 2
   const hDe = (v: number) => (v / max) * H_LADO
 
@@ -39,9 +43,18 @@ export function BarrasMensais({ dados }: { dados: readonly BarraMes[] }) {
     <div className="flex flex-col gap-3">
       <Legenda mediaEntrada={mediaEntrada} mediaSaida={mediaSaida} />
       <div className="pb-1">
-        {/* Sem width fixo: o viewBox escala com o container — no modal expandido o gráfico
-            cresce junto em vez de boiar pequeno num mar de espaço (report 02/08). */}
-        <svg viewBox={`0 0 ${largura} ${H}`} className="block h-auto w-full" onMouseLeave={() => { setAtivo(null); tip.esconder() }}>
+        {/* ALTURA FIXA + preserveAspectRatio: com w-full e h-auto, poucos meses deixavam o
+            viewBox mais ALTO que largo e o gráfico explodia pra ~1800px (report 03/08).
+            Assim ele preenche a largura, mantém a proporção e, no modal (que força a altura
+            por CSS), cresce junto sem deformar. */}
+        <svg
+          viewBox={`0 0 ${largura} ${H}`}
+          width="100%"
+          height={H}
+          preserveAspectRatio="xMidYMid meet"
+          className="block"
+          onMouseLeave={() => { setAtivo(null); tip.esconder() }}
+        >
           <defs>
             <linearGradient id="bm-ent" x1="0" y1="1" x2="0" y2="0">
               <stop offset="0%" stopColor="rgb(var(--c-accent))" stopOpacity="0.5" />
@@ -90,7 +103,7 @@ export function BarrasMensais({ dados }: { dados: readonly BarraMes[] }) {
           {dados.map((d, i) => (
             <rect
               key={`h-${d.mes}`}
-              x={PAD_L + i * PASSO - GAP / 2}
+              x={PAD_L + i * PASSO - (PASSO - BAR_W) / 2}
               y="0"
               width={PASSO}
               height={H}

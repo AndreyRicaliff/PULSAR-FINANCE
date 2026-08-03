@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { supabase } from './supabase'
 import { MODO_APRESENTACAO } from './apresentacaoSnapshot'
+import { URL_BOOT } from './urlBoot'
 
 /**
  * Auth é fail-closed: só o opt-out EXPLÍCITO (`VITE_AUTH_ENABLED=false`, para dev/local)
@@ -28,9 +29,9 @@ export function useAuth(): Auth {
   const [auth, setAuth] = useState<Auth>({ status: AUTH_ATIVO ? 'carregando' : 'deslogado' })
   // O hash do link (#…type=recovery) existe antes do supabase-js processá-lo — detectar no
   // boot cobre a corrida com o evento PASSWORD_RECOVERY (sem isso o convite caía no gate 2FA).
-  const [recuperando, setRecuperando] = useState<boolean>(
-    () => typeof window !== 'undefined' && /type=recovery/.test(window.location.hash),
-  )
+  // URL_BOOT: lida no boot, antes de o supabase-js apagar o hash (corrida que quebrava o
+  // convite em aparelho rápido — report 03/08). O evento PASSWORD_RECOVERY continua como rede.
+  const [recuperando, setRecuperando] = useState<boolean>(() => URL_BOOT.recuperacao)
 
   useEffect(() => {
     if (!supabase || !AUTH_ATIVO) {

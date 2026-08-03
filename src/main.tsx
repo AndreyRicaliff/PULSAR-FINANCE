@@ -1,3 +1,6 @@
+// PRIMEIRO de todos: fotografa a URL antes de o supabase-js consumir o hash do link de
+// convite/recuperação (ver lib/urlBoot.ts — sem isso o fluxo quebrava em aparelho rápido).
+import './lib/urlBoot'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 // Fonte SELF-HOSTED e ÚNICA (Inter). Local porque, vindo do Google Fonts por CDN, rede

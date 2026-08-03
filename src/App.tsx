@@ -19,6 +19,7 @@ import { PeriodoProvider } from './lib/periodo'
 import { BoasVindas } from './components/BoasVindas.tsx'
 import { Sidebar, ROTULO_ABA, type Aba } from './components/Sidebar.tsx'
 import { Topbar } from './components/Topbar.tsx'
+import { URL_BOOT } from './lib/urlBoot'
 import { Carregando, Login } from './components/Login.tsx'
 import { ConviteInterstitial, LinkExpirado } from './components/ConviteFluxo.tsx'
 import { RecuperarSenha } from './components/RecuperarSenha.tsx'
@@ -66,8 +67,8 @@ export function App() {
 
   // Fluxo do convite ANTES de qualquer gate: a intermediária existe justamente porque o
   // scanner do provedor de e-mail visita o link — só o clique humano dispara a verificação.
-  const convite = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('convite') : null
-  const linkExpirado = typeof window !== 'undefined' && /error_code=otp_expired|error=access_denied/.test(window.location.hash)
+  const convite = URL_BOOT.convite
+  const linkExpirado = URL_BOOT.linkExpirado
   if (AUTH_ATIVO && convite) return <ConviteInterstitial verifyUrl={convite} />
   if (AUTH_ATIVO && linkExpirado && auth.status !== 'logado') return <LinkExpirado />
 

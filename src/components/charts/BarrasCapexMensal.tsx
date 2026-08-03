@@ -12,7 +12,8 @@ import { TipLinha, TipTitulo, useTooltipGrafico } from '@/lib/tooltipGrafico'
 
 const BAR_W = 16
 const GAP = 12
-const PASSO = BAR_W + GAP
+const PASSO_MIN = BAR_W + GAP
+const LARGURA_ALVO = 620
 const PAD_L = 8
 const PAD_R = 8
 const PAD_T = 6
@@ -29,7 +30,8 @@ export function BarrasCapexMensal({ dados }: { dados: readonly CapexMes[] }) {
   if (dados.length === 0) return <p className="text-sm text-muted">Sem baixa de CAPEX no período.</p>
   const totalMes = (d: CapexMes) => Math.max(0, d.investimentoCentavos) + Math.max(0, d.manutencaoCentavos)
   const max = Math.max(1, ...dados.map(totalMes))
-  const largura = PAD_L + dados.length * PASSO - GAP + PAD_R
+  const PASSO = Math.max(PASSO_MIN, Math.min(72, Math.floor((LARGURA_ALVO - PAD_L - PAD_R) / Math.max(1, dados.length))))
+  const largura = PAD_L + dados.length * PASSO - (PASSO - BAR_W) + PAD_R
   const h = (v: number) => (Math.max(0, v) / max) * H_UTIL
 
   return (
@@ -43,8 +45,16 @@ export function BarrasCapexMensal({ dados }: { dados: readonly CapexMes[] }) {
         </span>
       </div>
       <div className="pb-1">
-        {/* viewBox escala com o container — no modal expandido cresce junto (report 02/08). */}
-        <svg viewBox={`0 0 ${largura} ${H}`} className="block h-auto w-full" onMouseLeave={() => { setAtivo(null); tip.esconder() }}>
+        {/* Altura fixa + preserveAspectRatio (report 03/08): sem isso, poucos meses faziam o
+            viewBox ficar mais alto que largo e o gráfico explodia com w-full. */}
+        <svg
+          viewBox={`0 0 ${largura} ${H}`}
+          width="100%"
+          height={H}
+          preserveAspectRatio="xMidYMid meet"
+          className="block"
+          onMouseLeave={() => { setAtivo(null); tip.esconder() }}
+        >
           {dados.map((d, i) => {
             const x = PAD_L + i * PASSO
             const hInv = h(d.investimentoCentavos)
@@ -72,7 +82,7 @@ export function BarrasCapexMensal({ dados }: { dados: readonly CapexMes[] }) {
           {dados.map((d, i) => (
             <rect
               key={`h-${d.mes}`}
-              x={PAD_L + i * PASSO - GAP / 2}
+              x={PAD_L + i * PASSO - (PASSO - BAR_W) / 2}
               y="0"
               width={PASSO}
               height={H}
