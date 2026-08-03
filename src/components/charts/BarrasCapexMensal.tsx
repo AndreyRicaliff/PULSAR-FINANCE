@@ -61,12 +61,14 @@ export function BarrasCapexMensal({ dados }: { dados: readonly CapexMes[] }) {
           <span className="h-3 w-3 rounded-sm bg-warn" /> Manutenção (reposição/reparos)
         </span>
       </div>
-      <div ref={ref} className="w-full pb-1">
+      <div ref={ref} className="w-full overflow-x-auto pb-1">
         {/* viewBox de largura MEDIDA + altura fixa: aspecto do box == aspecto do desenho,
-            o `meet` não tem o que explodir nem letterboxar (report 03/08). */}
+            o `meet` não tem o que explodir nem letterboxar (report 03/08). Quando o passo
+            satura em PASSO_MIN (muitos meses num card estreito) o desenho TRANSBORDA em
+            scroll horizontal em vez de encolher — width=100% aqui re-letterboxaria. */}
         <svg
           viewBox={`0 0 ${viewW} ${alto}`}
-          width="100%"
+          width={viewW > largura ? viewW : '100%'}
           height={alto}
           preserveAspectRatio="xMidYMid meet"
           className="block"

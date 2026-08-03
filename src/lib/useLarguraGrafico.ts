@@ -12,27 +12,32 @@ import { useLayoutEffect, useRef, useState } from 'react'
 export function useLarguraGrafico<T extends HTMLElement = HTMLDivElement>(fallback = 620) {
   const ref = useRef<T>(null)
   const [largura, setLargura] = useState(fallback)
+  const ro = useRef<ResizeObserver | null>(null)
+  const observado = useRef<T | null>(null)
 
   // SEM deps de propósito: re-mede a cada commit, antes do paint. É o que faz o zoom do
   // modal (que muda largura lógica + fator no MESMO commit) redesenhar já certo — e não
   // depende do ResizeObserver, que aba/pane oculto pode segurar indefinidamente.
   // setLargura com valor igual não re-renderiza (bail-out do React) — sem loop.
-  useLayoutEffect(() => {
-    const w = Math.round(ref.current?.clientWidth ?? 0)
-    if (w > 0) setLargura(w)
-  })
-
-  // Rede pra resize que NÃO passa pelo React (janela, sidebar recolhendo, split do modal).
+  // O RO (rede pra resize que NÃO passa pelo React: janela, sidebar) também é (re)instalado
+  // AQUI, não num efeito de mount: gráfico que nasce no ramo de early-return (sem o <div ref>)
+  // ganharia o div depois sem nunca ganhar o observer.
   useLayoutEffect(() => {
     const el = ref.current
+    const w = Math.round(el?.clientWidth ?? 0)
+    if (w > 0) setLargura(w)
+    if (el === observado.current) return
+    ro.current?.disconnect()
+    observado.current = el
     if (!el) return
-    const ro = new ResizeObserver(() => {
-      const w = Math.round(el.clientWidth)
-      if (w > 0) setLargura(w)
+    ro.current ??= new ResizeObserver(() => {
+      const v = Math.round(observado.current?.clientWidth ?? 0)
+      if (v > 0) setLargura(v)
     })
-    ro.observe(el)
-    return () => ro.disconnect()
-  }, [])
+    ro.current.observe(el)
+  })
+
+  useLayoutEffect(() => () => ro.current?.disconnect(), [])
 
   return { ref, largura }
 }

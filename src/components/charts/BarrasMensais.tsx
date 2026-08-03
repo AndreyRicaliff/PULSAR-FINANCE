@@ -58,12 +58,14 @@ export function BarrasMensais({ dados }: { dados: readonly BarraMes[] }) {
   return (
     <div className="flex flex-col gap-3">
       <Legenda mediaEntrada={mediaEntrada} mediaSaida={mediaSaida} />
-      <div ref={ref} className="w-full pb-1">
+      <div ref={ref} className="w-full overflow-x-auto pb-1">
         {/* viewBox de largura MEDIDA + altura fixa: aspecto do box == aspecto do desenho,
-            o `meet` não tem o que explodir nem letterboxar (report 03/08). */}
+            o `meet` não tem o que explodir nem letterboxar (report 03/08). Quando o passo
+            satura em PASSO_MIN (muitos meses num card estreito) o desenho TRANSBORDA em
+            scroll horizontal em vez de encolher — width=100% aqui re-letterboxaria. */}
         <svg
           viewBox={`0 0 ${viewW} ${alto}`}
-          width="100%"
+          width={viewW > largura ? viewW : '100%'}
           height={alto}
           preserveAspectRatio="xMidYMid meet"
           className="block"
