@@ -1,5 +1,6 @@
 /** @file Helpers puros da board de conciliação (itens por nó, totais, filtro, opções de select). */
 import { opcoesDaEstrutura, type No, type OpcaoNo } from '@/core/modelo'
+import { normalizarTexto } from '@/core/texto'
 import type { ItemConc } from './tipos'
 
 export function itensDoNo(
@@ -23,9 +24,11 @@ export type Opcao = OpcaoNo
 export const opcoesSelect = opcoesDaEstrutura
 
 export function filtrar(itens: readonly ItemConc[], busca: string): ItemConc[] {
-  const q = busca.trim().toLowerCase()
-  if (!q) return [...itens]
+  // Padrão dual (UX 03/08): título dobra acento/caixa; chave/código casa cru.
+  const q = normalizarTexto(busca)
+  const qChave = busca.trim().toLowerCase()
+  if (!q && !qChave) return [...itens]
   return itens.filter(
-    (i) => i.titulo.toLowerCase().includes(q) || i.chave.toLowerCase().includes(q),
+    (i) => (q !== '' && normalizarTexto(i.titulo).includes(q)) || (qChave !== '' && i.chave.toLowerCase().includes(qChave)),
   )
 }

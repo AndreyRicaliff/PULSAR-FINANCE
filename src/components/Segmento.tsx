@@ -13,7 +13,7 @@ interface Props<T extends string> {
 /** Controle segmentado (toggle) padrão AG — reusado em todas as abas. */
 export function Segmento<T extends string>({ opcoes, valor, onTrocar }: Props<T>) {
   return (
-    <div className="flex gap-1 self-start rounded-lg border border-bd bg-surface p-1">
+    <div className="flex flex-wrap gap-1 self-start rounded-lg border border-bd bg-surface p-1">
       {opcoes.map((o) => (
         <button
           key={o.id}

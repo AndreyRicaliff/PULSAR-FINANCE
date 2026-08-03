@@ -1,6 +1,7 @@
 /** @file Contrapartes agregadas (clientes/fornecedores) com drill-down em modal. */
 import { useMemo, useState } from 'react'
 import { gruposDuplicados, type GrupoDuplicado, type MembroDuplicata } from '@/core/duplicatas'
+import { normalizarTexto } from '@/core/texto'
 import { chaveContraparte, type Movimento } from '@/core/movimento'
 import type { ClientesSeed } from '@/core/cliente'
 import { pedirBuscaConciliacao } from '@/lib/buscaConciliacaoPedido'
@@ -9,6 +10,7 @@ import { useDuplicatasIgnoradas } from '@/lib/duplicatasDoc'
 import { useMovimentos } from '@/lib/movimentos'
 import { brl } from '@/lib/money'
 import { useOverrides } from '@/lib/overrides'
+import { CampoBusca } from './CampoBusca.tsx'
 import { irParaAba } from './InicioPanel.tsx'
 import { KpiCard } from './KpiCard.tsx'
 import { MovimentosModal } from './MovimentosModal.tsx'
@@ -110,11 +112,13 @@ export function FornecedoresPanel() {
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Segmento opcoes={TIPOS} valor={tipo} onTrocar={setTipo} />
-        <input
-          value={busca}
-          onChange={(e) => setBusca(e.target.value)}
+        <CampoBusca
+          valor={busca}
+          onValor={setBusca}
           placeholder="Buscar fornecedor/cliente…"
-          className="w-64 rounded-lg border border-bd bg-surface px-3 py-2 text-sm outline-none placeholder:text-muted focus:border-primary"
+          visiveis={visiveis.length}
+          total={linhas.length}
+          classe="w-80"
         />
       </div>
 
@@ -200,9 +204,11 @@ function agrupar(
 }
 
 function filtrarBusca(linhas: readonly LinhaParte[], busca: string): LinhaParte[] {
-  const termo = busca.trim().toLowerCase()
-  if (!termo) return [...linhas]
+  // Padrão dual (UX 03/08): nome dobra acento/caixa; documento (CNPJ) casa cru.
+  const q = normalizarTexto(busca)
+  const qDoc = busca.trim().toLowerCase()
+  if (!q && !qDoc) return [...linhas]
   return linhas.filter(
-    (l) => l.nome.toLowerCase().includes(termo) || l.doc.toLowerCase().includes(termo),
+    (l) => (q !== '' && normalizarTexto(l.nome).includes(q)) || (qDoc !== '' && l.doc.toLowerCase().includes(qDoc)),
   )
 }

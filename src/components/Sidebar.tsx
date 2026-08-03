@@ -1,5 +1,4 @@
 /** @file Navegação lateral fixa do painel (padrão AG 240px) — acordeão por camada. */
-import { useEffect, useState } from 'react'
 import { comProvedor } from '@/core/provedor'
 import { useProvedor } from '@/lib/clientes'
 import { somSelecao, somTick } from '@/lib/som'
@@ -86,10 +85,6 @@ const SECOES: readonly Secao[] = [
   },
 ]
 
-function grupoDaAba(aba: Aba): string {
-  return SECOES.find((s) => s.itens.some((i) => i.id === aba))?.titulo ?? 'Captura'
-}
-
 export const ROTULO_ABA: Readonly<Record<Aba, string>> = Object.fromEntries(
   SECOES.flatMap((s) => s.itens.map((i) => [i.id, i.rotulo])),
 ) as Record<Aba, string>
@@ -102,10 +97,8 @@ interface Props {
 
 export function Sidebar({ ativa, onSelecionar, aberta }: Props) {
   const { nome: provedor } = useProvedor()
-  const [grupoAberto, setGrupoAberto] = useState(() => grupoDaAba(ativa))
-  // Mantém aberta a camada da aba ativa quando ela muda por fora (ex.: deep link).
-  useEffect(() => setGrupoAberto(grupoDaAba(ativa)), [ativa])
-
+  // Sem acordeão (UX 03/08): o auto-colapso perseguia a aba ativa e fazia a sidebar
+  // reflowar a cada troca — mata o vai-e-vem entre 2-3 telas. Tudo visível, zero clique.
   return (
     <aside
       className={`h-dvh shrink-0 overflow-y-auto overflow-x-hidden border-bd bg-surface transition-[width] duration-300 max-md:fixed max-md:left-0 max-md:top-0 max-md:z-40 ${
@@ -119,14 +112,7 @@ export function Sidebar({ ativa, onSelecionar, aberta }: Props) {
         </div>
         <nav className="flex flex-col gap-1.5 overflow-y-auto p-3">
           {SECOES.map((secao) => (
-            <Camada
-              key={secao.titulo}
-              secao={secao}
-              aberta={secao.titulo === grupoAberto}
-              ativa={ativa}
-              onAbrir={() => setGrupoAberto((g) => (g === secao.titulo ? '' : secao.titulo))}
-              onSelecionar={onSelecionar}
-            />
+            <Camada key={secao.titulo} secao={secao} ativa={ativa} onSelecionar={onSelecionar} />
           ))}
         </nav>
         <div className="mt-auto px-3 pb-1 pt-3">
@@ -143,38 +129,28 @@ export function Sidebar({ ativa, onSelecionar, aberta }: Props) {
 
 function Camada({
   secao,
-  aberta,
   ativa,
-  onAbrir,
   onSelecionar,
 }: {
   secao: Secao
-  aberta: boolean
   ativa: Aba
-  onAbrir: () => void
   onSelecionar: (aba: Aba) => void
 }) {
   const temAtiva = secao.itens.some((i) => i.id === ativa)
   return (
     <div className="flex flex-col">
-      <button
-        type="button"
-        onMouseEnter={somTick}
-        onClick={() => { somSelecao(); onAbrir() }}
-        className={`flex items-center gap-3 rounded-lg px-3 py-2 text-[11px] font-semibold uppercase tracking-wider transition-colors ${
-          temAtiva ? 'text-secondary' : 'text-muted/70 hover:text-text'
+      <p
+        className={`px-3 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wider ${
+          temAtiva ? 'text-secondary' : 'text-muted/70'
         }`}
       >
-        <span className="flex-1 text-left">{secao.titulo}</span>
-        <span className={`text-[10px] transition-transform duration-200 ${aberta ? 'rotate-90' : ''}`}>▸</span>
-      </button>
-      {aberta ? (
-        <div className="ml-2 flex flex-col gap-0.5 border-l border-bd/60 pb-1 pl-2">
-          {secao.itens.map((item, i) => (
-            <ItemNav key={item.id} item={item} ativo={item.id === ativa} indice={i} onSelecionar={onSelecionar} />
-          ))}
-        </div>
-      ) : null}
+        {secao.titulo}
+      </p>
+      <div className="ml-2 flex flex-col gap-0.5 border-l border-bd/60 pb-1 pl-2">
+        {secao.itens.map((item, i) => (
+          <ItemNav key={item.id} item={item} ativo={item.id === ativa} indice={i} onSelecionar={onSelecionar} />
+        ))}
+      </div>
     </div>
   )
 }

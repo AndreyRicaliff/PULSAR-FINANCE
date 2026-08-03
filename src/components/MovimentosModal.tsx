@@ -2,12 +2,17 @@
 import { useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { codigoExibivel } from '@/core/categoria'
-import type { Movimento } from '@/core/movimento'
+import { chaveContraparte, type Movimento } from '@/core/movimento'
 import { comProvedor } from '@/core/provedor'
-import { useProvedor } from '@/lib/clientes'
+import { normalizarTexto } from '@/core/texto'
+import { useVisivelNaAbaDona } from '@/lib/abaAtiva'
+import { useClientes, useProvedor } from '@/lib/clientes'
 import { FilialSelecaoProvider } from '@/lib/filialSelecao'
 import { brl } from '@/lib/money'
+import { useOverlay, useTravaScroll } from '@/lib/overlay'
 import { useOverrides } from '@/lib/overrides'
+import { CampoBusca } from './CampoBusca.tsx'
+import { TagProvedor } from './Topbar.tsx'
 import { ramificar } from './drilldown/arvoreMov'
 import { EixoChain } from './drilldown/EixoChain.tsx'
 import { GrupoArvore } from './drilldown/GrupoArvore.tsx'
@@ -27,8 +32,36 @@ export function MovimentosModal({ titulo, codigo, subtitulo, movimentos, eixosIn
   const { resolvedor } = useOverrides()
   const rotulosProv = useProvedor()
   const [eixos, setEixos] = useState<Eixo[]>(() => [...(eixosIniciais ?? ['contraparte'])])
-  const arvore = useMemo(() => ramificar(movimentos, eixos, resolvedor), [movimentos, eixos, resolvedor])
+  // Busca DENTRO do drill (UX 03/08): achar um movimento específico exigia rolar grupos.
+  // Índice textual memoizado (contraparte/categoria resolvidas + descrição; doc/id crus).
+  const [busca, setBusca] = useState('')
+  const indexados = useMemo(
+    () =>
+      movimentos.map((m) => ({
+        m,
+        texto: normalizarTexto(
+          `${resolvedor.contraparte(chaveContraparte(m)).nome} ${resolvedor.categoria(m.categoria).nome} ${m.descricao ?? ''}`,
+        ),
+        cru: `${m.documento} ${m.idTitulo}`.toLowerCase(),
+      })),
+    [movimentos, resolvedor],
+  )
+  const filtrados = useMemo(() => {
+    const q = normalizarTexto(busca)
+    const qCru = busca.trim().toLowerCase()
+    if (!q && !qCru) return movimentos
+    return indexados
+      .filter(({ texto, cru }) => (q !== '' && texto.includes(q)) || (qCru !== '' && cru.includes(qCru)))
+      .map((x) => x.m)
+  }, [indexados, movimentos, busca])
+  const arvore = useMemo(() => ramificar(filtrados, eixos, resolvedor), [filtrados, eixos, resolvedor])
   const ultimo = eixos[eixos.length - 1]
+  useOverlay(onFechar)
+  useTravaScroll()
+  // Modal órfão (UX 03/08): trocar de aba esconde o portal (o estado sobrevive — voltar
+  // pra aba dona re-mostra exatamente onde parou).
+  const visivel = useVisivelNaAbaDona()
+  if (!visivel) return null
 
   // Portal no body: painéis animados retêm transform e prenderiam o fixed (containing block).
   return createPortal(
@@ -41,6 +74,13 @@ export function MovimentosModal({ titulo, codigo, subtitulo, movimentos, eixosIn
         <Cabecalho titulo={titulo} codigo={codigo} subtitulo={subtitulo} onFechar={onFechar} />
         <ResumoKpis movimentos={movimentos} />
         <div className="flex flex-col gap-2 border-b border-bd px-6 py-3">
+          <CampoBusca
+            valor={busca}
+            onValor={setBusca}
+            placeholder="Buscar movimento (contraparte, categoria, documento)…"
+            visiveis={filtrados.length}
+            total={movimentos.length}
+          />
           <EixoChain eixos={eixos} onChange={setEixos} />
           <p className="text-xs leading-relaxed text-muted">
             {eixos.length > 0 ? (
@@ -51,7 +91,7 @@ export function MovimentosModal({ titulo, codigo, subtitulo, movimentos, eixosIn
         </div>
         <div className="overflow-auto">
           {eixos.length === 0 ? (
-            <TabelaMov movimentos={movimentos} />
+            <TabelaMov movimentos={filtrados} />
           ) : (
             arvore.map((no) => <GrupoArvore key={no.chave} no={no} nivel={0} />)
           )}
@@ -116,15 +156,22 @@ function Cabecalho({
   subtitulo: string
   onFechar: () => void
 }) {
+  const { ativo } = useClientes()
   return (
     <header className="flex items-start justify-between border-b border-bd px-6 py-4">
-      <div>
+      <div className="min-w-0">
         {/* Código opaco (GUID Nibo) ou igual ao título (chave = nome cru) não agrega — só ruído. */}
         {codigo && codigoExibivel(codigo) && codigo !== titulo ? (
           <p className="font-mono text-xs text-muted">{codigo}</p>
         ) : null}
         <h2 className="text-lg font-bold">{titulo}</h2>
         <p className="text-sm text-muted">{subtitulo}</p>
+        {/* De QUAL cliente é este número (UX 03/08): o modal cobre a Topbar — única
+            referência de tenant — e analisar sem saber o cliente era erro esperando vez. */}
+        <p className="mt-1 flex items-center gap-1.5 text-xs text-muted">
+          <span className="truncate font-medium text-text">{ativo.nome}</span>
+          <TagProvedor provedor={ativo.provedor} />
+        </p>
       </div>
       <button
         type="button"

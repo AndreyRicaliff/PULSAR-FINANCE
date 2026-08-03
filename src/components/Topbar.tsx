@@ -111,7 +111,7 @@ function SeletorCliente() {
 }
 
 /** Etiqueta sóbria do ERP do cliente ativo (sempre visível — some quando não há integração). */
-function TagProvedor({ provedor }: { provedor: Tenant['provedor'] }) {
+export function TagProvedor({ provedor }: { provedor: Tenant['provedor'] }) {
   if (!provedor) return null
   const cor = provedor === 'nibo' ? 'text-secondary border-secondary/40' : 'text-accent border-accent/40'
   return (

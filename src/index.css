@@ -1558,3 +1558,8 @@ html.light .login-fundo { background-color: rgb(var(--c-bg)); }
 /* o conteúdo largo rola dentro; a tabela não é espremida nem cortada */
 .fixed.inset-0.z-50 > .anim-pop table { min-width: max-content; }
 .fixed.inset-0.z-50 > .anim-pop .overflow-hidden:has(table) { overflow-x: auto; }
+
+/* ── Overlays (UX 03/08): scroll do modal não vaza pra página atrás ───────── */
+.fixed.inset-0.z-50 > .anim-pop {
+  overscroll-behavior: contain;
+}

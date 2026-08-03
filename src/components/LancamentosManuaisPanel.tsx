@@ -9,6 +9,7 @@ import { codigoExibivel, rotuloCategoria, type Categoria } from '@/core/categori
 import { useCadastros } from '@/lib/cadastros'
 import { useLancamentos, type NovoLancamento } from '@/lib/lancamentos'
 import { useMovimentos } from '@/lib/movimentos'
+import { useOverlay, useTravaScroll } from '@/lib/overlay'
 import { brl, centavosDeTexto } from '@/lib/money'
 import { EtiquetaFluxo } from './conciliacao/EtiquetaFluxo.tsx'
 import { KpiCard } from './KpiCard.tsx'
@@ -136,6 +137,9 @@ function FormLancamento({ original, onFechar }: { original: LancamentoManual | n
   const { criar, atualizar } = useLancamentos()
   const { categorias } = useCadastros()
   const { movimentos } = useMovimentos()
+  // Fundação de overlay (UX 03/08): Esc fecha o form (só o topo da pilha) + trava o fundo.
+  useOverlay(onFechar)
+  useTravaScroll()
   const [natureza, setNatureza] = useState<NaturezaManual>(original?.natureza ?? 'receita')
   const [data, setData] = useState(original?.data ?? new Date().toISOString().slice(0, 10))
   const [descricao, setDescricao] = useState(original?.descricao ?? '')

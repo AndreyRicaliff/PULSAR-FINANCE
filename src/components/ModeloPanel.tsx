@@ -18,6 +18,7 @@ import { aplicarFiltros, FILTROS_VAZIOS, type Filtros } from '@/lib/filtros'
 import { brl } from '@/lib/money'
 import { useOverrides } from '@/lib/overrides'
 import { useModelo } from '@/lib/useModelo'
+import { CampoBusca } from './CampoBusca.tsx'
 import { ConciliacaoBoard, type ItemConc } from './conciliacao/ConciliacaoBoard.tsx'
 import { FiltrosBar } from './FiltrosBar.tsx'
 import { KpiCard } from './KpiCard.tsx'
@@ -199,7 +200,14 @@ export function ModeloPanel() {
         </button>
       </div>
 
-      <BuscaConciliacao busca={busca} onBusca={setBusca} visiveis={itensVisiveis.length} total={itens.length} />
+      <CampoBusca
+        valor={busca}
+        onValor={setBusca}
+        placeholder="Buscar conta, fornecedor ou grupo da conciliação…"
+        ariaLabel="Buscar na conciliação"
+        visiveis={itensVisiveis.length}
+        total={itens.length}
+      />
 
       <ConciliacaoBoard
         conc={conc}
@@ -238,64 +246,6 @@ function movsDaChave(movs: readonly Movimento[], chave: string, dim: Dimensao): 
 
 function tituloDaChave(chave: string, dim: Dimensao, resolvedor: Resolvedor): string {
   return dim === 'contas' ? resolvedor.categoria(chave).nome : resolvedor.contraparte(chave).nome
-}
-
-/** Barra de busca da conciliação (pedido 03/08) — navegação, não filtro de dado. */
-function BuscaConciliacao({
-  busca,
-  onBusca,
-  visiveis,
-  total,
-}: {
-  busca: string
-  onBusca: (v: string) => void
-  visiveis: number
-  total: number
-}) {
-  return (
-    <div className="flex items-center gap-2">
-      <div className="relative flex-1">
-        <svg
-          width="14"
-          height="14"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          aria-hidden
-          className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted"
-        >
-          <circle cx="11" cy="11" r="7" />
-          <path d="M21 21l-4.3-4.3" />
-        </svg>
-        <input
-          value={busca}
-          onChange={(e) => onBusca(e.target.value)}
-          onKeyDown={(e) => e.key === 'Escape' && onBusca('')}
-          placeholder="Buscar conta, fornecedor ou grupo da conciliação…"
-          aria-label="Buscar na conciliação"
-          className="w-full rounded-lg border border-bd bg-surface py-2 pl-9 pr-9 text-sm outline-none placeholder:text-muted focus:border-primary"
-        />
-        {busca ? (
-          <button
-            type="button"
-            onClick={() => onBusca('')}
-            title="Limpar busca (Esc)"
-            aria-label="Limpar busca"
-            className="absolute right-2 top-1/2 grid h-6 w-6 -translate-y-1/2 place-items-center rounded text-muted hover:text-text"
-          >
-            ✕
-          </button>
-        ) : null}
-      </div>
-      {busca ? (
-        <span className="shrink-0 text-xs tabular-nums text-muted">
-          {visiveis} de {total}
-        </span>
-      ) : null}
-    </div>
-  )
 }
 
 function BarraProgresso({ feito, total }: { feito: number; total: number }) {

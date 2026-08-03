@@ -5,9 +5,9 @@ import { edicoesDe, type EdicaoNome } from '@/core/historicoEdicao'
 import type { Dimensao } from '@/core/modelo'
 import type { EntidadeEditavel, NomeResolvido } from '@/core/override'
 import { useProvedor } from '@/lib/clientes'
+import { useOverlay, useTravaScroll } from '@/lib/overlay'
 import { useModelo } from '@/lib/useModelo'
 import { useOverrides } from '@/lib/overrides'
-import { BadgeEditado } from './BadgeEditado.tsx'
 import { EtiquetaEstado } from './EtiquetaEstado.tsx'
 
 interface Props {
@@ -52,7 +52,7 @@ export function NomeEditavel({ entidade, codigo, resolvido }: Props) {
         {resolvido.nome}
       </span>
       {resolvido.estado ? <EtiquetaEstado estado={resolvido.estado} /> : null}
-      {resolvido.editado ? <BadgeEditado original={resolvido.original} /> : null}
+      {/* Sem badge "editado" (UX 03/08): sublinhado tracejado + ↺ já sinalizam — 3 marcas era ruído. */}
       <Acao
         onClick={(e) => {
           e.stopPropagation()
@@ -125,6 +125,8 @@ function ModalHistorico({
   provedor: string
   onFechar: () => void
 }) {
+  useOverlay(onFechar)
+  useTravaScroll()
   const { modelo } = useModelo()
   const dim = DIM_DA_ENTIDADE[entidade]
   const destino = useMemo(() => {

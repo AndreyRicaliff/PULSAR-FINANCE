@@ -1,8 +1,10 @@
 /** @file Modal de análise profunda de um indicador: série ampliada, estatísticas e tabela mensal. */
-import { useEffect, type ReactNode } from 'react'
+import { type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
+import { useVisivelNaAbaDona } from '@/lib/abaAtiva'
 import { fmtIndicador, type PontoIndicador } from '@/lib/indicadores'
 import { fracVariacao, pctVariacao } from '@/lib/money'
+import { useOverlay, useTravaScroll } from '@/lib/overlay'
 import { SerieIndicador } from './charts/SerieIndicador.tsx'
 
 interface Props {
@@ -16,13 +18,10 @@ interface Props {
 }
 
 export function AnaliseIndicador({ rotulo, valorAtual, nota, cor, serie, onFechar }: Props) {
-  useEffect(() => {
-    const aoTeclar = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onFechar()
-    }
-    window.addEventListener('keydown', aoTeclar)
-    return () => window.removeEventListener('keydown', aoTeclar)
-  }, [onFechar])
+  // Fundação de overlay (UX 03/08): Esc em pilha + trava de scroll + some fora da aba dona.
+  useOverlay(onFechar)
+  useTravaScroll()
+  const visivel = useVisivelNaAbaDona()
 
   const percentual = serie[0]!.percentual
   const fmt = (v: number) => fmtIndicador(v, percentual)
@@ -34,6 +33,7 @@ export function AnaliseIndicador({ rotulo, valorAtual, nota, cor, serie, onFecha
   const mom = penultimo ? fracVariacao(ultimo.valor, penultimo.valor) : null
   const noPeriodo = fracVariacao(ultimo.valor, serie[0]!.valor)
 
+  if (!visivel) return null
   return createPortal(
     <div className="anim-fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-6" onClick={onFechar}>
       <div

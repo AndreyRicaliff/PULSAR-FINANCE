@@ -3,11 +3,13 @@ import { useMemo, useState } from 'react'
 import { codigoExibivel, mapaProfundidade, type Categoria, type Natureza } from '@/core/categoria'
 import { gruposDuplicados, type GrupoDuplicado, type MembroDuplicata } from '@/core/duplicatas'
 import { estadoDoNome } from '@/core/estadoRegistro'
+import { normalizarTexto } from '@/core/texto'
 import { pedirBuscaConciliacao } from '@/lib/buscaConciliacaoPedido'
 import { useCadastros } from '@/lib/cadastros'
 import { useProvedor } from '@/lib/clientes'
 import { useDuplicatasIgnoradas } from '@/lib/duplicatasDoc'
 import { COR_NATUREZA, ROTULO_NATUREZA } from '@/lib/natureza'
+import { CampoBusca } from './CampoBusca.tsx'
 import { EtiquetaEstado } from './EtiquetaEstado.tsx'
 import { irParaAba } from './InicioPanel.tsx'
 import { KpiCard } from './KpiCard.tsx'
@@ -74,11 +76,13 @@ export function CategoriasPanel() {
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Segmento opcoes={FILTROS} valor={filtro} onTrocar={setFiltro} />
-        <input
-          value={busca}
-          onChange={(e) => setBusca(e.target.value)}
+        <CampoBusca
+          valor={busca}
+          onValor={setBusca}
           placeholder="Buscar por código ou descrição…"
-          className="w-64 rounded-lg border border-bd bg-surface px-3 py-2 text-sm outline-none placeholder:text-muted focus:border-primary"
+          visiveis={visiveis.length}
+          total={categorias.length}
+          classe="w-80"
         />
       </div>
 
@@ -151,11 +155,15 @@ function filtrar(
   filtro: Filtro,
   busca: string,
 ): Categoria[] {
-  const termo = busca.trim().toLowerCase()
+  // Padrão dual (UX 03/08): descrição dobra acento/caixa; código casa cru.
+  const q = normalizarTexto(busca)
+  const qCodigo = busca.trim().toLowerCase()
   return categorias.filter((c) => {
     const okNatureza = filtro === 'todas' || c.natureza === filtro
     const okBusca =
-      !termo || c.codigo.toLowerCase().includes(termo) || c.descricao.toLowerCase().includes(termo)
+      (!q && !qCodigo) ||
+      (qCodigo !== '' && c.codigo.toLowerCase().includes(qCodigo)) ||
+      (q !== '' && normalizarTexto(c.descricao).includes(q))
     return okNatureza && okBusca
   })
 }
