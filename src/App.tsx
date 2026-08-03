@@ -20,6 +20,7 @@ import { BoasVindas } from './components/BoasVindas.tsx'
 import { Sidebar, ROTULO_ABA, type Aba } from './components/Sidebar.tsx'
 import { Topbar } from './components/Topbar.tsx'
 import { Carregando, Login } from './components/Login.tsx'
+import { ConviteInterstitial, LinkExpirado } from './components/ConviteFluxo.tsx'
 import { RecuperarSenha } from './components/RecuperarSenha.tsx'
 import { CadastroPanel } from './components/CadastroPanel.tsx'
 import { InicioPanel } from './components/InicioPanel.tsx'
@@ -62,6 +63,13 @@ export function App() {
   const userId = auth.status === 'logado' ? auth.session.user.id : undefined
   const dois = use2FA()
   const acesso = useAcesso(userId, dois.estado === 'liberado')
+
+  // Fluxo do convite ANTES de qualquer gate: a intermediária existe justamente porque o
+  // scanner do provedor de e-mail visita o link — só o clique humano dispara a verificação.
+  const convite = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('convite') : null
+  const linkExpirado = typeof window !== 'undefined' && /error_code=otp_expired|error=access_denied/.test(window.location.hash)
+  if (AUTH_ATIVO && convite) return <ConviteInterstitial verifyUrl={convite} />
+  if (AUTH_ATIVO && linkExpirado && auth.status !== 'logado') return <LinkExpirado />
 
   if (AUTH_ATIVO) {
     if (auth.status === 'carregando') return <Carregando />

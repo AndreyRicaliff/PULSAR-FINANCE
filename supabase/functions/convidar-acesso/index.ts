@@ -73,7 +73,11 @@ Deno.serve(async (req) => {
       options: { redirectTo: SITE },
     })
     if (eLink) return json({ error: `Conta criada, mas o link falhou: ${eLink.message}` })
-    const url = link.properties?.action_link ?? ''
+    // INTERMEDIÁRIA anti-scanner: Outlook/Hotmail pré-visitam links e QUEIMAVAM o token de
+    // uso único antes do clique humano. O e-mail aponta pro app (?convite=<verify-url>);
+    // o app mostra um botão e só o clique dispara a verificação no GoTrue.
+    const verify = link.properties?.action_link ?? ''
+    const url = `${SITE}/?convite=${encodeURIComponent(verify)}`
 
     const resp = await fetch('https://api.resend.com/emails', {
       method: 'POST',
