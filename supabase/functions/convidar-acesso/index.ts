@@ -50,21 +50,34 @@ Deno.serve(async (req) => {
     crypto.getRandomValues(buf)
     const senha = btoa(String.fromCharCode(...buf))
 
+    let userId = ''
+    let reenvio = false
     const { data: criado, error: eCria } = await admin.auth.admin.createUser({
       email,
       password: senha,
       email_confirm: true,
       app_metadata: { convite_ag: '1' },
     })
-    if (eCria) return json({ error: `Não foi possível criar a conta: ${eCria.message}` })
-    const userId = criado.user.id
-
-    const { error: eVinc } = await admin
-      .from('painel_acessos')
-      .insert(clienteIds.map((cid) => ({ user_id: userId, cliente_id: cid, papel: 'cliente' })))
-    if (eVinc) {
-      await admin.auth.admin.deleteUser(userId) // não deixa conta órfã sem vínculo
-      return json({ error: `Falha ao vincular: ${eVinc.message}` })
+    if (eCria) {
+      // Conta já existe → REENVIO do convite (link novo), sem tocar senha nem vínculos.
+      // É o único caminho de reenvio: fica atrás do papel operador + 2FA — decisão 03/08
+      // de NÃO ter reenvio self-service público na tela de link expirado.
+      if (!/already|registered/i.test(eCria.message)) return json({ error: `Não foi possível criar a conta: ${eCria.message}` })
+      const { data: lista, error: eLista } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 })
+      if (eLista) return json({ error: `Conta existe, mas não deu para localizá-la: ${eLista.message}` })
+      const existente = lista.users.find((u) => (u.email ?? '').toLowerCase() === email)
+      if (!existente) return json({ error: 'Conta existe, mas não foi localizada — confira o e-mail' })
+      userId = existente.id
+      reenvio = true
+    } else {
+      userId = criado.user.id
+      const { error: eVinc } = await admin
+        .from('painel_acessos')
+        .insert(clienteIds.map((cid) => ({ user_id: userId, cliente_id: cid, papel: 'cliente' })))
+      if (eVinc) {
+        await admin.auth.admin.deleteUser(userId) // não deixa conta órfã sem vínculo
+        return json({ error: `Falha ao vincular: ${eVinc.message}` })
+      }
     }
 
     const { data: link, error: eLink } = await admin.auth.admin.generateLink({
@@ -103,7 +116,7 @@ Deno.serve(async (req) => {
     })
     if (!resp.ok) return json({ error: 'Conta criada, mas o e-mail de convite falhou — reenvie pelo painel' })
 
-    return json({ ok: true, userId })
+    return json({ ok: true, userId, reenvio })
   } catch (e) {
     return json({ error: e instanceof Error ? e.message : 'erro inesperado' })
   }
