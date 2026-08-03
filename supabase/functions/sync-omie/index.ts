@@ -52,6 +52,15 @@ function extrairValor(mov) {
   return 0
 }
 
+// Campos de texto livre variam por instalação Omie — primeiro não-vazio vence (tolerante).
+const primeiroTexto = (fonte, chaves) => {
+  for (const c of chaves) {
+    const v = str(obj(fonte)[c]).trim()
+    if (v) return v
+  }
+  return ''
+}
+
 function extrairMovimento(mov) {
   const det = obj(mov.detalhes), res = obj(mov.resumo)
   return {
@@ -61,6 +70,9 @@ function extrairMovimento(mov) {
     dataEmissao: str(det.dDtEmissao), dataRegistro: str(det.dDtRegistro), dataPrevisao: str(det.dDtPrevisao),
     dataVencimento: str(det.dDtVenc), dataPagamento: str(det.dDtPagamento), dataConciliacao: str(det.dDtConcilia),
     status: str(det.cStatus), liquidado: str(res.cLiquidado), documento: str(det.cNumTitulo || det.cNumDocFiscal),
+    // Texto livre do título (report 03/08: doc vazio esconde o nº no texto) — só EXIBIÇÃO,
+    // nunca identidade (chaveMov segue no documento cru).
+    descricao: primeiroTexto(det, ['cObs', 'observacao', 'cObservacao', 'cDescricao', 'cHistorico']),
     parcela: str(det.cNumParcela), contraparte: str(det.cCPFCNPJCliente), contraparteCodigo: str(det.nCodCliente),
     natureza: str(det.cNatureza), grupo: str(det.cGrupo), origem: str(det.cOrigem), tipoDocumento: str(det.cTipo),
     operacao: str(det.cOperacao), contaCorrente: str(det.nCodCC),
@@ -202,7 +214,13 @@ async function mapaDepartamentosCC(env) {
     totPaginas = r.nTotPaginas ?? totPaginas
     for (const l of r.listaLancamentos ?? []) {
       const dep = departamentoPrincipal(l.departamentos)
-      if (dep && l.nCodLanc != null) mapa.set(String(l.nCodLanc), dep)
+      // A linha bancária do extrato carrega o TEXTO com o nº do documento que o mf não
+      // devolve (report 03/08: documento vazio nos EXTP) — capturada junto do rateio.
+      const det = obj(l.detalhes)
+      const descricao =
+        primeiroTexto(det, ['cObs', 'cDescricao', 'cHistorico', 'observacao']) ||
+        primeiroTexto(l, ['cObs', 'cDescricao', 'cHistorico', 'observacao', 'cDesLanc'])
+      if ((dep || descricao) && l.nCodLanc != null) mapa.set(String(l.nCodLanc), { dep, descricao })
     }
     pagina++
   } while (pagina <= totPaginas && pagina <= MAX_PAGINAS)
@@ -213,12 +231,16 @@ async function mapaDepartamentosCC(env) {
 // Best-effort: falha no LancCC (throttle persistente) não derruba o sync principal.
 async function enriquecerDepartamentos(env, movimentos) {
   try {
-    const depPorLanc = await mapaDepartamentosCC(env)
-    if (depPorLanc.size === 0) return movimentos
+    const porLanc = await mapaDepartamentosCC(env)
+    if (porLanc.size === 0) return movimentos
     return movimentos.map((m) => {
-      if (m.departamento || !m.idMovCC) return m
-      const dep = depPorLanc.get(m.idMovCC)
-      return dep ? { ...m, departamento: dep } : m
+      if (!m.idMovCC) return m
+      const extra = porLanc.get(m.idMovCC)
+      if (!extra) return m
+      const departamento = m.departamento || extra.dep || ''
+      const descricao = m.descricao || extra.descricao || ''
+      if (departamento === m.departamento && descricao === m.descricao) return m
+      return { ...m, departamento, descricao }
     })
   } catch (_e) {
     return movimentos
@@ -465,7 +487,7 @@ function extrairMovimentoNibo(s) {
     dataEmissao: compBR, dataRegistro: isoParaBR(s.createDate), dataPrevisao: isoParaBR(s.scheduleDate),
     dataVencimento: vencBR, dataPagamento: s.isPaid ? vencBR : '', dataConciliacao: '',
     status: statusSchedule(s), liquidado: s.isPaid ? 'S' : 'N',
-    documento: str(s.reference), parcela: '',
+    documento: str(s.reference), descricao: str(s.description), parcela: '',
     // Semântica NIBO: contraparte = NOME do stakeholder; código = GUID (resolve no cadastro).
     contraparte: str(stak.name), contraparteCodigo: str(stak.id),
     natureza: s.type === 'Credit' ? 'R' : 'P', grupo: '', origem: 'NIBO', tipoDocumento: '',
@@ -691,59 +713,75 @@ async function gravarStatus(env, chave, status) {
 }
 
 // Autorização: verify_jwt só prova que o JWT é válido — NÃO escopa o chamador. Sem este
-// gate, qualquer conta autenticada (inclusive papel 'cliente' de outra empresa) dispararia
-// sync/overwrite de QUALQUER tenant com service_role (revisão 2026-08-02). Mesmo padrão do
-// manage-user: papel 'operador' em painel_acessos. Bearer com o próprio service_role
-// (chamada máquina-a-máquina: cron/CLI) passa direto.
-async function chamadorAutorizado(env, req) {
+// gate, qualquer conta autenticada dispararia sync/overwrite de QUALQUER tenant com
+// service_role (revisão 2026-08-02). Escopo por papel (pedido 03/08 — "qualquer conta
+// pode sincronizar"): operador sincroniza qualquer tenant; papel 'cliente' sincroniza SÓ
+// o tenant a que está vinculado (fail-closed) e respeita cooldown. Bearer com o próprio
+// service_role (máquina-a-máquina: cron/CLI) passa direto.
+async function chamadorAutorizado(env, req, clienteId) {
+  const NEGADO = { ok: false }
   const token = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '')
-  if (!token) return false
-  if (token === env.SUPABASE_SERVICE_ROLE_KEY) return true
+  if (!token) return NEGADO
+  if (token === env.SUPABASE_SERVICE_ROLE_KEY) return { ok: true, operador: true }
   const uRes = await fetch(`${env.SUPABASE_URL}/auth/v1/user`, {
     headers: { apikey: env.SUPABASE_ANON_KEY ?? '', Authorization: `Bearer ${token}` },
   })
-  if (!uRes.ok) return false
+  if (!uRes.ok) return NEGADO
   const user = await uRes.json()
-  if (!user?.id) return false
+  if (!user?.id) return NEGADO
   const aRes = await fetch(
-    `${env.SUPABASE_URL}/rest/v1/painel_acessos?user_id=eq.${encodeURIComponent(user.id)}&papel=eq.operador&select=id&limit=1`,
+    `${env.SUPABASE_URL}/rest/v1/painel_acessos?user_id=eq.${encodeURIComponent(user.id)}&select=papel,cliente_id`,
     { headers: { apikey: env.SUPABASE_SERVICE_ROLE_KEY, Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}` } },
   )
-  if (!aRes.ok) return false
+  if (!aRes.ok) return NEGADO
   const rows = await aRes.json()
-  if (!Array.isArray(rows) || rows.length === 0) return false
+  if (!Array.isArray(rows) || rows.length === 0) return NEGADO
+  const operador = rows.some((r) => r?.papel === 'operador')
+  const doProprioTenant = rows.some((r) => r?.papel === 'cliente' && String(r?.cliente_id ?? '') === String(clienteId ?? ''))
+  if (!operador && !doProprioTenant) return NEGADO
 
-  // 2º fator (auditoria 03/08): sync sobrescreve o espelho de um tenant inteiro — senha de
-  // operador vazada, sem o código, não dispara. Bearer service_role (cron) já retornou acima.
+  // 2º fator (auditoria 03/08): sync sobrescreve o espelho de um tenant inteiro — senha
+  // vazada, sem o código do PRÓPRIO e-mail, não dispara. Service_role (cron) já retornou.
   let sessionId = ''
   try {
     sessionId = String(JSON.parse(atob(token.split('.')[1] ?? '')).session_id ?? '')
   } catch {
-    return false
+    return NEGADO
   }
-  if (!sessionId) return false
+  if (!sessionId) return NEGADO
   const sRes = await fetch(
     `${env.SUPABASE_URL}/rest/v1/painel_sessoes_2fa?session_id=eq.${encodeURIComponent(sessionId)}&select=session_id&limit=1`,
     { headers: { apikey: env.SUPABASE_SERVICE_ROLE_KEY, Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}` } },
   )
-  if (!sRes.ok) return false
+  if (!sRes.ok) return NEGADO
   const s = await sRes.json()
-  return Array.isArray(s) && s.length > 0
+  if (!Array.isArray(s) || s.length === 0) return NEGADO
+  return { ok: true, operador }
 }
+
+// Conta de cliente não metralha a API do ERP: no máximo 1 sync a cada N minutos por tenant.
+const COOLDOWN_CLIENTE_MIN = 10
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors })
   try {
     const env = Deno.env.toObject()
-    // 200 com payload de erro: o supabase-js engole o corpo de respostas non-2xx (contrato do projeto).
-    if (!(await chamadorAutorizado(env, req))) {
-      return new Response(JSON.stringify({ error: 'Apenas operador pode sincronizar' }), { headers: { ...cors, 'Content-Type': 'application/json' } })
-    }
     const { clienteId, desde } = await req.json()
     if (!clienteId) throw new Error('clienteId obrigatório')
+    // 200 com payload de erro: o supabase-js engole o corpo de respostas non-2xx (contrato do projeto).
+    const quem = await chamadorAutorizado(env, req, clienteId)
+    if (!quem.ok) {
+      return new Response(JSON.stringify({ error: 'Conta sem permissão para sincronizar esta empresa' }), { headers: { ...cors, 'Content-Type': 'application/json' } })
+    }
     const chave = `cliente:${clienteId}:movimentos-raw`
     const chaveCad = `cliente:${clienteId}:cadastros-raw`
     const chaveHist = `cliente:${clienteId}:sync-historico`
+    if (!quem.operador) {
+      const ultimo = ((await lerDados(env, chaveHist))?.entradas ?? [])[0]?.em
+      if (ultimo && Date.now() - new Date(ultimo).getTime() < COOLDOWN_CLIENTE_MIN * 60_000) {
+        return new Response(JSON.stringify({ error: `Sincronizado há pouco — os dados já são recentes. Tente de novo em ${COOLDOWN_CLIENTE_MIN} minutos.` }), { headers: { ...cors, 'Content-Type': 'application/json' } })
+      }
+    }
     const chaveOrc = `cliente:${clienteId}:orcamento-raw`
     const chaveTit = `cliente:${clienteId}:titulos-raw`
     let cred

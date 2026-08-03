@@ -1,10 +1,17 @@
 /** @file Plano de contas cru do ERP (árvore de categorias) — fonte read-only do de-para. */
 import { useMemo, useState } from 'react'
 import { codigoExibivel, mapaProfundidade, type Categoria, type Natureza } from '@/core/categoria'
+import { gruposDuplicados, type GrupoDuplicado, type MembroDuplicata } from '@/core/duplicatas'
+import { estadoDoNome } from '@/core/estadoRegistro'
+import { pedirBuscaConciliacao } from '@/lib/buscaConciliacaoPedido'
 import { useCadastros } from '@/lib/cadastros'
 import { useProvedor } from '@/lib/clientes'
+import { useDuplicatasIgnoradas } from '@/lib/duplicatasDoc'
 import { COR_NATUREZA, ROTULO_NATUREZA } from '@/lib/natureza'
+import { EtiquetaEstado } from './EtiquetaEstado.tsx'
+import { irParaAba } from './InicioPanel.tsx'
 import { KpiCard } from './KpiCard.tsx'
+import { SecaoDuplicatas } from './SecaoDuplicatas.tsx'
 import { Segmento, type OpcaoSeg } from './Segmento.tsx'
 
 type Filtro = 'todas' | Natureza
@@ -25,6 +32,28 @@ export function CategoriasPanel() {
   const visiveis = useMemo(() => filtrar(categorias, filtro, busca), [categorias, filtro, busca])
   // Por paiCodigo, não por pontos do código — GUID Nibo não tem pontos e achataria a hierarquia.
   const profundidades = useMemo(() => mapaProfundidade(categorias), [categorias])
+
+  // Duplicatas por nome LIMPO (sem etiqueta de estado). Categoria NUNCA oferece "unificar":
+  // mesmo-nome + código-diferente costuma ser conta legitimamente distinta no plano — aqui
+  // é revisão (recolocar na Matriz / marcar legítimo), nunca fusão.
+  const { ignoradas, ignorar } = useDuplicatasIgnoradas()
+  const duplicatas = useMemo(() => {
+    const membros: MembroDuplicata[] = categorias
+      .filter((c) => !c.agrupadora)
+      .map((c) => {
+        const { limpo, estado } = estadoDoNome(c.descricao)
+        return { codigo: c.codigo, nome: limpo, estado, totalCentavos: 0, qtd: 0 }
+      })
+    return gruposDuplicados(membros, ignoradas)
+  }, [categorias, ignoradas])
+
+  function recolocar(g: GrupoDuplicado) {
+    pedirBuscaConciliacao({ dim: 'contas', termo: g.membros[0]!.nome })
+    irParaAba('modelo')
+  }
+  function naoEhDuplicata(g: GrupoDuplicado) {
+    if (window.confirm('Marcar este grupo como legítimo? Ele some da lista de possíveis duplicatas deste cliente.')) ignorar(g.chave)
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -52,6 +81,8 @@ export function CategoriasPanel() {
           className="w-64 rounded-lg border border-bd bg-surface px-3 py-2 text-sm outline-none placeholder:text-muted focus:border-primary"
         />
       </div>
+
+      <SecaoDuplicatas grupos={duplicatas} onIgnorar={naoEhDuplicata} onRecolocar={recolocar} mostrarValores={false} />
 
       <Tabela categorias={visiveis} profundidades={profundidades} />
     </div>
@@ -90,11 +121,17 @@ function Tabela({ categorias, profundidades }: { categorias: readonly Categoria[
 }
 
 function Linha({ c, nivel }: { c: Categoria; nivel: number }) {
+  // Etiqueta de estado embutida no nome pelo BPO ("(EXCLUÍDA)") vira pill; o nome
+  // aparece limpo — espelho continua fiel: o cru segue no title.
+  const { limpo, estado } = estadoDoNome(c.descricao)
   return (
     <tr className="border-b border-bd/60 last:border-0 hover:bg-surface2/50">
       <td className="px-4 py-2.5 font-mono text-xs tabular-nums text-muted">{codigoExibivel(c.codigo) || '—'}</td>
       <td className="px-4 py-2.5" style={{ paddingLeft: 16 + nivel * 16 }}>
-        <span className={c.agrupadora ? 'font-semibold' : ''}>{c.descricao}</span>
+        <span className="inline-flex items-center gap-1.5" title={estado ? `Original no ERP: ${c.descricao}` : undefined}>
+          <span className={c.agrupadora ? 'font-semibold' : ''}>{limpo}</span>
+          {estado ? <EtiquetaEstado estado={estado} /> : null}
+        </span>
       </td>
       <td className="px-4 py-2.5">
         <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${COR_NATUREZA[c.natureza]}`}>

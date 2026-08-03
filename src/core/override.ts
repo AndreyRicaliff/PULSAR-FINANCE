@@ -4,6 +4,8 @@
  * (cru + override aplicado) via {@link Resolvedor} — o "GET pós PUT". Os resultados
  * (conciliação, DRE/DFC) saem do editado, nunca corrompendo o original. Spec §9.
  */
+import type { EstadoRegistro } from './estadoRegistro'
+
 export type EntidadeEditavel = 'categoria' | 'contraparte' | 'titulo'
 
 export interface Overrides {
@@ -18,11 +20,15 @@ export interface Overrides {
 export const OVERRIDES_VAZIO: Overrides = { categoria: {}, contraparte: {}, titulo: {} }
 
 export interface NomeResolvido {
-  /** O que exibir: ajustado se houver, senão o original do Omie. */
+  /** O que exibir: ajustado se houver, senão o original do Omie — sempre SEM a etiqueta
+   * de estado embutida (ver core/estadoRegistro): o marcador vira o campo `estado`. */
   readonly nome: string
   /** Sempre o nome original do Omie. */
   readonly original: string
   readonly editado: boolean
+  /** Estado embutido no nome pelo time BPO ("(EXCLUÍDO)" etc.) — exibir como etiqueta.
+   * Detectado no nome EXIBIDO: renomear controla a etiqueta manualmente. */
+  readonly estado?: EstadoRegistro
 }
 
 export interface Resolvedor {

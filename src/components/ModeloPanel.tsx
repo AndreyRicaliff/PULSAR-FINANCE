@@ -1,8 +1,10 @@
 /** @file Matriz de Classificações: conciliação manual de categorias e fornecedores na estrutura AG, com sugestões da matriz e modal de movimentos. */
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { sugerirClassificacao } from '@/core/matriz-classificacao'
 import type { Dimensao, RegimeDemo } from '@/core/modelo'
 import { chaveContraparte, type Movimento } from '@/core/movimento'
+import { filtrarConciliacao } from '@/core/buscaConciliacao'
+import { consumirBuscaPendente } from '@/lib/buscaConciliacaoPedido'
 import type { Resolvedor } from '@/core/override'
 import { descricoesAmbiguas, rotuloCategoria, type CategoriasSeed } from '@/core/categoria'
 import { dataDoMovimento } from '@/core/periodo'
@@ -52,6 +54,7 @@ export function ModeloPanel() {
   const [filtros, setFiltros] = useState<Filtros>(FILTROS_VAZIOS)
   const [faixa, setFaixa] = useState<FaixaMeses>({ de: null, ate: null })
   const [modalChave, setModalChave] = useState<string | null>(null)
+  const [busca, setBusca] = useState('')
 
   const { resolvedor, overrides } = useOverrides()
   const { movimentos: todos } = useMovimentos()
@@ -84,6 +87,26 @@ export function ModeloPanel() {
   const conciliados = itens.filter((i) => conc.mapa[i.chave])
   const valorConciliado = conciliados.reduce((a, i) => a + i.valorCentavos, 0)
   const grupos = conc.estrutura.filter((n) => !n.paiId).length
+
+  const itensVisiveis = useMemo(() => filtrarConciliacao(itens, conc.estrutura, conc.mapa, busca), [itens, busca, conc])
+
+  // "Recolocar na Matriz" de outras telas: consome o pedido pendente no MOUNT (1ª
+  // navegação — o painel ainda não existia pra ouvir o evento) e escuta o evento
+  // pros casos em que já está montado (`visitadas` esconde, não desmonta).
+  useEffect(() => {
+    const aplicar = (p: { dim?: Dimensao; termo?: string } | null) => {
+      if (!p) return
+      if (p.dim === 'contas' || p.dim === 'fornecedores') setDim(p.dim)
+      if (typeof p.termo === 'string') setBusca(p.termo)
+    }
+    aplicar(consumirBuscaPendente())
+    const aoBuscar = (e: Event) => {
+      aplicar((e as CustomEvent<{ dim?: Dimensao; termo?: string }>).detail)
+      consumirBuscaPendente() // já aplicado — não reaplicar num remount futuro
+    }
+    window.addEventListener('lf-buscar-conciliacao', aoBuscar)
+    return () => window.removeEventListener('lf-buscar-conciliacao', aoBuscar)
+  }, [])
 
   function criar() {
     api.addNo(dim, nomeGrupo, null, dim === 'contas' ? regimeGrupo : undefined)
@@ -176,9 +199,11 @@ export function ModeloPanel() {
         </button>
       </div>
 
+      <BuscaConciliacao busca={busca} onBusca={setBusca} visiveis={itensVisiveis.length} total={itens.length} />
+
       <ConciliacaoBoard
         conc={conc}
-        itens={itens}
+        itens={itensVisiveis}
         entidade={dim === 'contas' ? 'categoria' : 'contraparte'}
         termo={TERMO_DIM[dim]}
         sugerir={dim === 'contas' ? sugerirClassificacao : undefined}
@@ -213,6 +238,64 @@ function movsDaChave(movs: readonly Movimento[], chave: string, dim: Dimensao): 
 
 function tituloDaChave(chave: string, dim: Dimensao, resolvedor: Resolvedor): string {
   return dim === 'contas' ? resolvedor.categoria(chave).nome : resolvedor.contraparte(chave).nome
+}
+
+/** Barra de busca da conciliação (pedido 03/08) — navegação, não filtro de dado. */
+function BuscaConciliacao({
+  busca,
+  onBusca,
+  visiveis,
+  total,
+}: {
+  busca: string
+  onBusca: (v: string) => void
+  visiveis: number
+  total: number
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      <div className="relative flex-1">
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          aria-hidden
+          className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted"
+        >
+          <circle cx="11" cy="11" r="7" />
+          <path d="M21 21l-4.3-4.3" />
+        </svg>
+        <input
+          value={busca}
+          onChange={(e) => onBusca(e.target.value)}
+          onKeyDown={(e) => e.key === 'Escape' && onBusca('')}
+          placeholder="Buscar conta, fornecedor ou grupo da conciliação…"
+          aria-label="Buscar na conciliação"
+          className="w-full rounded-lg border border-bd bg-surface py-2 pl-9 pr-9 text-sm outline-none placeholder:text-muted focus:border-primary"
+        />
+        {busca ? (
+          <button
+            type="button"
+            onClick={() => onBusca('')}
+            title="Limpar busca (Esc)"
+            aria-label="Limpar busca"
+            className="absolute right-2 top-1/2 grid h-6 w-6 -translate-y-1/2 place-items-center rounded text-muted hover:text-text"
+          >
+            ✕
+          </button>
+        ) : null}
+      </div>
+      {busca ? (
+        <span className="shrink-0 text-xs tabular-nums text-muted">
+          {visiveis} de {total}
+        </span>
+      ) : null}
+    </div>
+  )
 }
 
 function BarraProgresso({ feito, total }: { feito: number; total: number }) {

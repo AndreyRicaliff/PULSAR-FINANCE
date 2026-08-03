@@ -27,6 +27,9 @@ export interface Movimento {
   /** resumo.cLiquidado: 'S' pago, 'N' em aberto, '' indefinido. */
   readonly liquidado: string
   readonly documento: string
+  /** Texto livre do ERP (obs do título / linha do extrato) — fallback de EXIBIÇÃO quando
+   * `documento` vem vazio (report 03/08); nunca entra em identidade/dedup. */
+  readonly descricao?: string
   readonly parcela: string
   readonly contraparte: string
   /** Código do cliente/fornecedor na Omie (junta com o cadastro para virar nome). */
