@@ -4,6 +4,7 @@ import { sugerirClassificacao } from '@/core/matriz-classificacao'
 import type { Dimensao, RegimeDemo } from '@/core/modelo'
 import { chaveContraparte, type Movimento } from '@/core/movimento'
 import { filtrarConciliacao } from '@/core/buscaConciliacao'
+import { consumirBuscaPendente } from '@/lib/buscaConciliacaoPedido'
 import type { Resolvedor } from '@/core/override'
 import { descricoesAmbiguas, rotuloCategoria, type CategoriasSeed } from '@/core/categoria'
 import { dataDoMovimento } from '@/core/periodo'
@@ -89,12 +90,19 @@ export function ModeloPanel() {
 
   const itensVisiveis = useMemo(() => filtrarConciliacao(itens, conc.estrutura, conc.mapa, busca), [itens, busca, conc])
 
-  // "Recolocar na Matriz" de outras telas: chega por evento com a dimensão e o termo prontos.
+  // "Recolocar na Matriz" de outras telas: consome o pedido pendente no MOUNT (1ª
+  // navegação — o painel ainda não existia pra ouvir o evento) e escuta o evento
+  // pros casos em que já está montado (`visitadas` esconde, não desmonta).
   useEffect(() => {
+    const aplicar = (p: { dim?: Dimensao; termo?: string } | null) => {
+      if (!p) return
+      if (p.dim === 'contas' || p.dim === 'fornecedores') setDim(p.dim)
+      if (typeof p.termo === 'string') setBusca(p.termo)
+    }
+    aplicar(consumirBuscaPendente())
     const aoBuscar = (e: Event) => {
-      const d = (e as CustomEvent<{ dim?: Dimensao; termo?: string }>).detail
-      if (d?.dim === 'contas' || d?.dim === 'fornecedores') setDim(d.dim)
-      if (typeof d?.termo === 'string') setBusca(d.termo)
+      aplicar((e as CustomEvent<{ dim?: Dimensao; termo?: string }>).detail)
+      consumirBuscaPendente() // já aplicado — não reaplicar num remount futuro
     }
     window.addEventListener('lf-buscar-conciliacao', aoBuscar)
     return () => window.removeEventListener('lf-buscar-conciliacao', aoBuscar)

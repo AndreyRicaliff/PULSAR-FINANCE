@@ -70,6 +70,10 @@ describe('suspeitasDoLancamento', () => {
     expect(s).toEqual([{ tipo: 'erp', movimento: expect.anything() }])
     expect(suspeitasDoLancamento(cand, [mov({ dataPagamento: '20/07/2026' })])).toEqual([])
   })
+  it('título ABERTO (dataPagamento="" do sync) casa pelo valor cheio e pela data principal', () => {
+    const aberto = mov({ dataPagamento: '', valorPagoCentavos: 0, liquidado: 'N', data: '09/07/2026' })
+    expect(suspeitasDoLancamento(cand, [aberto])).toEqual([{ tipo: 'erp', movimento: expect.anything() }])
+  })
   it('natureza diferente ou valor diferente não casa', () => {
     expect(suspeitasDoLancamento(cand, [mov({ natureza: 'P' })])).toEqual([])
     expect(suspeitasDoLancamento(cand, [mov({ valorPagoCentavos: 99_99, valorCentavos: 99_99 })])).toEqual([])

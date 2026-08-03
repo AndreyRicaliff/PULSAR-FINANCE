@@ -9,13 +9,16 @@ describe('estadoDoNome', () => {
     expect(estadoDoNome('Embalagens {DESATIVADA}')).toEqual({ limpo: 'Embalagens', estado: 'desativado' })
     expect(estadoDoNome('Conta (*** EXCLUIDA ***)')).toEqual({ limpo: 'Conta', estado: 'excluido' })
   })
-  it('marcador como prefixo ou sufixo isolado', () => {
+  it('marcador como prefixo/sufixo DELIMITADO (traço, ponto médio etc.)', () => {
     expect(estadoDoNome('EXCLUIDO - FRETE')).toEqual({ limpo: 'FRETE', estado: 'excluido' })
-    expect(estadoDoNome('EMBALAGENS EXCLUIDA')).toEqual({ limpo: 'EMBALAGENS', estado: 'excluido' })
+    expect(estadoDoNome('EMBALAGENS - EXCLUIDA')).toEqual({ limpo: 'EMBALAGENS', estado: 'excluido' })
     expect(estadoDoNome('Motoboys - NÃO USAR')).toEqual({ limpo: 'Motoboys', estado: 'nao-usar' })
     expect(estadoDoNome('iFood · obsoleto')).toEqual({ limpo: 'iFood', estado: 'obsoleto' })
   })
-  it('palavra no MEIO do nome nunca é etiqueta (conta legítima)', () => {
+  it('palavra SOLTA nunca é etiqueta — conta legítima fica intacta (review 03/08)', () => {
+    expect(estadoDoNome('Estoque Obsoleto')).toEqual({ limpo: 'Estoque Obsoleto' })
+    expect(estadoDoNome('Clientes Inativos')).toEqual({ limpo: 'Clientes Inativos' })
+    expect(estadoDoNome('EMBALAGENS EXCLUIDA')).toEqual({ limpo: 'EMBALAGENS EXCLUIDA' })
     expect(estadoDoNome('Baixa de contas canceladas')).toEqual({ limpo: 'Baixa de contas canceladas' })
     expect(estadoDoNome('Estorno de venda excluida do lote')).toEqual({ limpo: 'Estorno de venda excluida do lote' })
   })

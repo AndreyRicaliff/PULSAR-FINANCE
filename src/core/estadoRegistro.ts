@@ -34,6 +34,10 @@ const MARCADORES: readonly { readonly padrao: string; readonly estado: EstadoReg
 ]
 
 const SEPARADOR = '[\\s\\-–—:·|/*!.]'
+// Prefixo/sufixo exigem delimitador EXPLÍCITO (não espaço): "Estoque Obsoleto" e
+// "Clientes Inativos" são contas contábeis legítimas — palavra solta nunca é etiqueta
+// (falso positivo mutilava o nome e fabricava duplicata falsa; review 03/08).
+const DELIMITADOR = '[-–—:·|/*!]'
 
 export function estadoDoNome(nome: string): NomeComEstado {
   for (const { padrao, estado } of MARCADORES) {
@@ -41,10 +45,10 @@ export function estadoDoNome(nome: string): NomeComEstado {
     const entreParenteses = new RegExp(`[(\\[{]${SEPARADOR}*(?:${padrao})${SEPARADOR}*[)\\]}]`, 'i')
     if (entreParenteses.test(nome)) return montar(nome.replace(entreParenteses, ' '), nome, estado)
 
-    // Prefixo ou sufixo isolado ("EXCLUIDO - FRETE", "EMBALAGENS EXCLUIDA").
-    const prefixo = new RegExp(`^${SEPARADOR}*(?:${padrao})(?:${SEPARADOR}+|$)`, 'i')
+    // Prefixo/sufixo delimitado ("EXCLUIDO - FRETE", "Motoboys - NÃO USAR").
+    const prefixo = new RegExp(`^\\s*(?:${padrao})\\s*${DELIMITADOR}+\\s*`, 'i')
     if (prefixo.test(nome)) return montar(nome.replace(prefixo, ' '), nome, estado)
-    const sufixo = new RegExp(`(?:^|${SEPARADOR}+)(?:${padrao})${SEPARADOR}*$`, 'i')
+    const sufixo = new RegExp(`\\s*${DELIMITADOR}+\\s*(?:${padrao})${SEPARADOR}*$`, 'i')
     if (sufixo.test(nome)) return montar(nome.replace(sufixo, ' '), nome, estado)
   }
   return { limpo: nome }

@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react'
 import { codigoExibivel, mapaProfundidade, type Categoria, type Natureza } from '@/core/categoria'
 import { gruposDuplicados, type GrupoDuplicado, type MembroDuplicata } from '@/core/duplicatas'
 import { estadoDoNome } from '@/core/estadoRegistro'
+import { pedirBuscaConciliacao } from '@/lib/buscaConciliacaoPedido'
 import { useCadastros } from '@/lib/cadastros'
 import { useProvedor } from '@/lib/clientes'
 import { useDuplicatasIgnoradas } from '@/lib/duplicatasDoc'
@@ -47,7 +48,7 @@ export function CategoriasPanel() {
   }, [categorias, ignoradas])
 
   function recolocar(g: GrupoDuplicado) {
-    window.dispatchEvent(new CustomEvent('lf-buscar-conciliacao', { detail: { dim: 'contas', termo: g.membros[0]!.nome } }))
+    pedirBuscaConciliacao({ dim: 'contas', termo: g.membros[0]!.nome })
     irParaAba('modelo')
   }
   function naoEhDuplicata(g: GrupoDuplicado) {

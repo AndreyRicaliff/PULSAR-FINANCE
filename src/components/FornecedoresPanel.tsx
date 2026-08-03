@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react'
 import { gruposDuplicados, type GrupoDuplicado, type MembroDuplicata } from '@/core/duplicatas'
 import { chaveContraparte, type Movimento } from '@/core/movimento'
 import type { ClientesSeed } from '@/core/cliente'
+import { pedirBuscaConciliacao } from '@/lib/buscaConciliacaoPedido'
 import { useCadastros } from '@/lib/cadastros'
 import { useDuplicatasIgnoradas } from '@/lib/duplicatasDoc'
 import { useMovimentos } from '@/lib/movimentos'
@@ -74,7 +75,7 @@ export function FornecedoresPanel() {
   }
 
   function recolocar(g: GrupoDuplicado) {
-    window.dispatchEvent(new CustomEvent('lf-buscar-conciliacao', { detail: { dim: 'fornecedores', termo: g.membros[0]!.nome } }))
+    pedirBuscaConciliacao({ dim: 'fornecedores', termo: g.membros[0]!.nome })
     irParaAba('modelo')
   }
 

@@ -107,7 +107,9 @@ export function suspeitasDoLancamento(cand: CandidatoLancamento, movimentos: rea
     }
     const valorErp = m.valorPagoCentavos > 0 ? m.valorPagoCentavos : m.valorCentavos
     if (valorErp !== cand.valorCentavos) continue
-    const dia = diasDesdeEpoca(m.dataPagamento ?? m.data)
+    // `||`, não `??`: o sync grava dataPagamento de título ABERTO como '' — o ?? mantinha
+    // a string vazia e matava o casamento com título não pago (review 03/08).
+    const dia = diasDesdeEpoca(m.dataPagamento || m.data)
     if (dia !== null && Math.abs(dia - alvo) <= JANELA_DIAS_ERP) suspeitas.push({ tipo: 'erp', movimento: m })
   }
   return suspeitas
