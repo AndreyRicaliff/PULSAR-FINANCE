@@ -25,6 +25,9 @@ const VALIDADE_MIN = 10
 const MAX_TENTATIVAS = 5
 const REENVIO_S = 45
 const DIAS_CONFIANCA = 30
+// Teto por USUÁRIO (auditoria 03/08): o freio de 45s e as 5 tentativas eram por SESSÃO —
+// abrir N logins multiplicava as chances de acertar os 6 dígitos. Este teto é global.
+const MAX_DESAFIOS_HORA = 8
 
 const FROM = Deno.env.get('RESEND_FROM') ?? 'Pulsar Finance <noreply@agconsultorialtda.com>'
 
@@ -120,6 +123,16 @@ Deno.serve(async (req) => {
         .gte('criado_em', new Date(Date.now() - REENVIO_S * 1000).toISOString())
         .maybeSingle()
       if (recente) return json({ error: `Aguarde ${REENVIO_S}s para pedir outro código.` })
+
+      // Teto por usuário: fecha o contorno de abrir várias sessões para ganhar tentativas.
+      const { count: desafiosHora } = await admin
+        .from('painel_desafios_2fa')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', userId)
+        .gte('criado_em', new Date(Date.now() - 3_600_000).toISOString())
+      if ((desafiosHora ?? 0) >= MAX_DESAFIOS_HORA) {
+        return json({ error: 'Muitas solicitações de código na última hora — tente novamente mais tarde.' })
+      }
 
       const apiKey = Deno.env.get('RESEND_API_KEY')
       if (!apiKey) return json({ error: 'RESEND_API_KEY não configurada' })

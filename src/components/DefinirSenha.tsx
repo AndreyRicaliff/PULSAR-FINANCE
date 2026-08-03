@@ -12,7 +12,7 @@ export function DefinirSenha({ email, onFechar }: { email?: string; onFechar: ()
 
   async function salvar(e: FormEvent) {
     e.preventDefault()
-    if (senha.length < 6) return setErro('A senha precisa ter ao menos 6 caracteres.')
+    if (senha.length < 8) return setErro('A senha precisa ter ao menos 8 caracteres.')
     if (senha !== confirma) return setErro('As senhas não conferem.')
     setErro('')
     setCarregando(true)
