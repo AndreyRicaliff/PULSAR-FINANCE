@@ -43,8 +43,9 @@ export interface MetaContabil {
   readonly intercompany?: boolean
   /** Em quais demonstrações o grupo entra (escolhido na Matriz). Ausente = ambos. */
   readonly regime?: RegimeDemo
-  /** Marca o nó no indicador de CAPEX (por empresa, via Matriz). Ausente = fora do indicador. */
-  readonly capex?: TipoCapex
+  /** Marca o nó no indicador de CAPEX (por empresa, via Matriz). Chave AUSENTE = nunca
+   * decidido (migração pode aplicar o padrão); `null` = opt-out EXPLÍCITO (respeitado). */
+  readonly capex?: TipoCapex | null
 }
 
 /** O grupo entra na demonstração `tipo`? (regime ausente = ambos). Neutro nunca entra por padrão. */

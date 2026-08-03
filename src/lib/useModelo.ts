@@ -2,7 +2,7 @@
 import { useCallback, useMemo } from 'react'
 import type { Conciliacao, Dimensao, Modelo, No, RegimeDemo, TipoCapex } from '@/core/modelo'
 import { ESTRUTURA_PADRAO, reordenarRaiz } from '@/core/modelo'
-import { MIGRACAO_NOS } from '@/core/plano-padrao'
+import { aplicarCapexPadrao, MIGRACAO_NOS } from '@/core/plano-padrao'
 import { useCadastros } from './cadastros'
 import { useEstadoSincronizado } from './persistencia'
 import { useChaveCliente } from './clientes'
@@ -29,7 +29,10 @@ function normalizarCom(bruto: unknown, padrao: Readonly<Record<Dimensao, readonl
 // (migrando nós aposentados pela Matriz de Classificação para o destino atual).
 function comPadrao(c: Conciliacao | undefined, dim: Dimensao, padrao: Readonly<Record<Dimensao, readonly No[]>>): Conciliacao {
   const mapa = migrarMapa(c?.mapa ?? {})
-  if (c?.estrutura?.length) return { estrutura: c.estrutura, mapa }
+  if (c?.estrutura?.length) {
+    // Estrutura salva antes dos defaults de CAPEX ganha a marcação dos nós-padrão (só contas).
+    return { estrutura: dim === 'contas' ? aplicarCapexPadrao(c.estrutura) : c.estrutura, mapa }
+  }
   return { estrutura: padrao[dim], mapa }
 }
 
@@ -91,9 +94,10 @@ export function useModelo(): ModeloApi {
 
   const definirCapex = useCallback(
     (dim: Dimensao, id: string, capex: TipoCapex | null) => {
+      // null é gravado (não apagado): opt-out explícito sobrevive à migração de padrão.
       aplicar(dim, (c) => ({
         ...c,
-        estrutura: c.estrutura.map((n) => (n.id === id ? { ...n, meta: { ...n.meta, capex: capex ?? undefined } } : n)),
+        estrutura: c.estrutura.map((n) => (n.id === id ? { ...n, meta: { ...n.meta, capex } } : n)),
       }))
     },
     [aplicar],

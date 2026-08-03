@@ -27,6 +27,28 @@ function achatar(defs: readonly DefGrupo[]): No[] {
 
 const OPERACIONAL = 'operacional' as const
 
+/** ids do plano padrão que nascem marcados no indicador de CAPEX (defaults 2026-08-02). */
+const IDS_CAPEX_PADRAO: ReadonlySet<string> = new Set(['inv_imobilizado', 'inv_intangivel', 'inv_consorcios', 'adm_manutencao'])
+
+/**
+ * Migração leve para estrutura SALVA antes dos defaults de CAPEX: nós-padrão (por id)
+ * ganham a marcação canônica. Só quando a chave `capex` está AUSENTE do meta —
+ * `capex: null` é opt-out explícito do operador e é respeitado. Chaves existentes do
+ * meta do usuário (regime etc.) sempre vencem as canônicas.
+ */
+export function aplicarCapexPadrao(estrutura: readonly No[]): No[] {
+  let mudou = false
+  const out = estrutura.map((n) => {
+    if (!IDS_CAPEX_PADRAO.has(n.id)) return n
+    if (n.meta && 'capex' in n.meta) return n
+    const metaPadrao = ESTRUTURA_PADRAO_AG.find((p) => p.id === n.id)?.meta
+    if (!metaPadrao?.capex) return n
+    mudou = true
+    return { ...n, meta: { ...metaPadrao, ...n.meta, capex: metaPadrao.capex } }
+  })
+  return mudou ? out : [...estrutura]
+}
+
 const DEF_CONTAS: readonly DefGrupo[] = [
   {
     id: 'receita_bruta',
