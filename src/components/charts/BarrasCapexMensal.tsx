@@ -42,13 +42,17 @@ export function BarrasCapexMensal({ dados }: { dados: readonly CapexMes[] }) {
           <span className="h-3 w-3 rounded-sm bg-warn" /> Manutenção (reposição/reparos)
         </span>
       </div>
-      <div className="overflow-x-auto pb-1">
-        <svg width={largura} height={H} viewBox={`0 0 ${largura} ${H}`} className="block" onMouseLeave={() => { setAtivo(null); tip.esconder() }}>
+      <div className="pb-1">
+        {/* viewBox escala com o container — no modal expandido cresce junto (report 02/08). */}
+        <svg viewBox={`0 0 ${largura} ${H}`} className="block h-auto w-full" onMouseLeave={() => { setAtivo(null); tip.esconder() }}>
           {dados.map((d, i) => {
             const x = PAD_L + i * PASSO
             const hInv = h(d.investimentoCentavos)
             const hMan = h(d.manutencaoCentavos)
             const opaco = ativo === null || ativo === i ? 1 : 0.45
+            // Rótulo esparso: imprimir todos vira mancha ilegível em período longo (report 02/08).
+            const passoRot = Math.max(1, Math.ceil(dados.length / 14))
+            const rotula = i === ativo || i === dados.length - 1 || (i % passoRot === 0 && dados.length - 1 - i >= Math.ceil(passoRot / 2))
             return (
               <g key={d.mes} style={{ opacity: opaco }} className="transition-opacity duration-200">
                 {hInv > 0 ? <rect x={x} y={BASE_Y - hInv} width={BAR_W} height={hInv} fill="rgb(var(--c-accent))" /> : null}
@@ -56,9 +60,11 @@ export function BarrasCapexMensal({ dados }: { dados: readonly CapexMes[] }) {
                 {hInv === 0 && hMan === 0 ? (
                   <rect x={x} y={BASE_Y - 2} width={BAR_W} height="2" fill="rgb(var(--c-muted))" opacity="0.6" />
                 ) : null}
-                <text x={x + BAR_W / 2} y={H - 5} textAnchor="middle" className="fill-muted tabular-nums" style={{ fontSize: 9 }}>
-                  {rotuloMes(d.mes)}
-                </text>
+                {rotula ? (
+                  <text x={x + BAR_W / 2} y={H - 5} textAnchor="middle" className="fill-muted tabular-nums" style={{ fontSize: 9, fontWeight: i === ativo ? 700 : 400 }}>
+                    {rotuloMes(d.mes)}
+                  </text>
+                ) : null}
               </g>
             )
           })}

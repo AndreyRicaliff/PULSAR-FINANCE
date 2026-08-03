@@ -38,8 +38,10 @@ export function BarrasMensais({ dados }: { dados: readonly BarraMes[] }) {
   return (
     <div className="flex flex-col gap-3">
       <Legenda mediaEntrada={mediaEntrada} mediaSaida={mediaSaida} />
-      <div className="overflow-x-auto pb-1">
-        <svg width={largura} height={H} viewBox={`0 0 ${largura} ${H}`} className="block" onMouseLeave={() => { setAtivo(null); tip.esconder() }}>
+      <div className="pb-1">
+        {/* Sem width fixo: o viewBox escala com o container — no modal expandido o gráfico
+            cresce junto em vez de boiar pequeno num mar de espaço (report 02/08). */}
+        <svg viewBox={`0 0 ${largura} ${H}`} className="block h-auto w-full" onMouseLeave={() => { setAtivo(null); tip.esconder() }}>
           <defs>
             <linearGradient id="bm-ent" x1="0" y1="1" x2="0" y2="0">
               <stop offset="0%" stopColor="rgb(var(--c-accent))" stopOpacity="0.5" />
@@ -56,13 +58,19 @@ export function BarrasMensais({ dados }: { dados: readonly BarraMes[] }) {
             const hE = hDe(d.entrada)
             const hS = hDe(d.saida)
             const opaco = ativo === null || ativo === i ? 1 : 0.45
+            // Rótulo esparso: '01/25' é mais largo que o passo — imprimir todos vira mancha
+            // ilegível (report 02/08). O tooltip nomeia qualquer mês no hover.
+            const passoRot = Math.max(1, Math.ceil(dados.length / 14))
+            const rotula = i === ativo || i === dados.length - 1 || (i % passoRot === 0 && dados.length - 1 - i >= Math.ceil(passoRot / 2))
             return (
               <g key={d.mes} style={{ opacity: opaco }} className="transition-opacity duration-200">
                 {hE > 0 ? <rect x={x} y={BASE_Y - hE} width={BAR_W} height={hE} rx="2" fill="url(#bm-ent)" /> : null}
                 {hS > 0 ? <rect x={x} y={BASE_Y} width={BAR_W} height={hS} rx="2" fill="url(#bm-sai)" /> : null}
-                <text x={xCentro(i)} y={H - 5} textAnchor="middle" className="fill-muted tabular-nums" style={{ fontSize: 9 }}>
-                  {d.mes}
-                </text>
+                {rotula ? (
+                  <text x={xCentro(i)} y={H - 5} textAnchor="middle" className="fill-muted tabular-nums" style={{ fontSize: 9, fontWeight: i === ativo ? 700 : 400 }}>
+                    {d.mes}
+                  </text>
+                ) : null}
               </g>
             )
           })}
