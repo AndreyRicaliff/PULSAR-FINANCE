@@ -11,7 +11,9 @@
  */
 import { useEffect, useRef, useState, type PointerEvent, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
+import { useVisivelNaAbaDona } from '@/lib/abaAtiva'
 import { CtxEscalaGrafico } from '@/lib/escalaGrafico'
+import { useOverlay, useTravaScroll } from '@/lib/overlay'
 import { somSelecao, somTick } from '@/lib/som'
 
 /** Visão "de perto" do modal antes do zoom (os gráficos redesenham 1.6× mais altos). */
@@ -72,13 +74,11 @@ function Modal({ titulo, ampliarSvg, onFechar, children }: PropsModal) {
   const visorRef = useRef<HTMLDivElement>(null)
   const arrasto = useRef<{ x: number; y: number; sl: number; st: number } | null>(null)
 
-  useEffect(() => {
-    const aoTeclar = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onFechar()
-    }
-    window.addEventListener('keydown', aoTeclar)
-    return () => window.removeEventListener('keydown', aoTeclar)
-  }, [onFechar])
+  // Esc/scroll pela fundação de overlay (pilha — Esc fecha só o topo) e o modal some
+  // quando a aba dona não está ativa (estado preservado; UX 03/08).
+  useOverlay(onFechar)
+  useTravaScroll()
+  const visivel = useVisivelNaAbaDona()
 
   // Roda = zoom quando a ferramenta está ligada. Listener NATIVO não-passivo: o onWheel
   // do React é passive e ignora preventDefault — o modal rolaria em vez de aproximar.
@@ -120,6 +120,7 @@ function Modal({ titulo, ampliarSvg, onFechar, children }: PropsModal) {
     arrasto.current = null
   }
 
+  if (!visivel) return null
   return createPortal(
     <div className="anim-fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-6" onClick={onFechar}>
       <div

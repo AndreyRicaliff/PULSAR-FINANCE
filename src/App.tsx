@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useTema } from './lib/useTema'
+import { AbaAtivaContext } from './lib/abaAtiva'
 import { useAutoScrollDrag } from './lib/useAutoScrollDrag'
 import { MODO_APRESENTACAO } from './lib/apresentacaoSnapshot'
 import { MODO_HUD } from './lib/hudModo'
@@ -23,6 +24,7 @@ import { URL_BOOT } from './lib/urlBoot'
 import { Carregando, Login } from './components/Login.tsx'
 import { ConviteInterstitial, LinkExpirado } from './components/ConviteFluxo.tsx'
 import { RecuperarSenha } from './components/RecuperarSenha.tsx'
+import { PaletaAbas } from './components/PaletaAbas.tsx'
 import { CadastroPanel } from './components/CadastroPanel.tsx'
 import { InicioPanel } from './components/InicioPanel.tsx'
 import { CategoriasPanel } from './components/CategoriasPanel.tsx'
@@ -134,6 +136,30 @@ function Shell({ email }: { email?: string }) {
     window.addEventListener('lf-ir-aba', ouvir)
     return () => window.removeEventListener('lf-ir-aba', ouvir)
   }, [])
+  // Navegação sem mouse (UX 03/08): Ctrl/Cmd+K abre o quick-switcher; "/" foca a busca
+  // visível do painel (âncora data-campo-busca). Nunca sequestra tecla dentro de campo.
+  const [paleta, setPaleta] = useState(false)
+  useEffect(() => {
+    const aoTeclar = (e: KeyboardEvent) => {
+      const alvo = e.target as HTMLElement | null
+      const emCampo = alvo instanceof HTMLInputElement || alvo instanceof HTMLTextAreaElement || alvo?.isContentEditable
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault()
+        setPaleta(true)
+        return
+      }
+      if (e.key === '/' && !emCampo) {
+        const campos = [...document.querySelectorAll<HTMLInputElement>('[data-campo-busca]')]
+        const visivel = campos.find((c) => c.offsetParent !== null)
+        if (visivel) {
+          e.preventDefault()
+          visivel.focus()
+        }
+      }
+    }
+    window.addEventListener('keydown', aoTeclar)
+    return () => window.removeEventListener('keydown', aoTeclar)
+  }, [])
   // No celular a sidebar é overlay e nasce FECHADA — 240px fixos comiam a tela (revisão).
   const [menuAberto, setMenuAberto] = useState(
     () => window.innerWidth >= 768 && localStorage.getItem('lf-menu') !== '0',
@@ -150,9 +176,25 @@ function Shell({ email }: { email?: string }) {
     setVisitadas((v) => (v.includes(aba) ? v : [...v, aba]))
   }, [aba])
 
+  // Scroll LEMBRADO por aba (UX 03/08): o <main> é um scroller só e o scrollTop vazava
+  // entre abas — voltar pra tabela significava re-rolar do zero.
+  const mainRef = useRef<HTMLElement>(null)
+  const scrollPorAba = useRef<Partial<Record<Aba, number>>>({})
+  const abaAnterior = useRef(aba)
+  useLayoutEffect(() => {
+    const main = mainRef.current
+    if (!main) return
+    if (abaAnterior.current !== aba) {
+      scrollPorAba.current[abaAnterior.current] = main.scrollTop
+      main.scrollTop = scrollPorAba.current[aba] ?? 0
+      abaAnterior.current = aba
+    }
+  }, [aba])
+
   return (
     <OverridesProvider>
       <BoasVindas />
+      {paleta ? <PaletaAbas onIr={setAba} onFechar={() => setPaleta(false)} /> : null}
       <div className="flex h-dvh overflow-hidden">
         <Sidebar
           ativa={aba}
@@ -180,18 +222,24 @@ function Shell({ email }: { email?: string }) {
             menuAberto={menuAberto}
             onAlternarMenu={() => setMenuAberto((v) => !v)}
           />
-          <main className="fx-grid-bg min-w-0 flex-1 overflow-auto p-4 md:p-8">
+          <main ref={mainRef} className="fx-grid-bg min-w-0 flex-1 overflow-auto p-4 md:p-8">
             {/* UM período pro Shell inteiro (padrão líder/beto): trocar de aba não reseta
                 mais o filtro — os painéis deixaram de montar providers próprios. */}
             <PeriodoProvider>
-              {visitadas.map((a) => {
-                const Painel = PAINEIS[a]
-                return (
-                  <div key={a} className={a === aba ? 'anim-tab-in' : 'hidden'}>
-                    <Painel />
-                  </div>
-                )
-              })}
+              {/* max-width (UX 03/08): em ultrawide as tabelas corriam de ponta a ponta —
+                  largura de leitura limitada, centrada; o grid de KPIs não muda. */}
+              <div className="mx-auto w-full max-w-[1600px]">
+                <AbaAtivaContext.Provider value={aba}>
+                  {visitadas.map((a) => {
+                    const Painel = PAINEIS[a]
+                    return (
+                      <div key={a} className={a === aba ? 'anim-tab-in' : 'hidden'}>
+                        <Painel />
+                      </div>
+                    )
+                  })}
+                </AbaAtivaContext.Provider>
+              </div>
             </PeriodoProvider>
           </main>
         </div>

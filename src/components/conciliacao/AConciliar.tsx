@@ -4,6 +4,7 @@ import type { Sugestao } from '@/core/matriz-classificacao'
 import { PREMISSAS } from '@/core/matriz-classificacao'
 import type { No } from '@/core/modelo'
 import { brl } from '@/lib/money'
+import { CampoBusca } from '../CampoBusca.tsx'
 import { Grip } from '../demonstracao/atomos.tsx'
 import { EtiquetaEstado } from '../EtiquetaEstado.tsx'
 import { DropZone } from './DropZone.tsx'
@@ -77,12 +78,7 @@ function Topo({
         <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">A conciliar ({total})</h2>
         <span className="text-xs tabular-nums text-muted">{brl(valor)} pendente</span>
       </div>
-      <input
-        value={busca}
-        onChange={(e) => onBusca(e.target.value)}
-        placeholder="Buscar por nome ou código…"
-        className="w-full rounded-lg border border-bd bg-surface2 px-3 py-1.5 text-sm outline-none placeholder:text-muted focus:border-primary"
-      />
+      <CampoBusca valor={busca} onValor={onBusca} placeholder="Buscar por nome ou código…" />
     </div>
   )
 }

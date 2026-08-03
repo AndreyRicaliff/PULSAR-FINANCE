@@ -5,10 +5,12 @@ import { useProvedor } from '@/lib/clientes'
 import { useMovimentos } from '@/lib/movimentos'
 import { porCategoria, type LinhaCategoria } from '@/lib/agregar'
 import { codigoExibivel } from '@/core/categoria'
+import { normalizarTexto } from '@/core/texto'
 import { montarArvore, semCancelados, type NoCategoria } from '@/lib/arvore'
 import { brl } from '@/lib/money'
 import { COR_NATUREZA, ROTULO_NATUREZA } from '@/lib/natureza'
 import { useOverrides } from '@/lib/overrides'
+import { CampoBusca } from './CampoBusca.tsx'
 import { KpiCard } from './KpiCard.tsx'
 import { CategoriaTree } from './CategoriaTree.tsx'
 import { MovimentosModal } from './MovimentosModal.tsx'
@@ -74,11 +76,13 @@ export function ValoresPanel() {
           </label>
         </div>
         {vista === 'lista' ? (
-          <input
-            value={busca}
-            onChange={(e) => setBusca(e.target.value)}
+          <CampoBusca
+            valor={busca}
+            onValor={setBusca}
             placeholder="Buscar por código ou descrição…"
-            className="w-64 rounded-lg border border-bd bg-surface px-3 py-2 text-sm outline-none placeholder:text-muted focus:border-primary"
+            visiveis={visiveis.length}
+            total={linhas.length}
+            classe="w-80"
           />
         ) : null}
       </div>
@@ -145,9 +149,12 @@ function noParaLinha(no: NoCategoria): LinhaCategoria {
 }
 
 function filtrar(linhas: readonly LinhaCategoria[], busca: string): LinhaCategoria[] {
-  const termo = busca.trim().toLowerCase()
-  if (!termo) return [...linhas]
+  // Padrão dual (UX 03/08): nome dobra acento/caixa via normalizarTexto; código casa CRU
+  // (normalizar viraria '2.05' em '2 05' e nunca acharia a chave).
+  const q = normalizarTexto(busca)
+  const qCodigo = busca.trim().toLowerCase()
+  if (!q && !qCodigo) return [...linhas]
   return linhas.filter(
-    (l) => l.codigo.toLowerCase().includes(termo) || l.descricao.toLowerCase().includes(termo),
+    (l) => (qCodigo !== '' && l.codigo.toLowerCase().includes(qCodigo)) || (q !== '' && normalizarTexto(l.descricao).includes(q)),
   )
 }
