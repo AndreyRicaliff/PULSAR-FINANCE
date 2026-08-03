@@ -52,6 +52,15 @@ function extrairValor(mov) {
   return 0
 }
 
+// Campos de texto livre variam por instalação Omie — primeiro não-vazio vence (tolerante).
+const primeiroTexto = (fonte, chaves) => {
+  for (const c of chaves) {
+    const v = str(obj(fonte)[c]).trim()
+    if (v) return v
+  }
+  return ''
+}
+
 function extrairMovimento(mov) {
   const det = obj(mov.detalhes), res = obj(mov.resumo)
   return {
@@ -61,6 +70,9 @@ function extrairMovimento(mov) {
     dataEmissao: str(det.dDtEmissao), dataRegistro: str(det.dDtRegistro), dataPrevisao: str(det.dDtPrevisao),
     dataVencimento: str(det.dDtVenc), dataPagamento: str(det.dDtPagamento), dataConciliacao: str(det.dDtConcilia),
     status: str(det.cStatus), liquidado: str(res.cLiquidado), documento: str(det.cNumTitulo || det.cNumDocFiscal),
+    // Texto livre do título (report 03/08: doc vazio esconde o nº no texto) — só EXIBIÇÃO,
+    // nunca identidade (chaveMov segue no documento cru).
+    descricao: primeiroTexto(det, ['cObs', 'observacao', 'cObservacao', 'cDescricao', 'cHistorico']),
     parcela: str(det.cNumParcela), contraparte: str(det.cCPFCNPJCliente), contraparteCodigo: str(det.nCodCliente),
     natureza: str(det.cNatureza), grupo: str(det.cGrupo), origem: str(det.cOrigem), tipoDocumento: str(det.cTipo),
     operacao: str(det.cOperacao), contaCorrente: str(det.nCodCC),
@@ -202,7 +214,13 @@ async function mapaDepartamentosCC(env) {
     totPaginas = r.nTotPaginas ?? totPaginas
     for (const l of r.listaLancamentos ?? []) {
       const dep = departamentoPrincipal(l.departamentos)
-      if (dep && l.nCodLanc != null) mapa.set(String(l.nCodLanc), dep)
+      // A linha bancária do extrato carrega o TEXTO com o nº do documento que o mf não
+      // devolve (report 03/08: documento vazio nos EXTP) — capturada junto do rateio.
+      const det = obj(l.detalhes)
+      const descricao =
+        primeiroTexto(det, ['cObs', 'cDescricao', 'cHistorico', 'observacao']) ||
+        primeiroTexto(l, ['cObs', 'cDescricao', 'cHistorico', 'observacao', 'cDesLanc'])
+      if ((dep || descricao) && l.nCodLanc != null) mapa.set(String(l.nCodLanc), { dep, descricao })
     }
     pagina++
   } while (pagina <= totPaginas && pagina <= MAX_PAGINAS)
@@ -213,12 +231,16 @@ async function mapaDepartamentosCC(env) {
 // Best-effort: falha no LancCC (throttle persistente) não derruba o sync principal.
 async function enriquecerDepartamentos(env, movimentos) {
   try {
-    const depPorLanc = await mapaDepartamentosCC(env)
-    if (depPorLanc.size === 0) return movimentos
+    const porLanc = await mapaDepartamentosCC(env)
+    if (porLanc.size === 0) return movimentos
     return movimentos.map((m) => {
-      if (m.departamento || !m.idMovCC) return m
-      const dep = depPorLanc.get(m.idMovCC)
-      return dep ? { ...m, departamento: dep } : m
+      if (!m.idMovCC) return m
+      const extra = porLanc.get(m.idMovCC)
+      if (!extra) return m
+      const departamento = m.departamento || extra.dep || ''
+      const descricao = m.descricao || extra.descricao || ''
+      if (departamento === m.departamento && descricao === m.descricao) return m
+      return { ...m, departamento, descricao }
     })
   } catch (_e) {
     return movimentos
@@ -465,7 +487,7 @@ function extrairMovimentoNibo(s) {
     dataEmissao: compBR, dataRegistro: isoParaBR(s.createDate), dataPrevisao: isoParaBR(s.scheduleDate),
     dataVencimento: vencBR, dataPagamento: s.isPaid ? vencBR : '', dataConciliacao: '',
     status: statusSchedule(s), liquidado: s.isPaid ? 'S' : 'N',
-    documento: str(s.reference), parcela: '',
+    documento: str(s.reference), descricao: str(s.description), parcela: '',
     // Semântica NIBO: contraparte = NOME do stakeholder; código = GUID (resolve no cadastro).
     contraparte: str(stak.name), contraparteCodigo: str(stak.id),
     natureza: s.type === 'Credit' ? 'R' : 'P', grupo: '', origem: 'NIBO', tipoDocumento: '',

@@ -114,7 +114,9 @@ function TituloCelula({ m, somenteLeitura }: { m: Movimento; somenteLeitura: boo
   const { resolvedor } = useOverrides()
   const chave = m.idTitulo || m.documento
   if (!chave) return <span className="text-muted">—</span>
-  const resolvido = resolvedor.titulo(chave, m.documento)
+  // Fallback do nº do documento (report 03/08): extrato/título sem cNumTitulo mostra o
+  // texto livre do ERP (que carrega o código) em vez de "Sem documento".
+  const resolvido = resolvedor.titulo(chave, m.documento || m.descricao || '')
   // Cliente (read-only): nome resolvido puro, sem o ✎ que grava override.
   if (somenteLeitura) return <span>{resolvido.nome}</span>
   return <NomeEditavel entidade="titulo" codigo={chave} resolvido={resolvido} />

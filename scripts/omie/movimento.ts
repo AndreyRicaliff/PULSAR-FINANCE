@@ -86,6 +86,8 @@ export function extrairMovimento(mov: OmieMovimento): Movimento {
     status: str(det.cStatus),
     liquidado: str(res.cLiquidado),
     documento: str(det.cNumTitulo || det.cNumDocFiscal),
+    // Mesmo mapeamento da edge (paridade): texto livre vira fallback de exibição do documento.
+    descricao: str(det.cObs || det.observacao || det.cObservacao || det.cDescricao || det.cHistorico || '').trim(),
     parcela: str(det.cNumParcela),
     contraparte: str(det.cCPFCNPJCliente),
     contraparteCodigo: str(det.nCodCliente),
