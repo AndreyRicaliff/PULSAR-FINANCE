@@ -2,7 +2,7 @@
  * @file Lançamentos manuais: receita/despesa fora da conta bancária (SAIPOS/iFood/Cardápio
  * Web) que o ERP não vê. CRUD do operador; o movimento entra no funil como terceira fonte.
  */
-import { useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { suspeitasDoLancamento } from '@/core/duplicatas'
 import { ORIGEM_MANUAL, ORIGENS_SUGERIDAS, type LancamentoManual, type NaturezaManual } from '@/core/lancamento'
 import { codigoExibivel, rotuloCategoria, type Categoria } from '@/core/categoria'
@@ -11,8 +11,10 @@ import { normalizarTexto } from '@/core/texto'
 import { COR_NATUREZA, ROTULO_NATUREZA } from '@/lib/natureza'
 import { pedirBuscaConciliacao } from '@/lib/buscaConciliacaoPedido'
 import { useCadastros } from '@/lib/cadastros'
+import { useClientes, useProvedor } from '@/lib/clientes'
 import { useLancamentos, type NovoLancamento } from '@/lib/lancamentos'
 import { useModelo } from '@/lib/useModelo'
+import { useSync } from '@/lib/useSync'
 import { useMovimentos } from '@/lib/movimentos'
 import { useOverlay, useTravaScroll } from '@/lib/overlay'
 import { brl, centavosDeTexto } from '@/lib/money'
@@ -413,7 +415,7 @@ function SeletorCategoria({
                   </button>
                 </li>
               ))}
-              {visiveis.length === 0 ? <li className="px-2.5 py-2 text-sm text-muted">Nenhuma categoria casa com a busca.</li> : null}
+              {visiveis.length === 0 ? <VazioComSync /> : null}
             </ul>
           </div>
         </>
@@ -426,6 +428,46 @@ function SeletorCategoria({
 function RegistraEsc({ onFechar }: { onFechar: () => void }) {
   useOverlay(onFechar)
   return null
+}
+
+/**
+ * Vazio ACIONÁVEL do seletor (report 03/08 — "categoria que criei não aparece"): o plano
+ * aqui é ESPELHO do ERP e a foto pode ter dias — categoria recém-criada no ERP só chega
+ * sincronizando. O botão roda o sync do tenant e recarrega o cadastro sem sair do form.
+ * (Grupo criado na Matriz não é categoria lançável — é o destino da conciliação.)
+ */
+function VazioComSync() {
+  const { ativo } = useClientes()
+  const provedor = useProvedor()
+  const sync = useSync(ativo.id, ativo.nome)
+  const { recarregar: recarregarCadastros } = useCadastros()
+  const rodando = sync.status === 'rodando'
+  const statusAnterior = useRef(sync.status)
+  useEffect(() => {
+    if (statusAnterior.current === 'rodando' && sync.status === 'ok') void recarregarCadastros()
+    statusAnterior.current = sync.status
+  }, [sync.status, recarregarCadastros])
+  return (
+    <li className="flex flex-col gap-2 px-2.5 py-2 text-sm text-muted">
+      <span>
+        Nenhuma categoria casa com a busca. Criou a categoria agora {provedor.em}? O plano aqui é{' '}
+        <strong>espelho do ERP</strong> — sincronize pra ela aparecer. Grupo criado na Matriz não é
+        categoria: nele você <em>concilia</em> categorias.
+      </span>
+      <span className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => void sync.sincronizar()}
+          disabled={rodando}
+          className="fx-press rounded-lg border border-bd px-2.5 py-1 text-xs font-medium text-text transition-colors hover:border-primary disabled:opacity-60"
+        >
+          {rodando ? 'Sincronizando…' : `Sincronizar ${provedor.nome} agora`}
+        </button>
+        {sync.status === 'erro' ? <span className="text-xs text-danger">{sync.msg}</span> : null}
+        {sync.status === 'ok' ? <span className="text-xs text-accent">Cadastro atualizado ✓</span> : null}
+      </span>
+    </li>
+  )
 }
 
 /**
