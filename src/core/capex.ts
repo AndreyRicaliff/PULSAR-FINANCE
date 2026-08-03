@@ -16,6 +16,8 @@ export interface CapexMes {
 }
 
 export interface CapexNo {
+  /** id do nó na estrutura — âncora do drill-down até o movimento. */
+  readonly id: string
   readonly nome: string
   readonly tipo: TipoCapex
   readonly valorCentavos: number
@@ -73,10 +75,10 @@ export function resumoCapex(movs: readonly Movimento[], conc: Conciliacao): Resu
     porMes: [...meses.entries()]
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([mes, v]) => ({ mes, investimentoCentavos: v.inv, manutencaoCentavos: v.man })),
-    porNo: [...nos.values()]
-      .filter((n) => n.valor !== 0)
-      .sort((a, b) => Math.abs(b.valor) - Math.abs(a.valor))
-      .map((n) => ({ nome: n.nome, tipo: n.tipo, valorCentavos: n.valor })),
+    porNo: [...nos.entries()]
+      .filter(([, n]) => n.valor !== 0)
+      .sort(([, a], [, b]) => Math.abs(b.valor) - Math.abs(a.valor))
+      .map(([id, n]) => ({ id, nome: n.nome, tipo: n.tipo, valorCentavos: n.valor })),
     temNoMarcado,
   }
 }
