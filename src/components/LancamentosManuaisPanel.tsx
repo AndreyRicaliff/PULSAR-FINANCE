@@ -3,10 +3,12 @@
  * Web) que o ERP não vê. CRUD do operador; o movimento entra no funil como terceira fonte.
  */
 import { useMemo, useState, type ReactNode } from 'react'
+import { suspeitasDoLancamento } from '@/core/duplicatas'
 import { ORIGENS_SUGERIDAS, type LancamentoManual, type NaturezaManual } from '@/core/lancamento'
 import { codigoExibivel, rotuloCategoria, type Categoria } from '@/core/categoria'
 import { useCadastros } from '@/lib/cadastros'
 import { useLancamentos, type NovoLancamento } from '@/lib/lancamentos'
+import { useMovimentos } from '@/lib/movimentos'
 import { brl, centavosDeTexto } from '@/lib/money'
 import { EtiquetaFluxo } from './conciliacao/EtiquetaFluxo.tsx'
 import { KpiCard } from './KpiCard.tsx'
@@ -133,6 +135,7 @@ function dataBr(iso: string): string {
 function FormLancamento({ original, onFechar }: { original: LancamentoManual | null; onFechar: () => void }) {
   const { criar, atualizar } = useLancamentos()
   const { categorias } = useCadastros()
+  const { movimentos } = useMovimentos()
   const [natureza, setNatureza] = useState<NaturezaManual>(original?.natureza ?? 'receita')
   const [data, setData] = useState(original?.data ?? new Date().toISOString().slice(0, 10))
   const [descricao, setDescricao] = useState(original?.descricao ?? '')
@@ -155,6 +158,21 @@ function FormLancamento({ original, onFechar }: { original: LancamentoManual | n
     if (centavos === null) return setErro('Valor inválido — use vírgula para centavos (ex.: 1.234,56).')
     if (!categoria) return setErro('Escolha a categoria do plano.')
     if (!origem.trim()) return setErro('Informe a origem (plataforma).')
+    // Prevenção de registro duplicado (report 03/08): confirma, nunca bloqueia — o
+    // casamento manual×ERP é heurístico (valor+natureza em ±3 dias, sem chave comum).
+    const suspeitas = suspeitasDoLancamento(
+      { dataIso: data, valorCentavos: centavos, natureza: natureza === 'receita' ? 'R' : 'P', ignorarId: original?.id },
+      movimentos,
+    )
+    if (suspeitas.length > 0) {
+      const manuais = suspeitas.filter((s) => s.tipo === 'manual').length
+      const erp = suspeitas.length - manuais
+      const partes = [
+        manuais > 0 ? `${manuais} lançamento(s) manual(is) com a MESMA data, valor e natureza` : '',
+        erp > 0 ? `${erp} movimento(s) do ERP com o mesmo valor e natureza em ±3 dias (possível repasse já sincronizado)` : '',
+      ].filter(Boolean)
+      if (!window.confirm(`Possível duplicata: ${partes.join(' e ')}. A receita/despesa contaria em dobro. Lançar mesmo assim?`)) return
+    }
     const dados: NovoLancamento = {
       data,
       descricao: descricao.trim(),

@@ -5,11 +5,15 @@
  * classificação do cliente ativo. Cada linha leva direto à ação (troca cliente + aba).
  */
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { gruposDuplicados, type MembroDuplicata } from '@/core/duplicatas'
+import { chaveContraparte } from '@/core/movimento'
 import { orfasDaConciliacao } from '@/core/orfaos'
 import { useCadastros } from '@/lib/cadastros'
 import { useClientes } from '@/lib/clientes'
+import { useDuplicatasIgnoradas } from '@/lib/duplicatasDoc'
 import { useModelo } from '@/lib/useModelo'
 import { useMovimentos } from '@/lib/movimentos'
+import { useOverrides } from '@/lib/overrides'
 import { supabase } from '@/lib/supabase'
 
 /** O painel não conhece o setAba do Shell — o pedido de navegação vai por evento. */
@@ -69,6 +73,26 @@ export function InicioPanel() {
 
   const nomeDe = useMemo(() => new Map(clientes.map((c) => [c.id, c.nome])), [clientes])
   const orfas = useMemo(() => orfasDaConciliacao(modelo, cad.categorias, movimentos), [modelo, cad.categorias, movimentos])
+
+  // Duplicidades do CLIENTE ATIVO (só ele tem movimentos carregados — varrer todos exigiria
+  // contagem pré-computada por sync). Mesmo detector da aba Contrapartes.
+  const { resolvedor } = useOverrides()
+  const { ignoradas } = useDuplicatasIgnoradas()
+  const duplicidades = useMemo(() => {
+    const acc = new Map<string, { total: number; qtd: number }>()
+    for (const m of movimentos) {
+      const codigo = chaveContraparte(m)
+      const atual = acc.get(codigo) ?? { total: 0, qtd: 0 }
+      atual.total += m.valorCentavos
+      atual.qtd += 1
+      acc.set(codigo, atual)
+    }
+    const membros: MembroDuplicata[] = [...acc.entries()].map(([codigo, v]) => {
+      const r = resolvedor.contraparte(codigo)
+      return { codigo, nome: r.nome, estado: r.estado, totalCentavos: v.total, qtd: v.qtd }
+    })
+    return gruposDuplicados(membros, ignoradas)
+  }, [movimentos, resolvedor, ignoradas])
   const syncsOrdenados = useMemo(
     () =>
       [...syncs]
@@ -147,6 +171,24 @@ export function InicioPanel() {
           )}
         </section>
       </div>
+
+      <section className="flex flex-col gap-2 rounded-card border border-bd bg-surface p-5">
+        <h2 className="text-xs font-semibold uppercase tracking-wider text-muted">Duplicidades · {ativo.nome}</h2>
+        {duplicidades.length === 0 ? (
+          <p className="text-sm text-muted">Nenhuma contraparte com nome duplicado no cliente ativo. ✓</p>
+        ) : (
+          <button
+            type="button"
+            onClick={() => irParaAba('fornecedores')}
+            className="flex items-center justify-between gap-3 rounded-lg border border-warn/40 bg-warn/10 px-4 py-2.5 text-left"
+          >
+            <span className="text-sm font-medium text-warn">
+              {duplicidades.length} grupo(s) de cadastros com o mesmo nome — possível duplicata do ERP
+            </span>
+            <span className="shrink-0 text-xs text-warn">revisar em Contrapartes →</span>
+          </button>
+        )}
+      </section>
 
       <section className="flex flex-col gap-2 rounded-card border border-bd bg-surface p-5">
         <h2 className="text-xs font-semibold uppercase tracking-wider text-muted">Classificação · {ativo.nome}</h2>

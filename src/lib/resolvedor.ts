@@ -1,11 +1,16 @@
 /** @file Resolve códigos crus (categoria/contraparte/título) em nomes, aplicando overrides. */
 import type { CategoriasSeed } from '@/core/categoria'
 import { nomeContraparte, type ClientesSeed } from '@/core/cliente'
+import { estadoDoNome } from '@/core/estadoRegistro'
 import type { NomeResolvido, Overrides, Resolvedor } from '@/core/override'
 
 function resolver(original: string, ajustado: string | undefined): NomeResolvido {
   const e = ajustado?.trim()
-  return e ? { nome: e, original, editado: true } : { nome: original, original, editado: false }
+  // Etiqueta de estado ("(EXCLUÍDO)" etc.) detectada no nome EXIBIDO — assim o renome
+  // manual controla a etiqueta: limpar o nome tira o estado, escrevê-lo de volta o põe.
+  const { limpo, estado } = estadoDoNome(e || original)
+  const base = e ? { nome: limpo, original, editado: true as const } : { nome: limpo, original, editado: false as const }
+  return estado ? { ...base, estado } : base
 }
 
 /** Puro: cadastros chegam por parâmetro (runtime via useCadastros, não seed de build). */

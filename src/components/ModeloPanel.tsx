@@ -1,5 +1,5 @@
 /** @file Matriz de Classificações: conciliação manual de categorias e fornecedores na estrutura AG, com sugestões da matriz e modal de movimentos. */
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { sugerirClassificacao } from '@/core/matriz-classificacao'
 import type { Dimensao, RegimeDemo } from '@/core/modelo'
 import { chaveContraparte, type Movimento } from '@/core/movimento'
@@ -88,6 +88,17 @@ export function ModeloPanel() {
   const grupos = conc.estrutura.filter((n) => !n.paiId).length
 
   const itensVisiveis = useMemo(() => filtrarConciliacao(itens, conc.estrutura, conc.mapa, busca), [itens, busca, conc])
+
+  // "Recolocar na Matriz" de outras telas: chega por evento com a dimensão e o termo prontos.
+  useEffect(() => {
+    const aoBuscar = (e: Event) => {
+      const d = (e as CustomEvent<{ dim?: Dimensao; termo?: string }>).detail
+      if (d?.dim === 'contas' || d?.dim === 'fornecedores') setDim(d.dim)
+      if (typeof d?.termo === 'string') setBusca(d.termo)
+    }
+    window.addEventListener('lf-buscar-conciliacao', aoBuscar)
+    return () => window.removeEventListener('lf-buscar-conciliacao', aoBuscar)
+  }, [])
 
   function criar() {
     api.addNo(dim, nomeGrupo, null, dim === 'contas' ? regimeGrupo : undefined)

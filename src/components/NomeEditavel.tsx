@@ -8,6 +8,7 @@ import { useProvedor } from '@/lib/clientes'
 import { useModelo } from '@/lib/useModelo'
 import { useOverrides } from '@/lib/overrides'
 import { BadgeEditado } from './BadgeEditado.tsx'
+import { EtiquetaEstado } from './EtiquetaEstado.tsx'
 
 interface Props {
   readonly entidade: EntidadeEditavel
@@ -42,9 +43,15 @@ export function NomeEditavel({ entidade, codigo, resolvido }: Props) {
 
   return (
     <span className="inline-flex items-center gap-2">
-      <span title={resolvido.editado ? `Original ${provedor}: ${resolvido.original}` : undefined}>
+      {/* Leve destaque no editado (pedido 03/08): sublinhado tracejado sutil distingue
+          grupo com edição de grupo cru sem pesar a tabela. */}
+      <span
+        className={resolvido.editado ? 'underline decoration-primary/50 decoration-dashed underline-offset-4' : undefined}
+        title={resolvido.editado ? `Original ${provedor}: ${resolvido.original}` : undefined}
+      >
         {resolvido.nome}
       </span>
+      {resolvido.estado ? <EtiquetaEstado estado={resolvido.estado} /> : null}
       {resolvido.editado ? <BadgeEditado original={resolvido.original} /> : null}
       <Acao
         onClick={(e) => {

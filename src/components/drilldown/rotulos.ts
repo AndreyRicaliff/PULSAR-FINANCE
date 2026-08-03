@@ -1,6 +1,8 @@
 /** @file Eixos de agrupamento disponíveis no drill-down e seus rótulos. */
+import { ROTULO_ESTADO } from '@/core/estadoRegistro'
 import { chaveContraparte, type Movimento } from '@/core/movimento'
-import type { Resolvedor } from '@/core/override'
+import type { NomeResolvido, Resolvedor } from '@/core/override'
+import { normalizarTexto } from '@/core/texto'
 
 export type Eixo =
   | 'contraparte'
@@ -60,11 +62,18 @@ export function classificar(
 ): { chave: string; rotulo: string } {
   switch (eixo) {
     case 'contraparte': {
-      const chave = chaveContraparte(m)
-      return { chave, rotulo: resolvedor.contraparte(chave).nome }
+      const codigo = chaveContraparte(m)
+      const r = resolvedor.contraparte(codigo)
+      // FUSÃO por nome resolvido normalizado: cadastros duplicados do ERP ("embalagens" ×
+      // "EMBALAGENS") agrupam juntos em todo drill-down. O estado entra NA CHAVE — a conta
+      // marcada excluída/inativa fica SEMPRE distinta da viva, com etiqueta no rótulo.
+      const chave = `${normalizarTexto(r.nome)}${r.estado ? `#${r.estado}` : ''}` || codigo
+      return { chave, rotulo: comEstado(r) }
     }
     case 'categoria':
-      return { chave: m.categoria || 'SEM', rotulo: resolvedor.categoria(m.categoria).nome }
+      // Categoria NÃO funde por nome: mesmo-nome + código-diferente costuma ser conta
+      // legitimamente distinta no plano (contrato de descricoesAmbiguas).
+      return { chave: m.categoria || 'SEM', rotulo: comEstado(resolvedor.categoria(m.categoria)) }
     case 'mes': {
       const x = mesDe(m.data)
       return { chave: x, rotulo: x }
@@ -84,6 +93,10 @@ export function classificar(
     case 'contaCorrente':
       return simples(m.contaCorrente)
   }
+}
+
+function comEstado(r: NomeResolvido): string {
+  return r.estado ? `${r.nome} · ${ROTULO_ESTADO[r.estado]}` : r.nome
 }
 
 function rotulado(v: string): { chave: string; rotulo: string } {
