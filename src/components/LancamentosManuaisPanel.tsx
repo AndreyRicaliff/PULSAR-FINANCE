@@ -6,6 +6,7 @@ import { useMemo, useState, type ReactNode } from 'react'
 import { suspeitasDoLancamento } from '@/core/duplicatas'
 import { ORIGENS_SUGERIDAS, type LancamentoManual, type NaturezaManual } from '@/core/lancamento'
 import { codigoExibivel, rotuloCategoria, type Categoria } from '@/core/categoria'
+import { hojeLocalIso } from '@/core/periodo'
 import { normalizarTexto } from '@/core/texto'
 import { COR_NATUREZA, ROTULO_NATUREZA } from '@/lib/natureza'
 import { useCadastros } from '@/lib/cadastros'
@@ -28,7 +29,7 @@ const NATUREZAS: readonly OpcaoSeg<NaturezaManual>[] = [
 ]
 
 export function LancamentosManuaisPanel() {
-  const { lancamentos, carregando, remover } = useLancamentos()
+  const { lancamentos, carregando, erro: erroCarga, remover } = useLancamentos()
   const [editando, setEditando] = useState<LancamentoManual | 'novo' | null>(null)
 
   const entradas = useMemo(
@@ -65,6 +66,10 @@ export function LancamentosManuaisPanel() {
         <KpiCard rotulo="Saídas manuais" valor={brl(-saidas)} cor="danger" />
         <KpiCard rotulo="Lançamentos" valor={lancamentos.length} cor="secondary" />
       </section>
+
+      {erroCarga ? (
+        <p className="rounded-card border border-danger/40 bg-danger/10 p-3 text-sm text-danger">{erroCarga}</p>
+      ) : null}
 
       {carregando ? (
         <p className="text-sm text-muted">Carregando…</p>
@@ -136,7 +141,9 @@ function dataBr(iso: string): string {
   return a && m && d ? `${d}/${m}/${a}` : iso
 }
 
-/** Modal criar/editar. A natureza filtra as categorias — impossível declarar entrada numa categoria de despesa. */
+/** Modal criar/editar. TODAS as categorias aparecem (pedido 03/08); natureza divergente ou
+ * neutra é SINALIZADA e exige confirmação explícita no salvar — o sinal do lançamento vem
+ * da natureza declarada e a linha da DRE vem da categoria: descasados, o número mente. */
 function FormLancamento({ original, onFechar }: { original: LancamentoManual | null; onFechar: () => void }) {
   const { criar, atualizar } = useLancamentos()
   const { categorias } = useCadastros()
@@ -145,7 +152,9 @@ function FormLancamento({ original, onFechar }: { original: LancamentoManual | n
   useOverlay(onFechar)
   useTravaScroll()
   const [natureza, setNatureza] = useState<NaturezaManual>(original?.natureza ?? 'receita')
-  const [data, setData] = useState(original?.data ?? new Date().toISOString().slice(0, 10))
+  // Data LOCAL, não toISOString (revisão 03/08): em -03, depois das 21h o UTC já é amanhã
+  // e a venda de fim de mês nascia datada do mês seguinte — silenciosamente.
+  const [data, setData] = useState(original?.data ?? hojeLocalIso())
   const [descricao, setDescricao] = useState(original?.descricao ?? '')
   const [valor, setValor] = useState(original ? (original.valorCentavos / 100).toFixed(2).replace('.', ',') : '')
   const [categoria, setCategoria] = useState(original?.categoria ?? '')
@@ -169,6 +178,28 @@ function FormLancamento({ original, onFechar }: { original: LancamentoManual | n
     if (centavos === null) return setErro('Valor inválido — use vírgula para centavos (ex.: 1.234,56).')
     if (!categoria) return setErro('Escolha a categoria do plano.')
     if (!origem.trim()) return setErro('Informe a origem (plataforma).')
+    // Guarda da natureza (revisão 03/08): o SINAL vem da natureza declarada e a LINHA da
+    // DRE vem da categoria — descasados, o número mente. Listar tudo é direito do operador;
+    // lançar descasado sem confirmar explicitamente, não.
+    const catEscolhida = opcoesCategoria.find((c) => c.codigo === categoria)
+    if (catEscolhida) {
+      const neutra = catEscolhida.natureza === 'transferencia' || catEscolhida.natureza === 'outra'
+      const contraria = !neutra && catEscolhida.natureza !== natureza
+      if (
+        neutra &&
+        !window.confirm(
+          `A categoria "${catEscolhida.descricao}" é de ${ROTULO_NATUREZA[catEscolhida.natureza]} — pela Regra Mãe ela NÃO entra como receita/despesa: o valor não vai aparecer na DRE nem no operacional da DFC. Lançar mesmo assim?`,
+        )
+      )
+        return
+      if (
+        contraria &&
+        !window.confirm(
+          `A categoria "${catEscolhida.descricao}" é de ${ROTULO_NATUREZA[catEscolhida.natureza]}, mas o lançamento está declarado como ${natureza === 'receita' ? 'Entrada' : 'Saída'} — o valor cairia na linha errada da DRE com o sinal trocado. O recomendado é cancelar e ajustar a natureza do lançamento. Lançar mesmo assim?`,
+        )
+      )
+        return
+    }
     // Prevenção de registro duplicado (report 03/08): confirma, nunca bloqueia — o
     // casamento manual×ERP é heurístico (valor+natureza em ±3 dias, sem chave comum).
     const suspeitas = suspeitasDoLancamento(
@@ -323,6 +354,13 @@ function SeletorCategoria({
               <span className="font-mono text-xs text-muted">{escolhida.codigo}</span>
             ) : null}
             <span className="truncate">{rotuloCategoria(escolhida.codigo, escolhida.descricao)}</span>
+            {/* Sinal PERSISTENTE (revisão 03/08): natureza divergente visível também depois
+                de escolher — não só na lista aberta. */}
+            {escolhida.natureza !== naturezaAtual ? (
+              <span className={`shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-medium ${COR_NATUREZA[escolhida.natureza]}`}>
+                {ROTULO_NATUREZA[escolhida.natureza]}
+              </span>
+            ) : null}
             {escolhida.ativa === false ? <EtiquetaEstado estado="inativo" /> : null}
           </span>
         ) : (
@@ -332,6 +370,8 @@ function SeletorCategoria({
       </button>
       {aberto ? (
         <>
+          {/* Esc na PILHA de overlays: fecha só o dropdown, não o modal (revisão 03/08). */}
+          <RegistraEsc onFechar={() => setAberto(false)} />
           {/* Backdrop local: clique-fora fecha só o dropdown (o modal continua). */}
           <div className="fixed inset-0 z-10" onClick={() => setAberto(false)} aria-hidden />
           <div className="absolute left-0 right-0 z-20 mt-1 flex flex-col overflow-hidden rounded-lg border border-bd bg-surface shadow-brand">
@@ -366,6 +406,12 @@ function SeletorCategoria({
       ) : null}
     </div>
   )
+}
+
+/** Monta o Esc do dropdown só enquanto ele está aberto (hooks no filho — pilha correta). */
+function RegistraEsc({ onFechar }: { onFechar: () => void }) {
+  useOverlay(onFechar)
+  return null
 }
 
 function Campo({ rotulo, children }: { rotulo: string; children: ReactNode }) {
