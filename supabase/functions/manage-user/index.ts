@@ -90,7 +90,7 @@ Deno.serve(async (req) => {
 
     if (action === 'create') {
       if (!login || !password) return json({ error: 'Login e senha são obrigatórios' })
-      if (String(password).length < 6) return json({ error: 'A senha precisa ter ao menos 6 caracteres' })
+      if (String(password).length < 8) return json({ error: 'A senha precisa ter ao menos 8 caracteres' })
       const novoPapel = papel === 'operador' ? 'operador' : 'cliente'
       const ids = Array.isArray(cliente_ids) ? cliente_ids.filter(Boolean) : []
       if (novoPapel === 'cliente' && ids.length === 0) return json({ error: 'Cliente exige ao menos uma empresa' })
@@ -114,7 +114,7 @@ Deno.serve(async (req) => {
 
     if (action === 'update-password') {
       if (!user_id || !password) return json({ error: 'Usuário e senha são obrigatórios' })
-      if (String(password).length < 6) return json({ error: 'A senha precisa ter ao menos 6 caracteres' })
+      if (String(password).length < 8) return json({ error: 'A senha precisa ter ao menos 8 caracteres' })
       if (user_id === callerUser.id) return json({ error: 'Para a própria conta use "Definir senha"' })
       const { error } = await admin.auth.admin.updateUserById(user_id, { password })
       if (error) throw error

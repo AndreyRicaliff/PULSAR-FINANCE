@@ -11,3 +11,6 @@ verify_jwt = true
 
 [functions.dois-fatores]
 verify_jwt = true
+
+[functions.convidar-acesso]
+verify_jwt = true

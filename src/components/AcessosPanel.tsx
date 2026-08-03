@@ -113,6 +113,9 @@ function ModalConvite({
   onCriou: () => Promise<void>
 }) {
   const [email, setEmail] = useState('')
+  // Confirmação dupla (auditoria 03/08): typo do operador entregava um login legítimo do
+  // cliente ao dono do e-mail errado — a conta nasce vinculada ANTES de qualquer confirmação.
+  const [emailConfirma, setEmailConfirma] = useState('')
   const [selecionados, setSelecionados] = useState<readonly string[]>([])
   const [erro, setErro] = useState('')
   const [enviando, setEnviando] = useState(false)
@@ -124,6 +127,10 @@ function ModalConvite({
   async function enviar(e: FormEvent) {
     e.preventDefault()
     if (!supabase) return
+    if (email.trim().toLowerCase() !== emailConfirma.trim().toLowerCase()) {
+      setErro('Os e-mails não conferem — confira antes de enviar o convite.')
+      return
+    }
     setEnviando(true)
     setErro('')
     const { data, error } = await supabase.functions.invoke('convidar-acesso', {
@@ -148,6 +155,21 @@ function ModalConvite({
         <label className="flex flex-col gap-1.5">
           <span className="text-xs font-medium uppercase tracking-wide text-muted">E-mail do cliente</span>
           <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoFocus placeholder="dono@empresa.com.br" className={CLASSE_INPUT} />
+        </label>
+        <label className="flex flex-col gap-1.5">
+          <span className="text-xs font-medium uppercase tracking-wide text-muted">Confirme o e-mail</span>
+          <input
+            type="email"
+            value={emailConfirma}
+            onChange={(e) => setEmailConfirma(e.target.value)}
+            required
+            onPaste={(e) => e.preventDefault()}
+            placeholder="digite de novo"
+            className={CLASSE_INPUT}
+          />
+          <span className="text-[11px] text-muted">
+            Um erro de digitação aqui dá acesso a esta empresa para o dono do e-mail errado.
+          </span>
         </label>
         <div className="flex flex-col gap-1.5">
           <span className="text-xs font-medium uppercase tracking-wide text-muted">Empresas que ele enxerga</span>
@@ -242,7 +264,7 @@ function ModalSenha({ conta, onFechar }: { conta: AcessoConta; onFechar: () => v
 
   async function salvar(e: FormEvent) {
     e.preventDefault()
-    if (senha.length < 6) return setErro('A senha precisa ter ao menos 6 caracteres.')
+    if (senha.length < 8) return setErro('A senha precisa ter ao menos 8 caracteres.')
     setErro('')
     setSalvando(true)
     try {
@@ -292,7 +314,7 @@ function ModalNovo({ clientes, onFechar, onCriou }: { clientes: readonly Tenant[
   async function salvar(e: FormEvent) {
     e.preventDefault()
     if (!login.trim()) return setErro('Informe o login.')
-    if (senha.length < 6) return setErro('A senha precisa ter ao menos 6 caracteres.')
+    if (senha.length < 8) return setErro('A senha precisa ter ao menos 8 caracteres.')
     if (ids.length === 0) return setErro('Selecione ao menos uma empresa.')
     setErro('')
     setSalvando(true)

@@ -25,3 +25,28 @@ as $$
   returning tentativas;
 $$;
 revoke all on function public.consumir_tentativa_2fa(uuid, int) from public, anon, authenticated;
+
+-- 3) Segunda leva (aplicada em prod 03/08, após os fixes críticos):
+--    a) grants redundantes: o front só LÊ painel_sessoes_2fa e só lê/apaga dispositivos —
+--       escrita é da edge (service_role). Sem grant, vira fail-closed de verdade.
+revoke insert, update, delete on public.painel_sessoes_2fa from anon, authenticated;
+revoke insert, update on public.painel_dispositivos_confiaveis from anon, authenticated;
+
+--    b) enumeração: funções de vínculo não precisam ser executáveis por anon.
+revoke execute on function public.cliente_ids_do_usuario(uuid) from anon;
+revoke execute on function public.eh_operador(uuid) from anon;
+
+--    c) 🔴 TRUNCATE IGNORA RLS — e 17 tabelas concediam TRUNCATE a anon/authenticated:
+--       qualquer conta logada podia ESVAZIAR painel_estado, painel_acessos, painel_clientes…
+--       (destruição total, sem passar por policy). Achado próprio da varredura de grants,
+--       não estava no relatório dos agentes. Revogado em todas as tabelas do schema public.
+do $$
+declare t record;
+begin
+  for t in select distinct table_name from information_schema.role_table_grants
+           where table_schema='public' and privilege_type in ('TRUNCATE','REFERENCES','TRIGGER')
+             and grantee in ('anon','authenticated')
+  loop
+    execute format('revoke truncate, references, trigger on public.%I from anon, authenticated', t.table_name);
+  end loop;
+end $$;
