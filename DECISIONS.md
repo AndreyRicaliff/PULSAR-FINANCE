@@ -912,3 +912,19 @@ DRE calculada ponta a ponta no motor real: RL R$ 767,7 mil; MC negativa (-R$ 159
 **Achado alto de privacidade local:** `sair()` só recarregava a página — o localStorage entregava o espelho financeiro do tenant anterior ao próximo usuário do aparelho. Agora apaga as chaves de dado (`cliente:`, `painel-ag-`, `lumen-cliente-ativo`) preservando preferências de UI.
 **O que a auditoria REFUTOU (não são gaps):** isolamento cross-tenant na leitura de dados (RLS fail-closed + 2FA); credenciais de ERP e códigos 2FA inacessíveis ao browser (RLS ON, zero policies); reenvio de convite não vaza link (vai só ao inbox do dono); esquema legado de tenancy fail-closed para anon (0 linhas na prova empírica).
 **Em entrevista (30s):** "A auditoria achou o vazamento no lugar que ninguém olha: uma tabela de backup criada durante outro fix, que não herdou RLS nem grants e ficou legível pela chave pública. O fluxo de login, que era a suspeita, estava sólido — mas o 2FA protegia os dados e não o plano de controle, então movi o mesmo gate para as funções administrativas."
+
+## 2026-08-03 — [charts] Enquadramento por largura medida (ResizeObserver)
+**Problema:** SVGs com viewBox de largura própria + `w-full` e altura fixa: o `preserveAspectRatio` (meet) explodia a altura (h-auto) ou encaixotava o desenho num tufo centralizado (letterbox) em card largo, slide (~1520px) e modal.
+**Opções:** A) `preserveAspectRatio` fixo + largura-alvo estática (paliativo do 9772488 — letterboxa em container ≠ 620px); B) `preserveAspectRatio="none"` (distorce texto de eixo e círculos — descartado); C) medir o container (ResizeObserver) e usar o px real como largura do viewBox.
+**Decisão:** C — hook `useLarguraGrafico` compartilhado; barras distribuem o passo pela largura real; densidade de rótulos vira função do espaço em px.
+**Por quê:** com viewBox == largura real do box, a escala é 1:1 por construção: não há o que explodir nem letterboxar, e o texto SVG nunca distorce. Vale para card, slide da apresentação e modal com o MESMO código.
+**Consequências:** o hack `[&_svg]:!h-[55vh]` do modal ficou desnecessário (substituído por fator vertical via contexto `CtxEscalaGrafico`); gráficos de tamanho fixo (Donut, AnelExecucao, Sparkline) não mudam.
+**Em entrevista (30s):** "O bug era aspect-ratio: o navegador só tem 3 saídas pra viewBox e container de proporções diferentes — esticar, cortar ou letterboxar. Eliminei o conflito na raiz: o viewBox passa a ter a largura medida do container, escala 1:1, e o gráfico se redesenha em vez de ser redimensionado."
+
+## 2026-08-03 — [charts] Zoom semântico no modal (redesenho, não transform)
+**Problema:** pedida ferramenta de zoom/análise de perto nos gráficos, com switch liga/desliga, adaptando escala e simetria.
+**Opções:** A) CSS `transform: scale()` num wrapper (barato, mas texto borrado/gigante e eixos congelados); B) zoom semântico: ampliar o espaço LÓGICO (largura interna z×100% + fator vertical via contexto) e deixar o gráfico se redesenhar.
+**Decisão:** B. Switch desligado por padrão; ligado, roda = zoom (listener nativo não-passivo), arraste = pan (pointer capture), botões −/%/+/restaurar.
+**Por quê:** os gráficos já se redesenham pela largura medida — zoom vira só "container lógico maior": rótulos adensam, eixo recalcula, fonte mantém tamanho (nítido), proporção preservada. `transform` não sabe fazer nada disso.
+**Consequências:** tooltip continua correto (usa clientX/clientY + portal ao body); animações não re-disparam (identidade dos elementos estável); em `html[data-static]` nada a colapsar (não há transition nova).
+**Em entrevista (30s):** "Zoom de gráfico não é zoom de imagem: ampliar pixel borra texto e congela o eixo. Como a geometria já era derivada da largura medida, implementei zoom ampliando o espaço lógico — o gráfico se redesenha adaptado, igual mapa que mostra mais detalhe ao aproximar."
