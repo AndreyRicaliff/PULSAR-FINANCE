@@ -6,8 +6,8 @@ import { useMemo } from 'react'
 import { totaisEfetivos } from '@/core/classes'
 import { calcular, type Demonstracao, type LinhaCalc } from '@/core/demonstracao'
 import { filtrarPorFilial, mapaAuto } from '@/core/filial'
-import { movimentosCaixa } from '@/core/movimento'
-import { filtrarPorPeriodo, hojeLocalIso, intervaloDoPreset, mesesDoIntervalo, type Intervalo, type Regime } from '@/core/periodo'
+import { movimentosCaixa, type Movimento } from '@/core/movimento'
+import { dataDoMovimento, filtrarPorPeriodo, hojeLocalIso, intervaloDoPreset, mesesDoIntervalo, type Intervalo, type Regime } from '@/core/periodo'
 import { useCadastros } from './cadastros'
 import { separarNeutros } from '@/core/neutros'
 import { useMovimentos } from './movimentos'
@@ -105,10 +105,33 @@ export function useMesesDe(intervalo: Intervalo, regime: Regime): readonly MesCo
       const e = totaisEfetivos(base, conc, cats, demo, tipo)
       return calcular({ linhas: demo.linhas, mapa: e.mapaEfetivo }, e.totalPorChave)
     }
-    return mesesDoIntervalo(intervalo).map((jan) => ({
+    // 'Todo o histórico' não tem bordas e mesesDoIntervalo devolve [] — o toggle "Mês a mês"
+    // sumia justamente no preset mais usado (report 02/08). Fallback: enumerar os meses
+    // PRESENTES no dado, clipados ao que houver de borda.
+    const janelas = mesesDoIntervalo(intervalo)
+    const meses = janelas.length > 0 ? janelas : mesesDoDado(todos, regime, intervalo)
+    return meses.map((jan) => ({
       intervalo: jan,
       dre: calcJanela(jan, dem.demo.dre, 'dre'),
       dfc: calcJanela(jan, dem.demo.dfc, 'dfc'),
     }))
   }, [todos, intervalo, regime, conc, cats, dem.demo.dre, dem.demo.dfc])
+}
+
+/** Meses com movimento no regime, como intervalos mensais completos (sem teto — a tabela rola). */
+function mesesDoDado(movs: readonly Movimento[], regime: Regime, bordas: Intervalo): Intervalo[] {
+  const chaves = new Set<string>()
+  for (const m of movs) {
+    const iso = dataDoMovimento(m, regime)
+    if (!iso) continue
+    if (bordas.inicio && iso < bordas.inicio) continue
+    if (bordas.fim && iso > bordas.fim) continue
+    chaves.add(iso.slice(0, 7))
+  }
+  return [...chaves].sort().map((mes) => {
+    const a = Number(mes.slice(0, 4))
+    const mm = Number(mes.slice(5, 7))
+    const ultimo = String(new Date(a, mm, 0).getDate()).padStart(2, '0')
+    return { inicio: `${mes}-01`, fim: `${mes}-${ultimo}` }
+  })
 }
