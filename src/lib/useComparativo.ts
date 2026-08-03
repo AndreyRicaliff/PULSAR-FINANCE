@@ -2,8 +2,8 @@
  * @file Demonstrações calculadas para janelas arbitrárias pelo MESMO pipeline do resultado
  * (período → espelho → DRE/DFC) — base do comparativo lado a lado e do mês corrente.
  */
-import { useMemo } from 'react'
-import { CHAVE_CLASSE, CHAVE_SUB, totaisEfetivos } from '@/core/classes'
+import { useCallback, useMemo } from 'react'
+import { CHAVE_CLASSE, CHAVE_SUB, resolverChaveEfetiva, totaisEfetivos } from '@/core/classes'
 import { calcular, type Demonstracao, type LinhaCalc } from '@/core/demonstracao'
 import { filtrarPorFilial, mapaAuto } from '@/core/filial'
 import { movimentosCaixa, type Movimento } from '@/core/movimento'
@@ -142,6 +142,30 @@ export function useMesesDe(intervalo: Intervalo, regime: Regime): readonly MesCo
       return { intervalo: jan, dre: d.linhas, dfc: f.linhas, chavesDre: d.chaves, chavesDfc: f.chaves }
     })
   }, [todos, intervalo, regime, conc, cats, dem.demo.dre, dem.demo.dfc])
+}
+
+/**
+ * Movimentos de uma CHAVE efetiva numa janela — o drill da matriz mês a mês. Usa o MESMO
+ * resolvedor de totaisEfetivos: o modal fecha com a célula por construção, não por sorte.
+ */
+export function useMovsDaChave(regime: Regime, tipo: 'dre' | 'dfc'): (chave: string, janela: Intervalo) => Movimento[] {
+  const { modelo } = useModelo()
+  const dem = useDemonstracoes()
+  const { movimentos: todos } = useMovimentos()
+  const { categorias } = useCadastros()
+  const conc = modelo.contas
+  const cats = categorias.categorias
+
+  return useCallback(
+    (chave: string, janela: Intervalo) => {
+      const demo = tipo === 'dre' ? dem.demo.dre : dem.demo.dfc
+      const movs = filtrarPorPeriodo(todos, janela, regime).dentro
+      const base = tipo === 'dfc' ? movimentosCaixa(movs) : movs
+      const resolver = resolverChaveEfetiva(conc, cats, demo, tipo)
+      return base.filter((m) => resolver(m)?.chave === chave)
+    },
+    [todos, regime, tipo, conc, cats, dem.demo.dre, dem.demo.dfc],
+  )
 }
 
 /** Meses com movimento no regime, como intervalos mensais completos (sem teto — a tabela rola). */

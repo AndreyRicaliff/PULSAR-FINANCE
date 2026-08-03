@@ -12,8 +12,10 @@ import {
   type Preset,
   type Regime,
 } from '@/core/periodo'
+import type { Movimento } from '@/core/movimento'
 import { brl } from '@/lib/money'
-import { useDemonstracoesDe, useMesesDe } from '@/lib/useComparativo'
+import { useDemonstracoesDe, useMesesDe, useMovsDaChave } from '@/lib/useComparativo'
+import { MovimentosModal } from './MovimentosModal.tsx'
 import { Segmento, type OpcaoSeg } from './Segmento.tsx'
 import { TabelaDemonstracao } from './TabelaDemonstracao.tsx'
 import { TabelaMeses } from './TabelaMeses.tsx'
@@ -117,6 +119,14 @@ function Lado({ titulo, preset, onPreset, tipo, regime, visao, onVisao }: PropsL
   const linhas = tipo === 'dre' ? d.dre : d.dfc
   const receitaBruta = tipo === 'dre' ? (d.dre.find((l) => l.id === 'dre_receita')?.valorCentavos ?? 0) : 0
 
+  // Drill da conta revelada na matriz: nome = período inteiro; célula = aquele mês.
+  const movsDaChave = useMovsDaChave(regime, tipo)
+  const [drill, setDrill] = useState<{ titulo: string; movimentos: readonly Movimento[] } | null>(null)
+  const abrirConta = (chave: string, nome: string, mesIndice: number | null) => {
+    const janela = mesIndice === null ? intervalo : (meses[mesIndice]?.intervalo ?? intervalo)
+    setDrill({ titulo: `${nome} · ${rotuloIntervalo(janela)}`, movimentos: movsDaChave(chave, janela) })
+  }
+
   return (
     <section className="flex min-w-0 flex-col gap-3">
       <div className="flex flex-wrap items-center justify-between gap-2 rounded-card border border-primary/40 bg-primary/5 px-4 py-2.5">
@@ -158,6 +168,7 @@ function Lado({ titulo, preset, onPreset, tipo, regime, visao, onVisao }: PropsL
           meses={meses}
           total={linhas}
           tipo={tipo}
+          onConta={abrirConta}
         />
       ) : (
         <TabelaDemonstracao
@@ -167,6 +178,15 @@ function Lado({ titulo, preset, onPreset, tipo, regime, visao, onVisao }: PropsL
           base={receitaBruta}
         />
       )}
+      {drill ? (
+        <MovimentosModal
+          titulo={drill.titulo}
+          subtitulo={`Movimentos da conta · ${tipo.toUpperCase()} · regime ${regime}${tipo === 'dfc' ? ' (valores pagos)' : ''}`}
+          movimentos={drill.movimentos}
+          eixosIniciais={['contraparte']}
+          onFechar={() => setDrill(null)}
+        />
+      ) : null}
     </section>
   )
 }
