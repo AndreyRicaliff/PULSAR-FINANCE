@@ -35,6 +35,8 @@ const DESENHOS: Readonly<Record<Aba, readonly string[]>> = {
   modelo: ['M4 4h7v7H4z', 'M13 4h7v7h-7z', 'M4 13h7v7H4z', 'M13 13h7v7h-7z'],
   demonstracoes: ['M6 3h8l4 4v14H6z', 'M14 3v4h4', 'M9 13h6', 'M9 17h4'],
   projecao: ['M3 17l5-5 3 3 7-8', 'M15 7h4v4'],
+  // Duas barras confrontadas sobre o eixo: comparação de séries.
+  capexcomp: ['M7 20V8', 'M12 20V4', 'M17 20v-9', 'M4 20h16'],
   // Camada analítica
   relatorios: ['M5 20V10', 'M12 20V4', 'M19 20v-7'],
   apresentacao: ['M3 4h18v11H3z', 'M12 15v5', 'M8 20h8'],

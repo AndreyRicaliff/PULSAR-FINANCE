@@ -5,7 +5,7 @@
 import { useCallback, useMemo } from 'react'
 import { CHAVE_CLASSE, CHAVE_SUB, resolverChaveEfetiva, totaisEfetivos } from '@/core/classes'
 import { calcular, type Demonstracao, type LinhaCalc } from '@/core/demonstracao'
-import { filtrarPorFilial, mapaAuto } from '@/core/filial'
+import { filtrarPorFilial, mapaAuto, type FiltroFilial } from '@/core/filial'
 import { movimentosCaixa, type Movimento } from '@/core/movimento'
 import { dataDoMovimento, filtrarPorPeriodo, hojeLocalIso, intervaloDoPreset, mesesDoIntervalo, type Intervalo, type Regime } from '@/core/periodo'
 import { useCadastros } from './cadastros'
@@ -100,12 +100,15 @@ export interface MesComparativo {
  * Um cálculo POR MÊS do intervalo, pelo mesmo pipeline do lado (nada de fórmula paralela —
  * a coluna Total e a soma dos meses saem da mesma fonte). Movido para fora do hook para
  * rodar N vezes num único useMemo sem violar regra de hooks.
+ * `filial` é opcional: o comparativo de demonstrações é visão geral por design (default
+ * null = consolidado), mas o Comparativo de CAPEX passa a filial do filtro global — sem
+ * isso o numerador (CAPEX, filtrado) e o denominador (linhas, consolidadas) divergiam.
  */
-export function useMesesDe(intervalo: Intervalo, regime: Regime): readonly MesComparativo[] {
+export function useMesesDe(intervalo: Intervalo, regime: Regime, filial: FiltroFilial = null): readonly MesComparativo[] {
   const { modelo } = useModelo()
   const dem = useDemonstracoes()
   const { movimentos: todos } = useMovimentos()
-  const { categorias } = useCadastros()
+  const { nomesContrapartes, categorias } = useCadastros()
   const conc = modelo.contas
   const cats = categorias.categorias
 
@@ -121,8 +124,10 @@ export function useMesesDe(intervalo: Intervalo, regime: Regime): readonly MesCo
       }
       return noPorId.get(chave)?.nome ?? chave
     }
+    const auto = filial ? mapaAuto(todos, modelo.centros, nomesContrapartes) : new Map<string, string>()
     const calcJanela = (jan: Intervalo, demo: Demonstracao, tipo: 'dre' | 'dfc') => {
-      const movs = filtrarPorPeriodo(todos, jan, regime).dentro
+      const doPeriodo = filtrarPorPeriodo(todos, jan, regime).dentro
+      const movs = filtrarPorFilial(doPeriodo, filial, modelo.centros, auto).dentro
       const base = tipo === 'dfc' ? movimentosCaixa(movs) : movs
       const e = totaisEfetivos(base, conc, cats, demo, tipo)
       const linhas = calcular({ linhas: demo.linhas, mapa: e.mapaEfetivo }, e.totalPorChave)
@@ -141,7 +146,7 @@ export function useMesesDe(intervalo: Intervalo, regime: Regime): readonly MesCo
       const f = calcJanela(jan, dem.demo.dfc, 'dfc')
       return { intervalo: jan, dre: d.linhas, dfc: f.linhas, chavesDre: d.chaves, chavesDfc: f.chaves }
     })
-  }, [todos, intervalo, regime, conc, cats, dem.demo.dre, dem.demo.dfc])
+  }, [todos, intervalo, regime, filial, conc, cats, dem.demo.dre, dem.demo.dfc, modelo.centros, nomesContrapartes])
 }
 
 /**

@@ -32,6 +32,7 @@ import { ContasPagarPanel, ContasReceberPanel } from './components/ContasPanel.t
 import { LancamentosManuaisPanel } from './components/LancamentosManuaisPanel.tsx'
 import { AprovacoesPanel } from './components/AprovacoesPanel.tsx'
 import { ProjecaoPanel } from './components/ProjecaoPanel.tsx'
+import { ComparativoCapexPanel } from './components/ComparativoCapexPanel.tsx'
 import { ModeloPanel } from './components/ModeloPanel.tsx'
 import { DemonstracoesPanel } from './components/DemonstracoesPanel.tsx'
 import { RelatoriosPanel } from './components/RelatoriosPanel.tsx'
@@ -50,6 +51,7 @@ const PAINEIS: Readonly<Record<Aba, () => JSX.Element>> = {
   manuais: LancamentosManuaisPanel,
   aprovacoes: AprovacoesPanel,
   projecao: ProjecaoPanel,
+  capexcomp: ComparativoCapexPanel,
   modelo: ModeloPanel,
   demonstracoes: DemonstracoesPanel,
   relatorios: () => <RelatoriosPanel inicial="visao" />,
