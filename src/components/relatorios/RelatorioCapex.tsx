@@ -15,8 +15,8 @@ import { brl } from '@/lib/money'
 import { pctExecucao } from '@/lib/orcadoCategorias'
 import { useOrcamento } from '@/lib/useOrcamento'
 import { useResultado } from '@/lib/useResultado'
+import { AnelExecucao } from '../charts/AnelExecucao.tsx'
 import { BarrasCapexMensal } from '../charts/BarrasCapexMensal.tsx'
-import { Donut } from '../charts/Donut.tsx'
 import { GraficoExpansivel } from '../charts/GraficoExpansivel.tsx'
 import { KpiCard } from '../KpiCard.tsx'
 
@@ -35,13 +35,7 @@ export function RelatorioCapex() {
   const adesao = useMemo(() => adesaoCapex(orc.meses, mesesAlvo, conc), [orc.meses, mesesAlvo, conc])
 
   const total = resumo.investimentoCentavos + resumo.manutencaoCentavos
-  const fatias = useMemo(
-    () =>
-      resumo.porNo
-        .filter((n) => n.valorCentavos > 0)
-        .map((n) => ({ label: `${n.nome} · ${ROTULO_CAPEX[n.tipo]}`, valorCentavos: n.valorCentavos })),
-    [resumo.porNo],
-  )
+  const porGrupo = useMemo(() => resumo.porNo.filter((n) => n.valorCentavos > 0), [resumo.porNo])
   const temAdesao =
     temOrcamento(ativo.provedor) &&
     (adesao.investimento.previstoCentavos > 0 || adesao.manutencao.previstoCentavos > 0)
@@ -83,8 +77,8 @@ export function RelatorioCapex() {
 
           {temAdesao ? (
             <section className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <CardAdesao rotulo="Adesão · Investimento" lado={adesao.investimento} />
-              <CardAdesao rotulo="Adesão · Manutenção" lado={adesao.manutencao} />
+              <CardAdesao rotulo="Adesão · Investimento" lado={adesao.investimento} cor="rgb(var(--c-accent))" />
+              <CardAdesao rotulo="Adesão · Manutenção" lado={adesao.manutencao} cor="rgb(var(--c-warn))" />
             </section>
           ) : (
             <p className="rounded-card border border-warn/40 bg-warn/10 p-4 text-sm text-warn">
@@ -104,11 +98,7 @@ export function RelatorioCapex() {
               <GraficoExpansivel titulo="Evolução mensal · investimento × manutenção">
                 <BarrasCapexMensal dados={resumo.porMes} />
               </GraficoExpansivel>
-              {fatias.length > 0 ? (
-                <GraficoExpansivel titulo="Composição do CAPEX por grupo">
-                  <Donut fatias={fatias} />
-                </GraficoExpansivel>
-              ) : null}
+              {porGrupo.length > 0 ? <ComposicaoPorGrupo grupos={porGrupo} total={total} /> : null}
               <TabelaMensal porMes={resumo.porMes} />
             </>
           )}
@@ -144,15 +134,66 @@ function BarraComposicao({ investimento, manutencao }: { investimento: number; m
   )
 }
 
-function CardAdesao({ rotulo, lado }: { rotulo: string; lado: AdesaoLado }) {
+/** Adesão no desenho da referência: anel de % do orçado + status em texto. Gastar ACIMA do
+ * orçado em CAPEX é fora do plano (semântica de despesa) — o texto diz, a cor reforça. */
+function CardAdesao({ rotulo, lado, cor }: { rotulo: string; lado: AdesaoLado; cor: string }) {
   const pct = pctExecucao(lado.realizadoCentavos, lado.previstoCentavos)
+  const status =
+    pct === null ? 'sem orçamento como base' : pct === 100 ? 'exato no orçado' : pct > 100 ? `${pct - 100}% acima do orçado` : `${100 - pct}% abaixo do orçado`
   return (
-    <KpiCard
-      rotulo={rotulo}
-      valor={pct === null ? '—' : `${pct}%`}
-      cor={pct === null ? 'secondary' : pct <= 100 ? 'accent' : 'danger'}
-      nota={`${brl(lado.realizadoCentavos)} realizados de ${brl(lado.previstoCentavos)} orçados`}
-    />
+    <div className="flex items-center justify-between gap-3 rounded-card border border-bd bg-surface p-4">
+      <div className="min-w-0">
+        <h3 className="text-sm font-semibold uppercase tracking-wide text-muted">{rotulo} · % do orçado</h3>
+        <p className="mt-1 text-xs text-muted">
+          {brl(lado.realizadoCentavos)} realizados de {brl(lado.previstoCentavos)} orçados
+        </p>
+        <p className={`mt-1 text-xs font-semibold ${pct === null ? 'text-muted' : pct > 100 ? 'text-danger' : 'text-accent'}`}>{status}</p>
+      </div>
+      <AnelExecucao pct={pct} natureza="P" cor={cor} rotulo={`${rotulo}: % do orçado`} />
+    </div>
+  )
+}
+
+/** Composição no desenho da referência: barra LARGA por grupo (% do CAPEX total), cor pelo tipo. */
+function ComposicaoPorGrupo({ grupos, total }: { grupos: readonly { nome: string; tipo: 'investimento' | 'manutencao'; valorCentavos: number }[]; total: number }) {
+  return (
+    <section className="flex flex-col gap-3 rounded-card border border-bd bg-surface p-4">
+      <h3 className="text-sm font-semibold uppercase tracking-wide text-muted">Composição por grupo</h3>
+      <table className="w-full text-sm">
+        <thead className="text-left text-xs uppercase tracking-wide text-muted">
+          <tr>
+            <th className="py-1.5 pr-3 font-medium">Grupo</th>
+            <th className="py-1.5 pr-3 font-medium">Tipo</th>
+            <th className="py-1.5 pr-3 text-right font-medium">Valor (caixa)</th>
+            <th className="w-[36%] py-1.5 font-medium">% do CAPEX</th>
+          </tr>
+        </thead>
+        <tbody>
+          {grupos.map((g) => {
+            const pct = total > 0 ? Math.round((g.valorCentavos / total) * 100) : 0
+            const corBarra = g.tipo === 'investimento' ? 'bg-accent' : 'bg-warn'
+            const corTexto = g.tipo === 'investimento' ? 'text-accent' : 'text-warn'
+            return (
+              <tr key={g.nome} className="border-t border-bd/50">
+                <td className="max-w-0 truncate py-1.5 pr-3" title={g.nome}>
+                  {g.nome}
+                </td>
+                <td className={`py-1.5 pr-3 text-xs ${corTexto}`}>{ROTULO_CAPEX[g.tipo]}</td>
+                <td className="py-1.5 pr-3 text-right tabular-nums">{brl(g.valorCentavos)}</td>
+                <td className="py-1.5">
+                  <div className="flex min-w-[9rem] items-center gap-2" title={`${brl(g.valorCentavos)} de ${brl(total)} (${pct}%)`}>
+                    <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-surface2">
+                      <div className={`h-full rounded-full ${corBarra}`} style={{ width: `${pct}%` }} />
+                    </div>
+                    <span className="w-9 shrink-0 text-right text-xs tabular-nums text-muted">{pct}%</span>
+                  </div>
+                </td>
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
+    </section>
   )
 }
 
