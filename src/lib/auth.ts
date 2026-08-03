@@ -80,12 +80,27 @@ export async function definirSenha(senha: string): Promise<void> {
   if (error) throw new Error(traduzir(error.message))
 }
 
+/**
+ * Chaves de DADO do painel que não podem sobreviver ao logout (auditoria 03/08: o reload
+ * limpava só a memória — o localStorage seguia com movimentos/DRE do cliente anterior em
+ * máquina compartilhada). Preserva preferências de UI (tema, som) e o token de aparelho
+ * confiável, que é do dispositivo e tem esquecimento próprio.
+ */
+const PREFIXOS_DADO = ['cliente:', 'painel-ag-', 'lumen-cliente-ativo']
+
+export function limparDadosLocais(): void {
+  if (typeof window === 'undefined') return
+  for (const k of Object.keys(localStorage)) {
+    if (PREFIXOS_DADO.some((p) => k.startsWith(p))) localStorage.removeItem(k)
+  }
+}
+
 export async function sair(): Promise<unknown> {
   if (!supabase) return Promise.resolve()
   const r = await supabase.auth.signOut()
-  // Recarrega para descartar o cache em memória (stores de persistencia.ts) e localStorage do
-  // usuário anterior — senão, em dispositivo compartilhado, o cache do operador (todos os tenants)
-  // sobreviveria ao login de um cliente. Boot limpo = sem resíduo entre sessões.
+  // Apaga o dado do cliente ANTES do reload: só recarregar limpava a memória, mas o
+  // localStorage entregava o espelho do tenant anterior ao próximo usuário do aparelho.
+  limparDadosLocais()
   if (typeof window !== 'undefined') window.location.reload()
   return r
 }

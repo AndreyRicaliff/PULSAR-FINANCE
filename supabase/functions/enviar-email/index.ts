@@ -124,6 +124,17 @@ Deno.serve(async (req) => {
         .eq('papel', 'operador')
         .maybeSingle()
       if (!opRow) return json({ error: 'Apenas operador envia e-mail' })
+      // 2º fator (auditoria 03/08): esta função envia do domínio corporativo com anexo —
+      // senha vazada sem 2FA não pode virar vetor de phishing a partir do nosso remetente.
+      let sessionId = ''
+      try {
+        sessionId = String(JSON.parse(atob(token.split('.')[1] ?? '')).session_id ?? '')
+      } catch {
+        /* token não-JWT: fail-closed abaixo */
+      }
+      if (!sessionId) return json({ error: 'Sessão inválida' })
+      const { data: s2fa } = await admin.from('painel_sessoes_2fa').select('session_id').eq('session_id', sessionId).maybeSingle()
+      if (!s2fa) return json({ error: 'Confirme o código de verificação (2FA) para enviar e-mail' })
     }
 
     const apiKey = Deno.env.get('RESEND_API_KEY')

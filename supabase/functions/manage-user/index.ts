@@ -47,6 +47,19 @@ Deno.serve(async (req) => {
       .maybeSingle()
     if (!opRow) return json({ error: 'Apenas operador pode gerenciar acessos' })
 
+    // 2º FATOR também aqui (auditoria 03/08): a RLS exige sessao_verificada(), mas esta função
+    // usa service_role e passa POR FORA dela — senha de operador vazada, sozinha, criava
+    // operador novo e resetava senhas sem nunca completar o 2FA. Mesmo gate de convidar-acesso.
+    let sessionId = ''
+    try {
+      sessionId = String(JSON.parse(atob(authHeader.replace(/^Bearer\s+/i, '').split('.')[1] ?? '')).session_id ?? '')
+    } catch {
+      /* token não-JWT: cai no fail-closed abaixo */
+    }
+    if (!sessionId) return json({ error: 'Sessão inválida' })
+    const { data: s2fa } = await admin.from('painel_sessoes_2fa').select('session_id').eq('session_id', sessionId).maybeSingle()
+    if (!s2fa) return json({ error: 'Confirme o código de verificação (2FA) antes de gerenciar acessos' })
+
     const { action, login, password, user_id, cliente_ids, papel } = await req.json()
 
     if (action === 'list-accounts') {
