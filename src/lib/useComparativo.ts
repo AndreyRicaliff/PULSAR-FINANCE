@@ -3,7 +3,7 @@
  * (período → espelho → DRE/DFC) — base do comparativo lado a lado e do mês corrente.
  */
 import { useMemo } from 'react'
-import { totaisEfetivos } from '@/core/classes'
+import { CHAVE_CLASSE, CHAVE_SUB, totaisEfetivos } from '@/core/classes'
 import { calcular, type Demonstracao, type LinhaCalc } from '@/core/demonstracao'
 import { filtrarPorFilial, mapaAuto } from '@/core/filial'
 import { movimentosCaixa, type Movimento } from '@/core/movimento'
@@ -79,10 +79,21 @@ export function useMesAtual(): MesAtual {
   }, [todos, regime, filial, modelo.centros, conc, cats, dem.demo.dre, dem.demo.dfc, nomesContrapartes])
 }
 
+/** Conta (chave efetiva) que compõe uma linha da demonstração num mês — base do drill da matriz. */
+export interface ChaveMes {
+  readonly chave: string
+  readonly nome: string
+  /** id da linha da demonstração onde a chave caiu (mapaEfetivo). */
+  readonly linha: string
+  readonly valorCentavos: number
+}
+
 export interface MesComparativo {
   readonly intervalo: Intervalo
   readonly dre: readonly LinhaCalc[]
   readonly dfc: readonly LinhaCalc[]
+  readonly chavesDre: readonly ChaveMes[]
+  readonly chavesDfc: readonly ChaveMes[]
 }
 
 /**
@@ -99,22 +110,37 @@ export function useMesesDe(intervalo: Intervalo, regime: Regime): readonly MesCo
   const cats = categorias.categorias
 
   return useMemo(() => {
+    // Nome legível da chave efetiva (grupo | sub:<id> | cls:<código>) — pro drill da matriz.
+    const noPorId = new Map(conc.estrutura.map((n) => [n.id, n]))
+    const catPorCodigo = new Map(cats.map((c) => [c.codigo, c]))
+    const nomeChave = (chave: string): string => {
+      if (chave.startsWith(CHAVE_SUB)) return noPorId.get(chave.slice(CHAVE_SUB.length))?.nome ?? chave
+      if (chave.startsWith(CHAVE_CLASSE)) {
+        const cod = chave.slice(CHAVE_CLASSE.length)
+        return catPorCodigo.get(cod)?.descricao ?? cod
+      }
+      return noPorId.get(chave)?.nome ?? chave
+    }
     const calcJanela = (jan: Intervalo, demo: Demonstracao, tipo: 'dre' | 'dfc') => {
       const movs = filtrarPorPeriodo(todos, jan, regime).dentro
       const base = tipo === 'dfc' ? movimentosCaixa(movs) : movs
       const e = totaisEfetivos(base, conc, cats, demo, tipo)
-      return calcular({ linhas: demo.linhas, mapa: e.mapaEfetivo }, e.totalPorChave)
+      const linhas = calcular({ linhas: demo.linhas, mapa: e.mapaEfetivo }, e.totalPorChave)
+      const chaves = Object.entries(e.mapaEfetivo)
+        .map(([chave, linha]) => ({ chave, nome: nomeChave(chave), linha, valorCentavos: e.totalPorChave.get(chave) ?? 0 }))
+        .filter((c) => c.valorCentavos !== 0)
+      return { linhas, chaves }
     }
     // 'Todo o histórico' não tem bordas e mesesDoIntervalo devolve [] — o toggle "Mês a mês"
     // sumia justamente no preset mais usado (report 02/08). Fallback: enumerar os meses
     // PRESENTES no dado, clipados ao que houver de borda.
     const janelas = mesesDoIntervalo(intervalo)
     const meses = janelas.length > 0 ? janelas : mesesDoDado(todos, regime, intervalo)
-    return meses.map((jan) => ({
-      intervalo: jan,
-      dre: calcJanela(jan, dem.demo.dre, 'dre'),
-      dfc: calcJanela(jan, dem.demo.dfc, 'dfc'),
-    }))
+    return meses.map((jan) => {
+      const d = calcJanela(jan, dem.demo.dre, 'dre')
+      const f = calcJanela(jan, dem.demo.dfc, 'dfc')
+      return { intervalo: jan, dre: d.linhas, dfc: f.linhas, chavesDre: d.chaves, chavesDfc: f.chaves }
+    })
   }, [todos, intervalo, regime, conc, cats, dem.demo.dre, dem.demo.dfc])
 }
 

@@ -43,6 +43,11 @@ export function ComparativoTelaCheia({ onFechar }: { onFechar: () => void }) {
   const [regime, setRegime] = useState<Regime>('competencia')
   const [presetA, setPresetA] = useState<Preset>('tudo')
   const [presetB, setPresetB] = useState<Preset>('mes-atual')
+  // Visão de cada lado mora AQUI: com qualquer lado em "Mês a mês" o layout adapta —
+  // lados empilhados em largura total (a matriz mensal não cabe em meia tela; report 02/08).
+  const [visaoA, setVisaoA] = useState<'total' | 'meses'>('total')
+  const [visaoB, setVisaoB] = useState<'total' | 'meses'>('total')
+  const expandido = visaoA === 'meses' || visaoB === 'meses'
 
   useEffect(() => {
     const aoTeclar = (e: KeyboardEvent) => {
@@ -54,7 +59,7 @@ export function ComparativoTelaCheia({ onFechar }: { onFechar: () => void }) {
 
   return createPortal(
     <div className="anim-fade-in fixed inset-0 z-50 overflow-auto bg-bg p-6">
-      <div className="anim-tab-in mx-auto flex max-w-7xl flex-col gap-5">
+      <div className={`anim-tab-in mx-auto flex flex-col gap-5 ${expandido ? 'max-w-none' : 'max-w-7xl'}`}>
         <header className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="text-[19px] font-semibold">Comparativo lado a lado</h1>
@@ -77,9 +82,9 @@ export function ComparativoTelaCheia({ onFechar }: { onFechar: () => void }) {
           </div>
         </header>
 
-        <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-          <Lado titulo="Lado A" preset={presetA} onPreset={setPresetA} tipo={tipo} regime={regime} />
-          <Lado titulo="Lado B" preset={presetB} onPreset={setPresetB} tipo={tipo} regime={regime} />
+        <div className={`grid grid-cols-1 gap-5 ${expandido ? '' : 'lg:grid-cols-2'}`}>
+          <Lado titulo="Lado A" preset={presetA} onPreset={setPresetA} tipo={tipo} regime={regime} visao={visaoA} onVisao={setVisaoA} />
+          <Lado titulo="Lado B" preset={presetB} onPreset={setPresetB} tipo={tipo} regime={regime} visao={visaoB} onVisao={setVisaoB} />
         </div>
       </div>
     </div>,
@@ -93,6 +98,8 @@ interface PropsLado {
   readonly onPreset: (p: Preset) => void
   readonly tipo: Tipo
   readonly regime: Regime
+  readonly visao: 'total' | 'meses'
+  readonly onVisao: (v: 'total' | 'meses') => void
 }
 
 const VISOES: readonly OpcaoSeg<'total' | 'meses'>[] = [
@@ -100,13 +107,12 @@ const VISOES: readonly OpcaoSeg<'total' | 'meses'>[] = [
   { id: 'meses', rotulo: 'Mês a mês' },
 ]
 
-function Lado({ titulo, preset, onPreset, tipo, regime }: PropsLado) {
+function Lado({ titulo, preset, onPreset, tipo, regime, visao, onVisao }: PropsLado) {
   const intervalo = useMemo(() => intervaloDoPreset(preset, hojeLocalIso()), [preset])
   const d = useDemonstracoesDe(intervalo, regime)
   // Trimestre/semestre aberto por mês (pedido 2026-07-29): total consolidado continua,
   // e cada mês vira coluna com AV%/AH% — a matriz que o financeiro conhece da contabilidade.
   const meses = useMesesDe(intervalo, regime)
-  const [visao, setVisao] = useState<'total' | 'meses'>('total')
   const temMeses = meses.length >= 2
   const linhas = tipo === 'dre' ? d.dre : d.dfc
   const receitaBruta = tipo === 'dre' ? (d.dre.find((l) => l.id === 'dre_receita')?.valorCentavos ?? 0) : 0
@@ -131,7 +137,7 @@ function Lado({ titulo, preset, onPreset, tipo, regime }: PropsLado) {
           </select>
         </span>
         <span className="flex items-center gap-3">
-          {temMeses ? <Segmento opcoes={VISOES} valor={visao} onTrocar={setVisao} /> : null}
+          {temMeses ? <Segmento opcoes={VISOES} valor={visao} onTrocar={onVisao} /> : null}
           <span className="text-xs text-muted">
             {rotuloIntervalo(intervalo)} · {d.totais.qtd} lançamentos
           </span>
