@@ -57,32 +57,29 @@ export interface TotaisEfetivos {
 }
 
 /**
- * Resolve cada movimento na chave/linha mais específica configurada: classe > subgrupo > grupo.
- * Mantém `calcular` intacto — a saída é consumida como (mapa, totalPorGrupo) de chaves efetivas.
- * Sem overrides, toda chave é o próprio grupoId → comportamento idêntico ao mapa de grupos.
+ * Resolvedor da chave/linha efetiva de UM movimento (classe > subgrupo > grupo) — a ÚNICA
+ * fonte dessa regra: totaisEfetivos agrega com ele, e o drill da matriz filtra com ele
+ * (fórmula homônima aqui já foi bug de produção em outro app). null = fora da demonstração.
  */
-export function totaisEfetivos(
-  movs: readonly Movimento[],
+export function resolverChaveEfetiva(
   conc: Conciliacao,
   categorias: readonly Categoria[],
   demo: Demonstracao,
   tipo: TipoDemo,
-): TotaisEfetivos {
+): (m: Movimento) => { readonly chave: string; readonly linha: string | undefined } | null {
   const catPorCodigo = new Map(categorias.map((c) => [c.codigo, c]))
   const noPorId = new Map<string, No>(conc.estrutura.map((n) => [n.id, n]))
   const mapaSub = demo.mapaSub ?? {}
   const mapaClasse = demo.mapaClasse ?? {}
-  const totalPorChave = new Map<string, number>()
-  const mapaEfetivo: Record<string, string> = {}
 
-  for (const m of movs) {
+  return (m: Movimento) => {
     const noId = conc.mapa[m.categoria]
     const no = noId ? noPorId.get(noId) : undefined
-    if (!no) continue
+    if (!no) return null
     const grupoId = no.paiId ?? no.id
     // Regime do grupo E do subgrupo: se algum não entra nesta demonstração, o movimento fica de fora.
-    if (!entraNaDemonstracao(noPorId.get(grupoId)?.meta, tipo)) continue
-    if (no.paiId && !entraNaDemonstracao(no.meta, tipo)) continue
+    if (!entraNaDemonstracao(noPorId.get(grupoId)?.meta, tipo)) return null
+    if (no.paiId && !entraNaDemonstracao(no.meta, tipo)) return null
     const subId = no.paiId ? no.id : null
     // Sem agrupadora ancestral, a árvore do editor (chaveClasse) chaveia a classe pelo código
     // da PRÓPRIA folha — o override gravado nessa chave precisa ser lido pelo mesmo código
@@ -101,9 +98,32 @@ export function totaisEfetivos(
       chave = `${CHAVE_CLASSE}${codClasse}`
       linha = mapaClasse[codClasse]
     }
-    totalPorChave.set(chave, (totalPorChave.get(chave) ?? 0) + comSinal(m))
+    return { chave, linha }
+  }
+}
+
+/**
+ * Resolve cada movimento na chave/linha mais específica configurada: classe > subgrupo > grupo.
+ * Mantém `calcular` intacto — a saída é consumida como (mapa, totalPorGrupo) de chaves efetivas.
+ * Sem overrides, toda chave é o próprio grupoId → comportamento idêntico ao mapa de grupos.
+ */
+export function totaisEfetivos(
+  movs: readonly Movimento[],
+  conc: Conciliacao,
+  categorias: readonly Categoria[],
+  demo: Demonstracao,
+  tipo: TipoDemo,
+): TotaisEfetivos {
+  const resolver = resolverChaveEfetiva(conc, categorias, demo, tipo)
+  const totalPorChave = new Map<string, number>()
+  const mapaEfetivo: Record<string, string> = {}
+
+  for (const m of movs) {
+    const r = resolver(m)
+    if (!r) continue
+    totalPorChave.set(r.chave, (totalPorChave.get(r.chave) ?? 0) + comSinal(m))
     // LINHA_FORA = removido desta demonstração: não entra em nenhuma linha.
-    if (linha && linha !== LINHA_FORA) mapaEfetivo[chave] = linha
+    if (r.linha && r.linha !== LINHA_FORA) mapaEfetivo[r.chave] = r.linha
   }
   return { totalPorChave, mapaEfetivo }
 }

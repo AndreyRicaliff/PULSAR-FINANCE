@@ -26,18 +26,20 @@ interface Props {
   readonly meses: readonly MesComparativo[]
   readonly total: readonly LinhaCalc[]
   readonly tipo: 'dre' | 'dfc'
+  /** Drill da conta revelada: nome (mesIndice null = período inteiro) ou célula de mês. */
+  readonly onConta?: (chave: string, nome: string, mesIndice: number | null) => void
 }
 
-export function TabelaMeses({ titulo, meses, total, tipo }: Props) {
+export function TabelaMeses({ titulo, meses, total, tipo, onConta }: Props) {
   const [cheia, setCheia] = useState(false)
   return (
     <>
       <Cartao titulo={titulo} onExpandir={() => setCheia(true)}>
-        <Matriz meses={meses} total={total} tipo={tipo} />
+        <Matriz meses={meses} total={total} tipo={tipo} onConta={onConta} />
       </Cartao>
       {cheia ? (
         <TelaCheia titulo={titulo} onFechar={() => setCheia(false)}>
-          <Matriz meses={meses} total={total} tipo={tipo} />
+          <Matriz meses={meses} total={total} tipo={tipo} onConta={onConta} />
         </TelaCheia>
       ) : null}
     </>
@@ -78,7 +80,9 @@ function TelaCheia({ titulo, onFechar, children }: { titulo: string; onFechar: (
   }, [onFechar])
 
   return createPortal(
-    <div className="anim-fade-in fixed inset-0 z-[60] overflow-auto bg-bg p-4 sm:p-6">
+    // z-50 (não maior): o MovimentosModal do drill monta DEPOIS no body — com z igual,
+    // ordem no DOM decide e o modal fica por cima desta tela cheia.
+    <div className="anim-fade-in fixed inset-0 z-50 overflow-auto bg-bg p-4 sm:p-6">
       <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between gap-4">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">{titulo}</h2>
@@ -102,11 +106,12 @@ function TelaCheia({ titulo, onFechar, children }: { titulo: string; onFechar: (
 }
 
 interface ContaLinha {
+  readonly chave: string
   readonly nome: string
   readonly valores: readonly number[]
 }
 
-function Matriz({ meses, total, tipo }: Omit<Props, 'titulo'>) {
+function Matriz({ meses, total, tipo, onConta }: Omit<Props, 'titulo'>) {
   const colunas = useMemo(() => meses.map((m) => (tipo === 'dre' ? m.dre : m.dfc)), [meses, tipo])
   const bases = useMemo(
     () => colunas.map((c) => (tipo === 'dre' ? (c.find((l) => l.id === 'dre_receita')?.valorCentavos ?? 0) : 0)),
@@ -131,7 +136,7 @@ function Matriz({ meses, total, tipo }: Omit<Props, 'titulo'>) {
     for (const [linha, contas] of porLinha) {
       saida.set(
         linha,
-        [...contas.values()].sort(
+        [...contas.entries()].map(([chave, c]) => ({ chave, ...c })).sort(
           (a, b) => Math.abs(b.valores.reduce((s, v) => s + v, 0)) - Math.abs(a.valores.reduce((s, v) => s + v, 0)),
         ),
       )
@@ -181,6 +186,7 @@ function Matriz({ meses, total, tipo }: Omit<Props, 'titulo'>) {
                 aberta={aberta}
                 contas={aberta ? contas : []}
                 onAlternar={() => alternar(linha.id)}
+                onConta={onConta}
               />
             )
           })}
@@ -201,6 +207,7 @@ function LinhaMatriz({
   aberta,
   contas,
   onAlternar,
+  onConta,
 }: {
   linha: LinhaCalc
   li: number
@@ -212,6 +219,7 @@ function LinhaMatriz({
   aberta: boolean
   contas: readonly ContaLinha[]
   onAlternar: () => void
+  onConta?: (chave: string, nome: string, mesIndice: number | null) => void
 }) {
   return (
     <>
@@ -254,17 +262,34 @@ function LinhaMatriz({
       {contas.map((c) => {
         const totalConta = c.valores.reduce((s, v) => s + v, 0)
         return (
-          <tr key={c.nome} className="border-t border-bd/20 bg-surface2/30 text-xs">
+          <tr key={c.chave} className="border-t border-bd/20 bg-surface2/30 text-xs">
             {/* Célula fixa OPACA (bg-surface): fundo translúcido em sticky deixa os valores
                 vazarem por baixo do nome quando a tabela rola (report 02/08). */}
-            <td className="sticky left-0 max-w-[240px] truncate bg-surface py-1.5 pl-10 pr-4 text-muted" title={c.nome}>
-              ↳ {c.nome}
+            <td className="sticky left-0 max-w-[240px] bg-surface py-1.5 pl-10 pr-4 text-muted" title={c.nome}>
+              {onConta ? (
+                <button
+                  type="button"
+                  onClick={() => onConta(c.chave, c.nome, null)}
+                  title={`Ver os movimentos de "${c.nome}" no período`}
+                  className="block w-full truncate text-left underline-offset-2 hover:text-text hover:underline"
+                >
+                  ↳ {c.nome}
+                </button>
+              ) : (
+                <span className="block truncate">↳ {c.nome}</span>
+              )}
             </td>
             {/* Análise horizontal (e vertical na DRE) TAMBÉM por conta — não só nas linhas-mãe. */}
             {c.valores.map((v, ci) => {
               const ant = ci > 0 ? (c.valores[ci - 1] ?? 0) : null
+              const clicavel = onConta !== undefined && v !== 0
               return (
-                <td key={ci} className="whitespace-nowrap px-3 py-1.5 text-right tabular-nums">
+                <td
+                  key={ci}
+                  onClick={clicavel ? () => onConta(c.chave, c.nome, ci) : undefined}
+                  title={clicavel ? 'Ver os movimentos deste mês' : undefined}
+                  className={`whitespace-nowrap px-3 py-1.5 text-right tabular-nums ${clicavel ? 'cursor-pointer hover:bg-surface2/60' : ''}`}
+                >
                   {v !== 0 ? <span className={v < 0 ? 'text-danger' : ''}>{brl(v)}</span> : <span className="text-muted/50">–</span>}
                   <span className="block text-[10px] text-muted/80">
                     {pctTexto(Math.abs(v), bases[ci] ?? 0)} · {ahTexto(v, ant)}

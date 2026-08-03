@@ -5,11 +5,13 @@
  */
 import { useState } from 'react'
 import type { LinhaCalc } from '@/core/demonstracao'
+import type { Movimento } from '@/core/movimento'
 import { rotuloIntervalo, type Intervalo } from '@/core/periodo'
 import { brl, fracVariacao, pctVariacao } from '@/lib/money'
-import { useMesAtual, useMesesDe } from '@/lib/useComparativo'
+import { useMesAtual, useMesesDe, useMovsDaChave } from '@/lib/useComparativo'
 import { useResultado, valorLinha } from '@/lib/useResultado'
 import { KpiCard } from '../KpiCard.tsx'
+import { MovimentosModal } from '../MovimentosModal.tsx'
 import { Segmento, type OpcaoSeg } from '../Segmento.tsx'
 import { TabelaMeses } from '../TabelaMeses.tsx'
 
@@ -30,6 +32,20 @@ export function RelatorioComparativo() {
   const mesesDet = useMesesDe(r.periodo.intervalo, r.periodo.regime)
   const [vista, setVista] = useState<VistaComp>('padrao')
   const temMeses = mesesDet.length >= 2
+
+  // Drill da conta revelada: nome = período inteiro; célula = aquele mês.
+  const movsDre = useMovsDaChave(r.periodo.regime, 'dre')
+  const movsDfc = useMovsDaChave(r.periodo.regime, 'dfc')
+  const [drill, setDrill] = useState<{ titulo: string; subtitulo: string; movimentos: readonly Movimento[] } | null>(null)
+  const abrirConta = (tipo: 'dre' | 'dfc') => (chave: string, nome: string, mesIndice: number | null) => {
+    const janela = mesIndice === null ? r.periodo.intervalo : (mesesDet[mesIndice]?.intervalo ?? r.periodo.intervalo)
+    const buscar = tipo === 'dre' ? movsDre : movsDfc
+    setDrill({
+      titulo: `${nome} · ${rotuloIntervalo(janela)}`,
+      subtitulo: `Movimentos da conta · ${tipo.toUpperCase()} · regime ${r.periodo.regime}${tipo === 'dfc' ? ' (valores pagos)' : ''}`,
+      movimentos: buscar(chave, janela),
+    })
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -52,12 +68,21 @@ export function RelatorioComparativo() {
             Cada mês do período em coluna própria, com AV% e AH% — nada somado · visão geral (o filtro de
             filial não recorta esta matriz)
           </p>
-          <TabelaMeses titulo={`DRE · ${rotuloIntervalo(r.periodo.intervalo)} · mês a mês`} meses={mesesDet} total={r.dre} tipo="dre" />
-          <TabelaMeses titulo={`DFC · ${rotuloIntervalo(r.periodo.intervalo)} · mês a mês`} meses={mesesDet} total={r.dfc} tipo="dfc" />
+          <TabelaMeses titulo={`DRE · ${rotuloIntervalo(r.periodo.intervalo)} · mês a mês`} meses={mesesDet} total={r.dre} tipo="dre" onConta={abrirConta('dre')} />
+          <TabelaMeses titulo={`DFC · ${rotuloIntervalo(r.periodo.intervalo)} · mês a mês`} meses={mesesDet} total={r.dfc} tipo="dfc" onConta={abrirConta('dfc')} />
         </>
       ) : (
         <ComparativoPadrao r={r} mes={mes} meses={meses} mesmoIntervalo={mesmoIntervalo} />
       )}
+      {drill ? (
+        <MovimentosModal
+          titulo={drill.titulo}
+          subtitulo={drill.subtitulo}
+          movimentos={drill.movimentos}
+          eixosIniciais={['contraparte']}
+          onFechar={() => setDrill(null)}
+        />
+      ) : null}
     </div>
   )
 }
