@@ -11,6 +11,7 @@ import { useModelo } from '@/lib/useModelo'
 import { useOverrides } from '@/lib/overrides'
 import { useSomenteLeitura } from '@/lib/somenteLeitura'
 import { NomeEditavel } from '../NomeEditavel.tsx'
+import { SeletorBusca } from '../SeletorBusca.tsx'
 
 export function TabelaMov({ movimentos }: { movimentos: readonly Movimento[] }) {
   const { resolvedor } = useOverrides()
@@ -89,22 +90,18 @@ function CelulaFilial({ m, api, somenteLeitura }: { m: Movimento; api: FilialSel
     return <span className="text-xs text-muted">{r?.noId ? api.nomeDe(r.noId) : '—'}</span>
   }
   return (
-    <span className="inline-flex items-center gap-1.5">
-      <select
-        value={r?.noId ?? ''}
-        onChange={(e) => api.atribuir(m, e.target.value)}
-        title={r?.origem === 'auto' ? 'Herdada automaticamente da contraparte — edite se for de outra filial' : undefined}
-        className={`max-w-44 rounded border px-2 py-1 text-xs outline-none focus:border-primary ${
+    <span className="inline-flex max-w-52 items-center gap-1.5">
+      <SeletorBusca
+        opcoes={api.opcoes.map((o) => ({ valor: o.id, rotulo: o.rotulo }))}
+        valor={r?.noId ?? ''}
+        onEscolher={(noId) => api.atribuir(m, noId)}
+        rotuloVazio="— selecionar —"
+        placeholderBusca="Buscar filial/centro…"
+        titulo={r?.origem === 'auto' ? 'Herdada automaticamente da contraparte — edite se for de outra filial' : undefined}
+        classeGatilho={`flex w-full items-center justify-between gap-1.5 rounded border px-2 py-1 text-left text-xs outline-none transition-colors hover:border-primary ${
           r?.origem === 'auto' ? 'border-secondary/40 bg-secondary/10 text-secondary' : 'border-bd bg-surface2'
         }`}
-      >
-        <option value="">— selecionar —</option>
-        {api.opcoes.map((o) => (
-          <option key={o.id} value={o.id}>
-            {o.rotulo}
-          </option>
-        ))}
-      </select>
+      />
       {r?.origem === 'auto' ? <span className="text-[10px] text-secondary/80">auto</span> : null}
     </span>
   )

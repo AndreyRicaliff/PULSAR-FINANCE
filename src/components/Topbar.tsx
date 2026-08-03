@@ -6,6 +6,7 @@ import { useClientes } from '@/lib/clientes'
 import { useSomMaster } from '@/lib/useMusicaAmbiente'
 import type { Tema } from '@/lib/useTema'
 import { DefinirSenha } from './DefinirSenha.tsx'
+import { SeletorBusca } from './SeletorBusca.tsx'
 import { SeloSync } from './SeloSync.tsx'
 
 interface Props {
@@ -78,33 +79,29 @@ function SeletorCliente() {
   }, [clientes])
   const rotulo = (c: Tenant) =>
     repetidos.has(c.nome) ? `${c.nome} · ${rotulosProvedor(c.provedor).nome}` : c.nome
+  // Agrupado por ERP e alfabético (report 2026-07-30) — agora com BUSCA (pedido 03/08):
+  // 24 tenants em <select> nativo era caça ao nome sem filtro.
+  const opcoes = useMemo(
+    () =>
+      (['omie', 'nibo', null] as const).flatMap((prov) =>
+        clientes
+          .filter((c) => (c.provedor ?? null) === prov)
+          .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))
+          .map((c) => ({ valor: c.id, rotulo: rotulo(c), detalhe: prov ? rotulosProvedor(prov).nome : 'sem integração' })),
+      ),
+    [clientes, repetidos],
+  )
   return (
     <label className="flex items-center gap-2 rounded-lg border border-bd bg-surface px-3 py-1.5">
       <span className="pulso-vivo h-1.5 w-1.5 rounded-full bg-accent shadow-[0_0_8px_rgb(var(--c-accent)/0.6)]" />
       <span className="text-[11px] font-semibold uppercase tracking-wider text-muted">Cliente</span>
-      <select
-        value={ativo.id}
-        onChange={(e) => selecionar(e.target.value)}
-        className="max-w-[44vw] bg-transparent text-sm font-semibold text-text outline-none sm:max-w-none"
-      >
-        {/* Agrupado por ERP e alfabético dentro de cada grupo — a lista crescia na ordem
-            de cadastro e virou caça ao nome (report 2026-07-30). */}
-        {(['omie', 'nibo', null] as const).map((prov) => {
-          const grupo = clientes
-            .filter((c) => (c.provedor ?? null) === prov)
-            .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))
-          if (!grupo.length) return null
-          return (
-            <optgroup key={prov ?? 'sem'} label={prov ? rotulosProvedor(prov).nome : 'Sem integração'}>
-              {grupo.map((c) => (
-                <option key={c.id} value={c.id} className="bg-surface text-text">
-                  {rotulo(c)}
-                </option>
-              ))}
-            </optgroup>
-          )
-        })}
-      </select>
+      <SeletorBusca
+        opcoes={opcoes}
+        valor={ativo.id}
+        onEscolher={selecionar}
+        placeholderBusca="Buscar cliente…"
+        classeGatilho="flex max-w-[44vw] items-center gap-1.5 bg-transparent text-left text-sm font-semibold text-text outline-none sm:max-w-none"
+      />
       <TagProvedor provedor={ativo.provedor} />
     </label>
   )

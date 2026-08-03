@@ -5,6 +5,7 @@ import { PREMISSAS } from '@/core/matriz-classificacao'
 import type { No } from '@/core/modelo'
 import { brl } from '@/lib/money'
 import { CampoBusca } from '../CampoBusca.tsx'
+import { SeletorBusca } from '../SeletorBusca.tsx'
 import { Grip } from '../demonstracao/atomos.tsx'
 import { EtiquetaEstado } from '../EtiquetaEstado.tsx'
 import { DropZone } from './DropZone.tsx'
@@ -187,18 +188,13 @@ function ChipSugestao({
 
 function Seletor({ opcoes, onEscolher }: { opcoes: readonly Opcao[]; onEscolher: (noId: string) => void }) {
   return (
-    <select
-      value=""
-      onChange={(e) => e.target.value && onEscolher(e.target.value)}
-      disabled={opcoes.length === 0}
-      className="rounded border border-bd bg-surface2 px-2 py-1 text-xs outline-none focus:border-primary disabled:opacity-50"
-    >
-      <option value="">conciliar em…</option>
-      {opcoes.map((o) => (
-        <option key={o.id} value={o.id}>
-          {o.rotulo}
-        </option>
-      ))}
-    </select>
+    <SeletorBusca
+      opcoes={opcoes.map((o) => ({ valor: o.id, rotulo: o.rotulo }))}
+      onEscolher={onEscolher}
+      fixarEscolha={false}
+      rotuloVazio="conciliar em…"
+      placeholderBusca="Buscar grupo/subgrupo…"
+      classeGatilho="flex items-center gap-1.5 rounded border border-bd bg-surface2 px-2 py-1 text-left text-xs outline-none transition-colors hover:border-primary disabled:opacity-50"
+    />
   )
 }
