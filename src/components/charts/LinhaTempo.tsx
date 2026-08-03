@@ -6,8 +6,10 @@
  */
 import { useState, type MouseEvent } from 'react'
 import { brlCompacto, ticksDoEixo } from '@/core/eixo'
+import { useEscalaGrafico } from '@/lib/escalaGrafico'
 import { brl, fracVariacao, pctVariacao } from '@/lib/money'
 import { TipLinha, TipTitulo, useTooltipGrafico } from '@/lib/tooltipGrafico'
+import { useLarguraGrafico } from '@/lib/useLarguraGrafico'
 
 export interface PontoTempo {
   readonly rotulo: string
@@ -15,8 +17,7 @@ export interface PontoTempo {
   readonly projetado: boolean
 }
 
-const W = 600
-const H = 220
+const H_BASE = 220
 const PAD_E = 56 // esquerda: espaço dos rótulos do eixo Y
 const PAD_D = 16
 const PAD_V = 28
@@ -24,6 +25,10 @@ const PAD_V = 28
 export function LinhaTempo({ pontos, cor = 'rgb(var(--c-accent))' }: { pontos: readonly PontoTempo[]; cor?: string }) {
   const tip = useTooltipGrafico(cor)
   const [ativo, setAtivo] = useState<number | null>(null)
+  // Largura MEDIDA como largura do viewBox (report 03/08): escala 1:1, sem letterbox
+  // nem explosão; altura amplia via fator do modal e o desenho se recalcula.
+  const { ref, largura: W } = useLarguraGrafico()
+  const H = Math.round(H_BASE * useEscalaGrafico())
   if (pontos.length < 2) {
     return <p className="text-sm text-muted">Poucos meses no período — amplie o intervalo para ver a evolução.</p>
   }
@@ -79,8 +84,8 @@ export function LinhaTempo({ pontos, cor = 'rgb(var(--c-accent))' }: { pontos: r
   const cruzaZero = min < 0 && max > 0
 
   return (
-    <>
-      <svg viewBox={`0 0 ${W} ${H}`} className="h-56 w-full" onMouseMove={aoMover} onMouseLeave={aoSair}>
+    <div ref={ref} className="w-full">
+      <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} className="block" onMouseMove={aoMover} onMouseLeave={aoSair}>
         <defs>
           <linearGradient id="lt-grad" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor={cor} stopOpacity="0.3" />
@@ -142,9 +147,10 @@ export function LinhaTempo({ pontos, cor = 'rgb(var(--c-accent))' }: { pontos: r
           </text>
         ))}
 
-        {/* Rótulos do eixo X esparsos; some o penúltimo se colar no último (evita "12/27/28"). */}
+        {/* Rótulos do eixo X esparsos e adaptativos à largura real; some o penúltimo se
+            colar no último (evita "12/27/28"). */}
         {pontos.map((p, i) => {
-          const passoX = Math.max(1, Math.round(n / 8))
+          const passoX = Math.max(1, Math.ceil((56 * (n - 1)) / Math.max(1, W - PAD_E - PAD_D)))
           const ehUltimo = i === n - 1
           if (!ehUltimo && (i % passoX !== 0 || n - 1 - i < Math.ceil(passoX / 2))) return null
           const anchor = i === 0 ? 'start' : ehUltimo ? 'end' : 'middle'
@@ -156,7 +162,7 @@ export function LinhaTempo({ pontos, cor = 'rgb(var(--c-accent))' }: { pontos: r
         })}
       </svg>
       {tip.tooltip}
-    </>
+    </div>
   )
 }
 

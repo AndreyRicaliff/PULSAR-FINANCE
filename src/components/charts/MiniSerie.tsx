@@ -7,8 +7,8 @@ import { useState, type MouseEvent } from 'react'
 import { fmtIndicador, type PontoIndicador } from '@/lib/indicadores'
 import { fracVariacao, pctVariacao } from '@/lib/money'
 import { TipLinha, TipTitulo, useTooltipGrafico } from '@/lib/tooltipGrafico'
+import { useLarguraGrafico } from '@/lib/useLarguraGrafico'
 
-const W = 240
 const H = 64
 const PADX = 6
 const PADTOP = 8
@@ -19,6 +19,9 @@ const fmt = (p: PontoIndicador): string => fmtIndicador(p.valor, p.percentual)
 export function MiniSerie({ pontos, cor }: { pontos: readonly PontoIndicador[]; cor: string }) {
   const tip = useTooltipGrafico(cor)
   const [ativo, setAtivo] = useState<number | null>(null)
+  // Largura MEDIDA (report 03/08): era o único gráfico com TEXTO sob preserveAspectRatio
+  // "none" — meses espremidos no card estreito, esticados (e círculos em elipse) no largo.
+  const { ref, largura: W } = useLarguraGrafico(240)
   if (pontos.length < 2) return null
   const vals = pontos.map((p) => p.valor)
   const max = Math.max(0, ...vals)
@@ -57,8 +60,8 @@ export function MiniSerie({ pontos, cor }: { pontos: readonly PontoIndicador[]; 
   const n = pontos.length
 
   return (
-    <>
-      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="h-16 w-full" onMouseMove={aoMover} onMouseLeave={aoSair}>
+    <div ref={ref} className="w-full">
+      <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} className="block" onMouseMove={aoMover} onMouseLeave={aoSair}>
         <defs>
           <linearGradient id={id} x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor={cor} stopOpacity="0.22" />
@@ -105,7 +108,7 @@ export function MiniSerie({ pontos, cor }: { pontos: readonly PontoIndicador[]; 
         ))}
       </svg>
       {tip.tooltip}
-    </>
+    </div>
   )
 }
 
