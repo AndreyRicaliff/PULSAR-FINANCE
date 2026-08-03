@@ -319,13 +319,17 @@ function itensDeContas(
   categorias: CategoriasSeed['categorias'],
   ambiguas: ReadonlySet<string>,
 ): ItemConc[] {
-  return porCategoria(movs, categorias).map((l) => ({
-    chave: l.codigo,
-    titulo: rotuloCategoria(l.codigo, resolvedor.categoria(l.codigo).nome, ambiguas),
-    valorCentavos: l.totalCentavos,
-    qtd: l.quantidade,
-    natureza: l.natureza,
-  }))
+  return porCategoria(movs, categorias).map((l) => {
+    const r = resolvedor.categoria(l.codigo)
+    return {
+      chave: l.codigo,
+      titulo: rotuloCategoria(l.codigo, r.nome, ambiguas),
+      valorCentavos: l.totalCentavos,
+      qtd: l.quantidade,
+      natureza: l.natureza,
+      estado: r.estado,
+    }
+  })
 }
 
 function itensDeFornecedores(movs: readonly Movimento[], resolvedor: Resolvedor): ItemConc[] {
@@ -338,12 +342,16 @@ function itensDeFornecedores(movs: readonly Movimento[], resolvedor: Resolvedor)
     acc.set(chave, atual)
   }
   return [...acc.entries()]
-    .map(([codigo, v]) => ({
-      chave: codigo,
-      titulo: resolvedor.contraparte(codigo).nome,
-      valorCentavos: v.valor,
-      qtd: v.qtd,
-    }))
+    .map(([codigo, v]) => {
+      const r = resolvedor.contraparte(codigo)
+      return {
+        chave: codigo,
+        titulo: r.nome,
+        valorCentavos: v.valor,
+        qtd: v.qtd,
+        estado: r.estado,
+      }
+    })
     .sort((a, b) => b.valorCentavos - a.valorCentavos)
 }
 
