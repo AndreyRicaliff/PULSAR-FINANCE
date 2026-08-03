@@ -3,12 +3,21 @@
  * Períodos têm durações diferentes → a comparação honesta é contra a MÉDIA MENSAL do período
  * (total do período também exibido). Tudo dado real; nada projetado.
  */
+import { useState } from 'react'
 import type { LinhaCalc } from '@/core/demonstracao'
 import { rotuloIntervalo, type Intervalo } from '@/core/periodo'
 import { brl, fracVariacao, pctVariacao } from '@/lib/money'
-import { useMesAtual } from '@/lib/useComparativo'
+import { useMesAtual, useMesesDe } from '@/lib/useComparativo'
 import { useResultado, valorLinha } from '@/lib/useResultado'
 import { KpiCard } from '../KpiCard.tsx'
+import { Segmento, type OpcaoSeg } from '../Segmento.tsx'
+import { TabelaMeses } from '../TabelaMeses.tsx'
+
+type VistaComp = 'padrao' | 'meses'
+const VISTAS_COMP: readonly OpcaoSeg<VistaComp>[] = [
+  { id: 'padrao', rotulo: 'Mês atual × Período' },
+  { id: 'meses', rotulo: 'Mês a mês' },
+]
 
 export function RelatorioComparativo() {
   const r = useResultado()
@@ -16,18 +25,56 @@ export function RelatorioComparativo() {
   // Meses reais com dado no período selecionado — denominador da média mensal.
   const meses = Math.max(1, r.serie.filter((p) => !p.projetado).length)
   const mesmoIntervalo = igual(r.periodo.intervalo, mes.intervalo)
+  // Detalhe mês a mês do período (pedido 02/08: ver cada mês, não a soma) — mesma matriz
+  // do comparativo tela cheia; visão geral (o recorte de filial não se aplica aqui).
+  const mesesDet = useMesesDe(r.periodo.intervalo, r.periodo.regime)
+  const [vista, setVista] = useState<VistaComp>('padrao')
+  const temMeses = mesesDet.length >= 2
 
   return (
     <div className="flex flex-col gap-6">
-      <header>
-        <h1 className="text-[19px] font-semibold">Comparativo — Mês Atual × Período</h1>
-        <p className="text-sm text-muted">
-          Mês corrente ({rotuloIntervalo(mes.intervalo)}) lado a lado com o período selecionado (
-          {rotuloIntervalo(r.periodo.intervalo)}, {meses} {meses === 1 ? 'mês' : 'meses'} com dado) ·
-          variação medida contra a <strong>média mensal</strong> do período — durações diferentes não se
-          comparam por total
-        </p>
+      <header className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-[19px] font-semibold">Comparativo — Mês Atual × Período</h1>
+          <p className="text-sm text-muted">
+            Mês corrente ({rotuloIntervalo(mes.intervalo)}) lado a lado com o período selecionado (
+            {rotuloIntervalo(r.periodo.intervalo)}, {meses} {meses === 1 ? 'mês' : 'meses'} com dado) ·
+            variação medida contra a <strong>média mensal</strong> do período — durações diferentes não se
+            comparam por total
+          </p>
+        </div>
+        {temMeses ? <Segmento opcoes={VISTAS_COMP} valor={vista} onTrocar={setVista} /> : null}
       </header>
+
+      {vista === 'meses' && temMeses ? (
+        <>
+          <p className="text-xs text-muted">
+            Cada mês do período em coluna própria, com AV% e AH% — nada somado · visão geral (o filtro de
+            filial não recorta esta matriz)
+          </p>
+          <TabelaMeses titulo={`DRE · ${rotuloIntervalo(r.periodo.intervalo)} · mês a mês`} meses={mesesDet} total={r.dre} tipo="dre" />
+          <TabelaMeses titulo={`DFC · ${rotuloIntervalo(r.periodo.intervalo)} · mês a mês`} meses={mesesDet} total={r.dfc} tipo="dfc" />
+        </>
+      ) : (
+        <ComparativoPadrao r={r} mes={mes} meses={meses} mesmoIntervalo={mesmoIntervalo} />
+      )}
+    </div>
+  )
+}
+
+function ComparativoPadrao({
+  r,
+  mes,
+  meses,
+  mesmoIntervalo,
+}: {
+  r: ReturnType<typeof useResultado>
+  mes: ReturnType<typeof useMesAtual>
+  meses: number
+  mesmoIntervalo: boolean
+}) {
+  return (
+    <div className="flex flex-col gap-6">
 
       {mesmoIntervalo ? (
         <p className="rounded-card border border-warn/40 bg-warn/10 p-3 text-sm text-warn">
