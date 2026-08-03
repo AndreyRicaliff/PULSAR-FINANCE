@@ -711,7 +711,24 @@ async function chamadorAutorizado(env, req) {
   )
   if (!aRes.ok) return false
   const rows = await aRes.json()
-  return Array.isArray(rows) && rows.length > 0
+  if (!Array.isArray(rows) || rows.length === 0) return false
+
+  // 2º fator (auditoria 03/08): sync sobrescreve o espelho de um tenant inteiro — senha de
+  // operador vazada, sem o código, não dispara. Bearer service_role (cron) já retornou acima.
+  let sessionId = ''
+  try {
+    sessionId = String(JSON.parse(atob(token.split('.')[1] ?? '')).session_id ?? '')
+  } catch {
+    return false
+  }
+  if (!sessionId) return false
+  const sRes = await fetch(
+    `${env.SUPABASE_URL}/rest/v1/painel_sessoes_2fa?session_id=eq.${encodeURIComponent(sessionId)}&select=session_id&limit=1`,
+    { headers: { apikey: env.SUPABASE_SERVICE_ROLE_KEY, Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}` } },
+  )
+  if (!sRes.ok) return false
+  const s = await sRes.json()
+  return Array.isArray(s) && s.length > 0
 }
 
 Deno.serve(async (req) => {

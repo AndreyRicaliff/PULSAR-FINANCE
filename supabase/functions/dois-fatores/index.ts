@@ -176,10 +176,11 @@ Deno.serve(async (req) => {
       }
 
       if ((await hash(informado, sessionId)) !== desafio.codigo_hash) {
-        await admin
-          .from('painel_desafios_2fa')
-          .update({ tentativas: desafio.tentativas + 1 })
-          .eq('id', desafio.id)
+        // ATÔMICO no banco (auditoria 03/08): ler-somar-gravar perdia contagem sob
+        // requisições paralelas — 5 tentativas viravam N com N chutes simultâneos.
+        // A RPC incrementa e QUEIMA o desafio ao atingir o teto, numa só operação.
+        const { error: eCons } = await admin.rpc('consumir_tentativa_2fa', { p_desafio: desafio.id, p_max: MAX_TENTATIVAS })
+        if (eCons) return json({ error: 'Não foi possível validar o código agora.' })
         return json({ error: 'Código incorreto.' })
       }
 
