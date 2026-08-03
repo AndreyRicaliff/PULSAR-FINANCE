@@ -4,7 +4,7 @@
  */
 import { useMemo, useState, type ReactNode } from 'react'
 import { suspeitasDoLancamento } from '@/core/duplicatas'
-import { ORIGENS_SUGERIDAS, type LancamentoManual, type NaturezaManual } from '@/core/lancamento'
+import { ORIGEM_MANUAL, ORIGENS_SUGERIDAS, type LancamentoManual, type NaturezaManual } from '@/core/lancamento'
 import { codigoExibivel, rotuloCategoria, type Categoria } from '@/core/categoria'
 import { hojeLocalIso } from '@/core/periodo'
 import { normalizarTexto } from '@/core/texto'
@@ -161,7 +161,9 @@ function FormLancamento({ original, onFechar }: { original: LancamentoManual | n
   const [descricao, setDescricao] = useState(original?.descricao ?? '')
   const [valor, setValor] = useState(original ? (original.valorCentavos / 100).toFixed(2).replace('.', ',') : '')
   const [categoria, setCategoria] = useState(original?.categoria ?? '')
-  const [origem, setOrigem] = useState(original?.origem ?? ORIGENS_SUGERIDAS[0] ?? 'IFOOD')
+  // SEM default de plataforma (report 03/08: "todos entrando como ifood") — origem é
+  // rótulo opcional; vazio = movimentação do zero, que entra em categoria e grupo.
+  const [origem, setOrigem] = useState(original?.origem === ORIGEM_MANUAL ? '' : (original?.origem ?? ''))
   const [observacao, setObservacao] = useState(original?.observacao ?? '')
   const [erro, setErro] = useState('')
   const [salvando, setSalvando] = useState(false)
@@ -180,7 +182,6 @@ function FormLancamento({ original, onFechar }: { original: LancamentoManual | n
     if (!descricao.trim()) return setErro('Descreva o lançamento.')
     if (centavos === null) return setErro('Valor inválido — use vírgula para centavos (ex.: 1.234,56).')
     if (!categoria) return setErro('Escolha a categoria do plano.')
-    if (!origem.trim()) return setErro('Informe a origem (plataforma).')
     // Guarda da natureza (revisão 03/08): o SINAL vem da natureza declarada e a LINHA da
     // DRE vem da categoria — descasados, o número mente. Listar tudo é direito do operador;
     // lançar descasado sem confirmar explicitamente, não.
@@ -224,7 +225,9 @@ function FormLancamento({ original, onFechar }: { original: LancamentoManual | n
       valorCentavos: centavos,
       natureza,
       categoria,
-      origem: origem.trim().toUpperCase(),
+      // Sem plataforma → ORIGEM_MANUAL (default da tabela): o movimento entra "do zero",
+      // sem contraparte fabricada, e flui pela categoria → grupo da Matriz.
+      origem: origem.trim().toUpperCase() || ORIGEM_MANUAL,
       observacao: observacao.trim(),
     }
     setSalvando(true)
@@ -273,8 +276,15 @@ function FormLancamento({ original, onFechar }: { original: LancamentoManual | n
           <input type="text" value={descricao} onChange={(e) => setDescricao(e.target.value)} placeholder="Ex.: Vendas iFood — semana 28" autoFocus className={CLASSE_INPUT} />
         </Campo>
 
-        <Campo rotulo="Origem (plataforma)">
-          <input type="text" list="origens-sugeridas" value={origem} onChange={(e) => setOrigem(e.target.value)} className={CLASSE_INPUT} />
+        <Campo rotulo="Origem/plataforma (opcional)">
+          <input
+            type="text"
+            list="origens-sugeridas"
+            value={origem}
+            onChange={(e) => setOrigem(e.target.value)}
+            placeholder="ex.: IFOOD — vazio = lançamento avulso, sem plataforma"
+            className={CLASSE_INPUT}
+          />
           <datalist id="origens-sugeridas">
             {ORIGENS_SUGERIDAS.map((o) => <option key={o} value={o} />)}
           </datalist>

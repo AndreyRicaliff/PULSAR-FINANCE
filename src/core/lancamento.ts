@@ -73,7 +73,9 @@ export function movimentoDeLancamento(l: LancamentoManual): Movimento {
     liquidado: 'S',
     documento: l.descricao,
     parcela: '',
-    contraparte: l.origem.trim() || ORIGEM_MANUAL,
+    // Plataforma vira contraparte; lançamento avulso (origem MANUAL) fica SEM contraparte —
+    // não fabrica um "fornecedor IFOOD/MANUAL" nos agrupamentos (report 03/08).
+    contraparte: l.origem.trim() === ORIGEM_MANUAL ? '' : l.origem.trim(),
     contraparteCodigo: '',
     natureza: l.natureza === 'receita' ? 'R' : 'P',
     grupo: '',

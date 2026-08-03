@@ -98,14 +98,15 @@ describe('AConciliar — a linha não é draggable, só a alça (FIX 2026-07-24)
       />,
     )
     const linha = screen.getByText('Salários').closest('tr') as HTMLElement
-    // A linha não pode ser draggable (senão rouba o mousedown do <select>).
+    // A linha não pode ser draggable (senão rouba o mousedown do seletor).
     expect(linha.getAttribute('draggable')).not.toBe('true')
     // Existe uma alça dedicada draggable dentro da linha.
     const alca = within(linha).getByTitle('Arraste para outra linha')
     expect(alca.getAttribute('draggable')).toBe('true')
-    // E o <select> de atribuição por clique está presente e utilizável.
-    const select = within(linha).getByRole('combobox') as HTMLSelectElement
-    fireEvent.change(select, { target: { value: 's1' } })
+    // E o seletor com busca (SeletorBusca substituiu o <select> nativo — 03/08) abre e
+    // atribui por clique sem o drag sequestrar.
+    fireEvent.click(within(linha).getByText('conciliar em…'))
+    fireEvent.click(screen.getByText('↳ Pessoal'))
     expect(onMapear).toHaveBeenCalledWith('cat-42', 's1')
   })
 })

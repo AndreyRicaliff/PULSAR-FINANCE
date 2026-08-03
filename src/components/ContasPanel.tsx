@@ -5,6 +5,7 @@
  * — vale para todos os títulos e movimentos daquela categoria).
  */
 import { useMemo, useState } from 'react'
+import { SeletorBusca } from './SeletorBusca.tsx'
 import { descricoesAmbiguas, rotuloCategoria } from '@/core/categoria'
 import { codigoContraparte } from '@/core/cliente'
 import { opcoesDaEstrutura } from '@/core/modelo'
@@ -157,17 +158,15 @@ function Tabela({ titulos, conc, onConciliar }: PropsTabela) {
                   {grupoId ? (
                     <span className="text-muted">{nomesGrupo.get(grupoId) ?? grupoId}</span>
                   ) : (
-                    <select
-                      defaultValue=""
-                      onChange={(e) => e.target.value && onConciliar(t.categoria, e.target.value)}
-                      className="rounded-lg border border-warn/50 bg-surface2 px-2 py-1 text-xs text-warn outline-none focus:border-primary"
-                      title={`Concilia a categoria ${rotuloCat} inteira (todos os títulos e movimentos dela)`}
-                    >
-                      <option value="">A conciliar ({rotuloCat})</option>
-                      {opcoes.map((o) => (
-                        <option key={o.id} value={o.id}>{o.rotulo}</option>
-                      ))}
-                    </select>
+                    <SeletorBusca
+                      opcoes={opcoes.map((o) => ({ valor: o.id, rotulo: o.rotulo }))}
+                      onEscolher={(noId) => onConciliar(t.categoria, noId)}
+                      fixarEscolha={false}
+                      rotuloVazio={`A conciliar (${rotuloCat})`}
+                      placeholderBusca="Buscar grupo/subgrupo…"
+                      titulo={`Concilia a categoria ${rotuloCat} inteira (todos os títulos e movimentos dela)`}
+                      classeGatilho="flex items-center gap-1.5 rounded-lg border border-warn/50 bg-surface2 px-2 py-1 text-left text-xs text-warn outline-none transition-colors hover:border-primary"
+                    />
                   )}
                 </td>
                 <td className={`px-4 py-2 text-right font-semibold tabular-nums ${t.natureza === 'R' ? 'text-accent' : ''}`}>{brl(t.valorCentavos)}</td>

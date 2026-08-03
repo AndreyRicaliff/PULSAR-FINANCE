@@ -38,9 +38,11 @@ describe('movimentoDeLancamento', () => {
     expect(caixa[0]?.dataPagamento).toBe('15/07/2026')
   })
 
-  it('agrupa por contraparte = plataforma ("quanto veio do iFood?")', () => {
+  it('agrupa por contraparte = plataforma; avulso (MANUAL) fica SEM contraparte', () => {
     expect(chaveContraparte(movimentoDeLancamento(base))).toBe('IFOOD')
-    expect(chaveContraparte(movimentoDeLancamento({ ...base, origem: '  ' }))).toBe('MANUAL')
+    // Lançamento do zero não fabrica um "fornecedor MANUAL" nos agrupamentos (report 03/08):
+    // origem MANUAL → contraparte vazia → cai em "Sem contraparte".
+    expect(movimentoDeLancamento({ ...base, origem: 'MANUAL' }).contraparte).toBe('')
   })
 
   it('sobrevive aos filtros do funil: não é cancelado e respeita o piso de dados', () => {
