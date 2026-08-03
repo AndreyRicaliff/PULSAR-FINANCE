@@ -9,14 +9,17 @@ import { codigoExibivel, rotuloCategoria, type Categoria } from '@/core/categori
 import { hojeLocalIso } from '@/core/periodo'
 import { normalizarTexto } from '@/core/texto'
 import { COR_NATUREZA, ROTULO_NATUREZA } from '@/lib/natureza'
+import { pedirBuscaConciliacao } from '@/lib/buscaConciliacaoPedido'
 import { useCadastros } from '@/lib/cadastros'
 import { useLancamentos, type NovoLancamento } from '@/lib/lancamentos'
+import { useModelo } from '@/lib/useModelo'
 import { useMovimentos } from '@/lib/movimentos'
 import { useOverlay, useTravaScroll } from '@/lib/overlay'
 import { brl, centavosDeTexto } from '@/lib/money'
 import { CampoBusca } from './CampoBusca.tsx'
 import { EtiquetaFluxo } from './conciliacao/EtiquetaFluxo.tsx'
 import { EtiquetaEstado } from './EtiquetaEstado.tsx'
+import { irParaAba } from './InicioPanel.tsx'
 import { KpiCard } from './KpiCard.tsx'
 import { Segmento, type OpcaoSeg } from './Segmento.tsx'
 
@@ -279,6 +282,7 @@ function FormLancamento({ original, onFechar }: { original: LancamentoManual | n
 
         <Campo rotulo="Categoria do plano (todas — inativas e outras naturezas sinalizadas)">
           <SeletorCategoria opcoes={opcoesCategoria} valor={categoria} onEscolher={setCategoria} naturezaAtual={natureza} />
+          <DestinoNaDre categoria={categoria} onFechar={onFechar} />
         </Campo>
 
         <Campo rotulo="Observação (opcional)">
@@ -412,6 +416,49 @@ function SeletorCategoria({
 function RegistraEsc({ onFechar }: { onFechar: () => void }) {
   useOverlay(onFechar)
   return null
+}
+
+/**
+ * PRA ONDE o lançamento vai na DRE (pedido 03/08): a linha da demonstração nasce da
+ * conciliação da categoria na Matriz — categoria sem conciliação = lançamento invisível
+ * na DRE (fica só em "a conciliar"), e ninguém avisava. Aqui o destino aparece ANTES de
+ * salvar; sem destino, o atalho leva pra Matriz com a busca preenchida.
+ */
+function DestinoNaDre({ categoria, onFechar }: { categoria: string; onFechar: () => void }) {
+  const { modelo } = useModelo()
+  const { categorias } = useCadastros()
+  if (!categoria) return null
+  const conc = modelo.contas
+  const noId = conc.mapa[categoria]
+  const no = noId ? conc.estrutura.find((n) => n.id === noId) : undefined
+  if (no) {
+    const pai = no.paiId ? conc.estrutura.find((n) => n.id === no.paiId) : null
+    return (
+      <p className="mt-1.5 text-xs text-muted">
+        Na Matriz/DRE cai em: <span className="font-medium text-text">{pai ? `${pai.nome} → ${no.nome}` : no.nome}</span>
+      </p>
+    )
+  }
+  const nomeCat = categorias.categorias.find((c) => c.codigo === categoria)?.descricao ?? categoria
+  return (
+    <div className="mt-1.5 flex flex-wrap items-center gap-2 rounded-lg border border-warn/40 bg-warn/10 px-3 py-2 text-xs text-warn">
+      <span>
+        Categoria ainda <strong>não conciliada</strong> na Matriz — o lançamento fica em “a conciliar” e{' '}
+        <strong>fora da DRE/DFC</strong> até alguém conciliar.
+      </span>
+      <button
+        type="button"
+        onClick={() => {
+          pedirBuscaConciliacao({ dim: 'contas', termo: nomeCat })
+          irParaAba('modelo')
+          onFechar()
+        }}
+        className="fx-press rounded-lg border border-warn/50 px-2 py-1 font-medium text-warn transition-colors hover:bg-warn/15"
+      >
+        Conciliar na Matriz →
+      </button>
+    </div>
+  )
 }
 
 function Campo({ rotulo, children }: { rotulo: string; children: ReactNode }) {
