@@ -20,6 +20,7 @@ export type Aba =
   | 'modelo'
   | 'demonstracoes'
   | 'projecao'
+  | 'capexcomp'
   | 'relatorios'
   | 'apresentacao'
   | 'hud'
@@ -61,6 +62,7 @@ const SECOES: readonly Secao[] = [
       { id: 'modelo', rotulo: 'Matriz de Classificações' },
       { id: 'demonstracoes', rotulo: 'Demonstrações (DRE/DFC)' },
       { id: 'projecao', rotulo: 'Projeção' },
+      { id: 'capexcomp', rotulo: 'Comparativo de CAPEX' },
     ],
   },
   {

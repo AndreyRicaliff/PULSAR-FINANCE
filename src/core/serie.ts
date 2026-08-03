@@ -42,7 +42,8 @@ function acumular(movs: readonly Movimento[], conc: Conciliacao, regime: Regime)
   return acc
 }
 
-function mesesContinuos(de: string, ate: string): string[] {
+/** Meses 'aaaa-mm' contínuos de `de` até `ate` (inclusive) — eixo sem buraco. */
+export function mesesContinuos(de: string, ate: string): string[] {
   const meses: string[] = []
   let [a, m] = [Number(de.slice(0, 4)), Number(de.slice(5, 7))]
   const [fa, fm] = [Number(ate.slice(0, 4)), Number(ate.slice(5, 7))]
@@ -123,11 +124,20 @@ function prever(ys: readonly number[], metodo: MetodoProj, i: number): number {
   return Math.round(mediaUltimos(ys, 3))
 }
 
-function proximoMes(mes: string): string {
+export function proximoMes(mes: string): string {
   let a = Number(mes.slice(0, 4))
   let m = Number(mes.slice(5, 7)) + 1
   if (m > 12) ((m = 1), (a += 1))
   return `${a}-${String(m).padStart(2, '0')}`
+}
+
+/** Projeta uma série numérica genérica `horizonte` passos à frente — mesmo motor (linear /
+ * média móvel-3) da projeção de caixa, para séries que não são PontoSerie (ex.: CAPEX). */
+export function projetarValores(ys: readonly number[], metodo: MetodoProj, horizonte: number): number[] {
+  if (ys.length < 2) return []
+  const out: number[] = []
+  for (let k = 0; k < horizonte; k++) out.push(Math.max(0, prever(ys, metodo, ys.length + k)))
+  return out
 }
 
 /** Estende a série por `horizonte` meses. Pontos projetados marcados (projetado=true). */

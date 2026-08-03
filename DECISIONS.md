@@ -928,3 +928,11 @@ DRE calculada ponta a ponta no motor real: RL R$ 767,7 mil; MC negativa (-R$ 159
 **Por quê:** os gráficos já se redesenham pela largura medida — zoom vira só "container lógico maior": rótulos adensam, eixo recalcula, fonte mantém tamanho (nítido), proporção preservada. `transform` não sabe fazer nada disso.
 **Consequências:** tooltip continua correto (usa clientX/clientY + portal ao body); animações não re-disparam (identidade dos elementos estável); em `html[data-static]` nada a colapsar (não há transition nova).
 **Em entrevista (30s):** "Zoom de gráfico não é zoom de imagem: ampliar pixel borra texto e congela o eixo. Como a geometria já era derivada da largura medida, implementei zoom ampliando o espaço lógico — o gráfico se redesenha adaptado, igual mapa que mostra mais detalhe ao aproximar."
+
+## 2026-08-03 — [semantica] Comparativo de CAPEX: catálogo restrito a fontes reais
+**Problema:** ferramenta comparativa de CAPEX configurável (DRE-DFC, projeção etc.) sem inventar série que o app não tem, nem induzir leitura errada de base.
+**Opções:** A) dropdown livre de qualquer linha de DRE/DFC no overlay; B) catálogo curado (dfc_inv/dfc_op/dfc_var/dre_depreciacao/orçado) + razões em KPI, EBITDA/receita FORA do overlay.
+**Decisão:** B — overlay só com séries de ordem de grandeza comparável; cor fixa por ENTIDADE (nunca por ordem); teto de 4 séries; `null` = mês sem fonte (linha quebra, não vira zero falso); projeção sempre tracejada e rotulada estimativa; aviso explícito quando mistura caixa × competência.
+**Por quê:** receita/EBITDA são 10–100× o CAPEX — no mesmo eixo esmagam as linhas (e eixo duplo é proibido); dfc_inv ⊃ CAPEX (aplicações/resgates não são CAPEX) — o KPI de razão nomeia isso pra não ler como bug; orçado ausente ≠ orçado zero.
+**Consequências:** núcleo puro testado (capexComparativo.ts) reusa resumoCapex/adesaoCapex/useMesesDe — nenhuma fórmula paralela; gráfico novo ComparativoLinhas nasce com largura medida + zoom de graça.
+**Em entrevista (30s):** "Comparação financeira honesta é decisão de design: mesmo eixo só pra mesma ordem de grandeza, cor presa à entidade, ausência de dado diferente de zero, e estimativa sempre tracejada. O que não cabe no overlay vira razão em KPI — CAPEX/Depreciação diz reinvestimento melhor que duas linhas em escalas incompatíveis."
