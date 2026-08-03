@@ -48,7 +48,22 @@ export function AprovacoesCliente() {
       </header>
       {erro ? <p className="rounded-card border border-danger/30 bg-danger/10 px-4 py-2 text-sm text-danger">{erro}</p> : null}
 
-      {pendentes.length === 0 ? (
+      {api.erro ? (
+        // Falha de leitura NUNCA pode virar "nada a aprovar": o dono veria "tudo em dia" e
+        // perderia a aprovação de um pagamento real (auditoria 03/08).
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-card border border-danger/40 bg-danger/10 px-4 py-3">
+          <p className="text-sm font-medium text-danger">
+            {api.erro} Não é possível afirmar que não há contas pendentes.
+          </p>
+          <button
+            type="button"
+            onClick={() => void api.recarregar()}
+            className="fx-press rounded-lg border border-danger/50 px-3 py-1.5 text-xs font-semibold text-danger"
+          >
+            Tentar de novo
+          </button>
+        </div>
+      ) : pendentes.length === 0 ? (
         <p className="rounded-card border border-dashed border-bd p-8 text-center text-sm text-muted">
           Nada aguardando sua aprovação no momento.
         </p>

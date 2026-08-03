@@ -25,6 +25,9 @@ export interface AprovacoesApi {
   /** Eventos de todas as contas do tenant, ascendente — a UI agrupa por aprovacaoId. */
   readonly eventos: readonly EventoAprovacao[]
   readonly carregando: boolean
+  /** Erro de leitura da fila. Sem isso, falha virava "nada a aprovar" — o dono via
+   * "tudo em dia" e podia perder a aprovação de um pagamento real (auditoria 03/08). */
+  readonly erro: string | null
   readonly criar: (contas: readonly NovaConta[]) => Promise<void>
   readonly decidir: (id: string, decisao: 'aprovada' | 'reprovada', comentario: string) => Promise<void>
   readonly comentar: (id: string, texto: string) => Promise<void>
@@ -90,6 +93,7 @@ export function useAprovacoes(): AprovacoesApi {
   const [aprovacoes, setAprovacoes] = useState<readonly Aprovacao[]>([])
   const [eventos, setEventos] = useState<readonly EventoAprovacao[]>([])
   const [carregando, setCarregando] = useState(true)
+  const [erro, setErro] = useState<string | null>(null)
 
   const recarregar = useCallback(async () => {
     if (!supabase) return setCarregando(false)
@@ -100,6 +104,7 @@ export function useAprovacoes(): AprovacoesApi {
       .order('vencimento', { ascending: true })
     if (error) {
       console.error('[aprovacoes] erro ao carregar:', error.message)
+      setErro('Não foi possível carregar as contas aguardando aprovação.')
       return setCarregando(false)
     }
     const linhas = (data as LinhaAprovacao[]).map(mapearAprovacao)
@@ -116,6 +121,7 @@ export function useAprovacoes(): AprovacoesApi {
     }
     setAprovacoes(linhas)
     setEventos(evs)
+    setErro(null)
     setCarregando(false)
   }, [ativo.id])
 
@@ -123,6 +129,7 @@ export function useAprovacoes(): AprovacoesApi {
   useEffect(() => {
     setAprovacoes([])
     setEventos([])
+    setErro(null)
     setCarregando(true)
     void recarregar()
   }, [ativo.id, recarregar])
@@ -219,5 +226,5 @@ export function useAprovacoes(): AprovacoesApi {
     [recarregar],
   )
 
-  return { aprovacoes, eventos, carregando, criar, decidir, comentar, transicao, transicaoLote, decidirLote, marcarMercadoria, recarregar }
+  return { aprovacoes, eventos, carregando, erro, criar, decidir, comentar, transicao, transicaoLote, decidirLote, marcarMercadoria, recarregar }
 }
