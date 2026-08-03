@@ -214,13 +214,15 @@ async function mapaDepartamentosCC(env) {
     totPaginas = r.nTotPaginas ?? totPaginas
     for (const l of r.listaLancamentos ?? []) {
       const dep = departamentoPrincipal(l.departamentos)
-      // A linha bancária do extrato carrega o TEXTO com o nº do documento que o mf não
-      // devolve (report 03/08: documento vazio nos EXTP) — capturada junto do rateio.
+      // A linha bancária do extrato carrega o que o mf não devolve (report 03/08, validado
+      // com dado real do AUTAG 27): detalhes.cNumDoc = Nº DO DOCUMENTO estruturado e
+      // detalhes.cObs = texto livre — capturados junto do rateio, zero chamada nova.
       const det = obj(l.detalhes)
+      const numDoc = str(det.cNumDoc).trim()
       const descricao =
         primeiroTexto(det, ['cObs', 'cDescricao', 'cHistorico', 'observacao']) ||
         primeiroTexto(l, ['cObs', 'cDescricao', 'cHistorico', 'observacao', 'cDesLanc'])
-      if ((dep || descricao) && l.nCodLanc != null) mapa.set(String(l.nCodLanc), { dep, descricao })
+      if ((dep || descricao || numDoc) && l.nCodLanc != null) mapa.set(String(l.nCodLanc), { dep, descricao, numDoc })
     }
     pagina++
   } while (pagina <= totPaginas && pagina <= MAX_PAGINAS)
@@ -239,8 +241,12 @@ async function enriquecerDepartamentos(env, movimentos) {
       if (!extra) return m
       const departamento = m.departamento || extra.dep || ''
       const descricao = m.descricao || extra.descricao || ''
-      if (departamento === m.departamento && descricao === m.descricao) return m
-      return { ...m, departamento, descricao }
+      // Nº do documento do extrato (cNumDoc): preenche o campo vazio dos EXTP/EXTR.
+      // Efeito colateral ÚNICO e aceito: a chaveMov do evento muda na 1ª sync pós-deploy
+      // (histórico reporta removido+novo uma vez) — dali em diante fica estável.
+      const documento = m.documento || extra.numDoc || ''
+      if (departamento === m.departamento && descricao === m.descricao && documento === m.documento) return m
+      return { ...m, departamento, descricao, documento }
     })
   } catch (_e) {
     return movimentos
