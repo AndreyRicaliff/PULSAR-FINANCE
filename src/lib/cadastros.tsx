@@ -20,6 +20,7 @@ import { ACME_ID, chaveDoCliente } from '@/core/tenant'
 import { seed as categoriasSeed } from '@/data/categorias'
 import { clientesSeed } from '@/data/clientes'
 import { departamentosSeed } from '@/data/departamentos'
+import { useCategoriasManuais } from './categoriasManuais'
 import { useClientes } from './clientes'
 import { supabase } from './supabase'
 
@@ -116,14 +117,21 @@ export function CadastrosProvider({ children }: { children: ReactNode }) {
     void recarregar()
   }, [ativo.id, recarregar])
 
+  // Categorias MANUAIS do painel (pedido 03/08) entram MERGEADAS no cadastro — todo
+  // consumidor (lançamento, Plano, Matriz, resolvedor) as enxerga sem saber a origem;
+  // o sync sobrescreve só o espelho do ERP, nunca este doc.
+  const { manuais } = useCategoriasManuais()
   const valor = useMemo<CadastrosApi>(
     () => ({
       ...estado,
+      categorias: manuais.length
+        ? { ...estado.categorias, categorias: [...estado.categorias.categorias, ...manuais] }
+        : estado.categorias,
       nomesContrapartes: new Map(Object.entries(estado.clientes.clientes).map(([codigo, c]) => [codigo, c.nome])),
       estruturaCentros: montarEstruturaCentros(estado.departamentos),
       recarregar,
     }),
-    [estado, recarregar],
+    [estado, manuais, recarregar],
   )
   return <Ctx.Provider value={valor}>{children}</Ctx.Provider>
 }

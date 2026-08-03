@@ -21,6 +21,9 @@ const RE_CODIGO_OPACO = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-
  * Nibo usa GUID — chave interna estável, sem significado humano → não exibir.
  */
 export function codigoExibivel(codigo: string): string {
+  // 'man:' = categoria criada manualmente no painel (core/categoriaManual) — o código é
+  // uuid interno, tão opaco quanto o GUID Nibo: não exibir.
+  if (codigo.startsWith('man:')) return ''
   return RE_CODIGO_OPACO.test(codigo) ? '' : codigo
 }
 
