@@ -6,11 +6,13 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { suspeitasDoLancamento } from '@/core/duplicatas'
 import { ORIGEM_MANUAL, ORIGENS_SUGERIDAS, type LancamentoManual, type NaturezaManual } from '@/core/lancamento'
 import { codigoExibivel, rotuloCategoria, type Categoria } from '@/core/categoria'
+import { ehCategoriaManual } from '@/core/categoriaManual'
 import { hojeLocalIso } from '@/core/periodo'
 import { normalizarTexto } from '@/core/texto'
 import { COR_NATUREZA, ROTULO_NATUREZA } from '@/lib/natureza'
 import { pedirBuscaConciliacao } from '@/lib/buscaConciliacaoPedido'
 import { useCadastros } from '@/lib/cadastros'
+import { useCategoriasManuais } from '@/lib/categoriasManuais'
 import { useClientes, useProvedor } from '@/lib/clientes'
 import { useLancamentos, type NovoLancamento } from '@/lib/lancamentos'
 import { useModelo } from '@/lib/useModelo'
@@ -370,6 +372,7 @@ function SeletorCategoria({
               <span className="font-mono text-xs text-muted">{escolhida.codigo}</span>
             ) : null}
             <span className="truncate">{rotuloCategoria(escolhida.codigo, escolhida.descricao)}</span>
+            {ehCategoriaManual(escolhida.codigo) ? <PillManual /> : null}
             {/* Sinal PERSISTENTE (revisão 03/08): natureza divergente visível também depois
                 de escolher — não só na lista aberta. */}
             {escolhida.natureza !== naturezaAtual ? (
@@ -406,6 +409,7 @@ function SeletorCategoria({
                   >
                     {codigoExibivel(c.codigo) ? <span className="shrink-0 font-mono text-xs text-muted">{c.codigo}</span> : null}
                     <span className="min-w-0 flex-1 truncate">{rotuloCategoria(c.codigo, c.descricao)}</span>
+                    {ehCategoriaManual(c.codigo) ? <PillManual /> : null}
                     {c.natureza !== naturezaAtual ? (
                       <span className={`shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-medium ${COR_NATUREZA[c.natureza]}`}>
                         {ROTULO_NATUREZA[c.natureza]}
@@ -415,7 +419,9 @@ function SeletorCategoria({
                   </button>
                 </li>
               ))}
-              {visiveis.length === 0 ? <VazioComSync /> : null}
+              {visiveis.length === 0 ? (
+                <VazioComSync busca={busca} natureza={naturezaAtual} onCriada={(codigo) => escolher(codigo)} />
+              ) : null}
             </ul>
           </div>
         </>
@@ -436,25 +442,62 @@ function RegistraEsc({ onFechar }: { onFechar: () => void }) {
  * sincronizando. O botão roda o sync do tenant e recarrega o cadastro sem sair do form.
  * (Grupo criado na Matriz não é categoria lançável — é o destino da conciliação.)
  */
-function VazioComSync() {
+/** Distinção pedida (03/08): categoria nascida no painel nunca se confunde com o plano do ERP. */
+function PillManual() {
+  return (
+    <span className="shrink-0 rounded-full border border-secondary/40 px-1.5 py-0.5 text-[10px] font-medium text-secondary">
+      manual
+    </span>
+  )
+}
+
+function VazioComSync({
+  busca,
+  natureza,
+  onCriada,
+}: {
+  busca: string
+  natureza: NaturezaManual
+  onCriada: (codigo: string) => void
+}) {
   const { ativo } = useClientes()
   const provedor = useProvedor()
   const sync = useSync(ativo.id, ativo.nome)
-  const { recarregar: recarregarCadastros } = useCadastros()
+  const { categorias, recarregar: recarregarCadastros } = useCadastros()
+  const { criar } = useCategoriasManuais()
+  const [erroCriacao, setErroCriacao] = useState('')
   const rodando = sync.status === 'rodando'
   const statusAnterior = useRef(sync.status)
   useEffect(() => {
     if (statusAnterior.current === 'rodando' && sync.status === 'ok') void recarregarCadastros()
     statusAnterior.current = sync.status
   }, [sync.status, recarregarCadastros])
+
+  // Categoria MANUAL do painel (pedido 03/08): nasce aqui mesmo, com o nome buscado e a
+  // natureza do lançamento, e já sai selecionada — depois é conciliar no grupo na Matriz.
+  function criarAgora() {
+    const r = criar(busca, natureza, categorias.categorias)
+    if ('erro' in r) return setErroCriacao(r.erro)
+    onCriada(r.codigo)
+  }
+
   return (
     <li className="flex flex-col gap-2 px-2.5 py-2 text-sm text-muted">
       <span>
-        Nenhuma categoria casa com a busca. Criou a categoria agora {provedor.em}? O plano aqui é{' '}
-        <strong>espelho do ERP</strong> — sincronize pra ela aparecer. Grupo criado na Matriz não é
-        categoria: nele você <em>concilia</em> categorias.
+        Nenhuma categoria casa com a busca. Você pode <strong>criar a categoria aqui</strong> (ela vive no
+        painel e depois é só conciliar no grupo na Matriz) — ou, se criou agora {provedor.em}, sincronizar:
+        o plano é espelho do ERP.
       </span>
-      <span className="flex items-center gap-2">
+      <span className="flex flex-wrap items-center gap-2">
+        {busca.trim() ? (
+          <button
+            type="button"
+            onClick={criarAgora}
+            className="fx-press rounded-lg bg-primary px-2.5 py-1 text-xs font-semibold text-white transition-opacity hover:opacity-90"
+          >
+            + Criar categoria “{busca.trim()}”
+          </button>
+        ) : null}
         <button
           type="button"
           onClick={() => void sync.sincronizar()}
@@ -466,6 +509,7 @@ function VazioComSync() {
         {sync.status === 'erro' ? <span className="text-xs text-danger">{sync.msg}</span> : null}
         {sync.status === 'ok' ? <span className="text-xs text-accent">Cadastro atualizado ✓</span> : null}
       </span>
+      {erroCriacao ? <span className="text-xs text-danger">{erroCriacao}</span> : null}
     </li>
   )
 }

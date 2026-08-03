@@ -1,6 +1,7 @@
 /** @file Plano de contas cru do ERP (árvore de categorias) — fonte read-only do de-para. */
 import { useMemo, useState } from 'react'
 import { codigoExibivel, mapaProfundidade, type Categoria, type Natureza } from '@/core/categoria'
+import { ehCategoriaManual } from '@/core/categoriaManual'
 import { gruposDuplicados, type GrupoDuplicado, type MembroDuplicata } from '@/core/duplicatas'
 import { estadoDoNome } from '@/core/estadoRegistro'
 import { normalizarTexto } from '@/core/texto'
@@ -137,6 +138,11 @@ function Linha({ c, nivel }: { c: Categoria; nivel: number }) {
         <span className="inline-flex items-center gap-1.5" title={estado ? `Original no ERP: ${c.descricao}` : undefined}>
           <span className={c.agrupadora ? 'font-semibold' : ''}>{limpo}</span>
           {estado ? <EtiquetaEstado estado={estado} /> : null}
+          {ehCategoriaManual(c.codigo) ? (
+            <span className="shrink-0 rounded-full border border-secondary/40 px-1.5 py-0.5 text-[10px] font-medium text-secondary">
+              manual
+            </span>
+          ) : null}
         </span>
       </td>
       <td className="px-4 py-2.5">
