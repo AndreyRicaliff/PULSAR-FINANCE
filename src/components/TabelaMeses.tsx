@@ -254,17 +254,27 @@ function LinhaMatriz({
       {contas.map((c) => {
         const totalConta = c.valores.reduce((s, v) => s + v, 0)
         return (
-          <tr key={c.nome} className="border-t border-bd/20 bg-surface2/20 text-xs text-muted">
-            <td className="sticky left-0 max-w-[240px] truncate bg-surface2/20 py-1.5 pl-10 pr-4" title={c.nome}>
+          <tr key={c.nome} className="border-t border-bd/20 bg-surface2/30 text-xs">
+            {/* Célula fixa OPACA (bg-surface): fundo translúcido em sticky deixa os valores
+                vazarem por baixo do nome quando a tabela rola (report 02/08). */}
+            <td className="sticky left-0 max-w-[240px] truncate bg-surface py-1.5 pl-10 pr-4 text-muted" title={c.nome}>
               ↳ {c.nome}
             </td>
-            {c.valores.map((v, ci) => (
-              <td key={ci} className="whitespace-nowrap px-3 py-1.5 text-right tabular-nums">
-                {v !== 0 ? <span className={v < 0 ? 'text-danger/80' : ''}>{brl(v)}</span> : '–'}
-              </td>
-            ))}
+            {/* Análise horizontal (e vertical na DRE) TAMBÉM por conta — não só nas linhas-mãe. */}
+            {c.valores.map((v, ci) => {
+              const ant = ci > 0 ? (c.valores[ci - 1] ?? 0) : null
+              return (
+                <td key={ci} className="whitespace-nowrap px-3 py-1.5 text-right tabular-nums">
+                  {v !== 0 ? <span className={v < 0 ? 'text-danger' : ''}>{brl(v)}</span> : <span className="text-muted/50">–</span>}
+                  <span className="block text-[10px] text-muted/80">
+                    {pctTexto(Math.abs(v), bases[ci] ?? 0)} · {ahTexto(v, ant)}
+                  </span>
+                </td>
+              )
+            })}
             <td className="whitespace-nowrap border-l border-bd px-4 py-1.5 text-right font-medium tabular-nums">
-              <span className={totalConta < 0 ? 'text-danger/80' : ''}>{brl(totalConta)}</span>
+              <span className={totalConta < 0 ? 'text-danger' : ''}>{brl(totalConta)}</span>
+              <span className="block text-[10px] font-normal text-muted/80">{pctTexto(Math.abs(totalConta), baseTotal)}</span>
             </td>
           </tr>
         )
