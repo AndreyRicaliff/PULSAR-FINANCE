@@ -6,12 +6,16 @@ import { useMemo, useState, type ReactNode } from 'react'
 import { suspeitasDoLancamento } from '@/core/duplicatas'
 import { ORIGENS_SUGERIDAS, type LancamentoManual, type NaturezaManual } from '@/core/lancamento'
 import { codigoExibivel, rotuloCategoria, type Categoria } from '@/core/categoria'
+import { normalizarTexto } from '@/core/texto'
+import { COR_NATUREZA, ROTULO_NATUREZA } from '@/lib/natureza'
 import { useCadastros } from '@/lib/cadastros'
 import { useLancamentos, type NovoLancamento } from '@/lib/lancamentos'
 import { useMovimentos } from '@/lib/movimentos'
 import { useOverlay, useTravaScroll } from '@/lib/overlay'
 import { brl, centavosDeTexto } from '@/lib/money'
+import { CampoBusca } from './CampoBusca.tsx'
 import { EtiquetaFluxo } from './conciliacao/EtiquetaFluxo.tsx'
+import { EtiquetaEstado } from './EtiquetaEstado.tsx'
 import { KpiCard } from './KpiCard.tsx'
 import { Segmento, type OpcaoSeg } from './Segmento.tsx'
 
@@ -150,11 +154,14 @@ function FormLancamento({ original, onFechar }: { original: LancamentoManual | n
   const [erro, setErro] = useState('')
   const [salvando, setSalvando] = useState(false)
 
-  // Só categorias lançáveis: analíticas, ativas e da natureza declarada.
-  const opcoesCategoria = useMemo(
-    () => categorias.categorias.filter((c) => c.ativa && !c.agrupadora && c.natureza === natureza),
-    [categorias, natureza],
-  )
+  // TODAS as analíticas, sem exceção (report 03/08): inativa entra COM etiqueta, outra
+  // natureza entra SINALIZADA — no Nibo a natureza não-mapeada vira 'outra' e o filtro
+  // antigo escondia metade do plano. Ordem: natureza declarada primeiro, ativas primeiro.
+  const opcoesCategoria = useMemo(() => {
+    const analiticas = categorias.categorias.filter((c) => !c.agrupadora)
+    const peso = (c: Categoria) => (c.natureza === natureza ? 0 : 2) + (c.ativa ? 0 : 1)
+    return [...analiticas].sort((a, b) => peso(a) - peso(b) || a.descricao.localeCompare(b.descricao))
+  }, [categorias, natureza])
 
   async function salvar() {
     const centavos = centavosDeTexto(valor)
@@ -239,11 +246,8 @@ function FormLancamento({ original, onFechar }: { original: LancamentoManual | n
           </datalist>
         </Campo>
 
-        <Campo rotulo={`Categoria (${natureza === 'receita' ? 'receitas' : 'despesas'} do plano)`}>
-          <select value={categoria} onChange={(e) => setCategoria(e.target.value)} className={CLASSE_INPUT}>
-            <option value="">— escolher —</option>
-            {opcoesCategoria.map((c) => <OpcaoCategoria key={c.codigo} c={c} />)}
-          </select>
+        <Campo rotulo="Categoria do plano (todas — inativas e outras naturezas sinalizadas)">
+          <SeletorCategoria opcoes={opcoesCategoria} valor={categoria} onEscolher={setCategoria} naturezaAtual={natureza} />
         </Campo>
 
         <Campo rotulo="Observação (opcional)">
@@ -268,9 +272,100 @@ function FormLancamento({ original, onFechar }: { original: LancamentoManual | n
   )
 }
 
-function OpcaoCategoria({ c }: { c: Categoria }) {
-  const cod = codigoExibivel(c.codigo)
-  return <option value={c.codigo}>{cod ? `${cod} · ` : ''}{rotuloCategoria(c.codigo, c.descricao)}</option>
+/**
+ * Combobox de categoria com BUSCA (report 03/08): o <select> nativo com centenas de itens
+ * estourava o layout (o navegador desenha o popup onde quer, sem filtro). Lista TODAS as
+ * analíticas: inativa ganha etiqueta, natureza diferente da declarada ganha pill — o
+ * operador vê tudo e decide, nada é escondido.
+ */
+function SeletorCategoria({
+  opcoes,
+  valor,
+  onEscolher,
+  naturezaAtual,
+}: {
+  opcoes: readonly Categoria[]
+  valor: string
+  onEscolher: (codigo: string) => void
+  naturezaAtual: NaturezaManual
+}) {
+  const [aberto, setAberto] = useState(false)
+  const [busca, setBusca] = useState('')
+  const escolhida = opcoes.find((c) => c.codigo === valor)
+
+  const visiveis = useMemo(() => {
+    const q = normalizarTexto(busca)
+    const qCodigo = busca.trim().toLowerCase()
+    if (!q && !qCodigo) return opcoes
+    return opcoes.filter(
+      (c) =>
+        (qCodigo !== '' && c.codigo.toLowerCase().includes(qCodigo)) ||
+        (q !== '' && normalizarTexto(c.descricao).includes(q)),
+    )
+  }, [opcoes, busca])
+
+  function escolher(codigo: string) {
+    onEscolher(codigo)
+    setAberto(false)
+    setBusca('')
+  }
+
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => setAberto((v) => !v)}
+        className={`${CLASSE_INPUT} flex w-full items-center justify-between gap-2 text-left`}
+      >
+        {escolhida ? (
+          <span className="flex min-w-0 items-center gap-1.5">
+            {codigoExibivel(escolhida.codigo) ? (
+              <span className="font-mono text-xs text-muted">{escolhida.codigo}</span>
+            ) : null}
+            <span className="truncate">{rotuloCategoria(escolhida.codigo, escolhida.descricao)}</span>
+            {escolhida.ativa === false ? <EtiquetaEstado estado="inativo" /> : null}
+          </span>
+        ) : (
+          <span className="text-muted">— escolher —</span>
+        )}
+        <span className="text-xs text-muted">▾</span>
+      </button>
+      {aberto ? (
+        <>
+          {/* Backdrop local: clique-fora fecha só o dropdown (o modal continua). */}
+          <div className="fixed inset-0 z-10" onClick={() => setAberto(false)} aria-hidden />
+          <div className="absolute left-0 right-0 z-20 mt-1 flex flex-col overflow-hidden rounded-lg border border-bd bg-surface shadow-brand">
+            <div className="border-b border-bd p-2">
+              <CampoBusca valor={busca} onValor={setBusca} placeholder="Buscar categoria…" visiveis={visiveis.length} total={opcoes.length} />
+            </div>
+            <ul className="max-h-64 overflow-auto p-1">
+              {visiveis.map((c) => (
+                <li key={c.codigo}>
+                  <button
+                    type="button"
+                    onClick={() => escolher(c.codigo)}
+                    className={`flex w-full items-center gap-1.5 rounded-md px-2.5 py-1.5 text-left text-sm ${
+                      c.codigo === valor ? 'bg-primary/15 text-text' : 'hover:bg-surface2'
+                    }`}
+                  >
+                    {codigoExibivel(c.codigo) ? <span className="shrink-0 font-mono text-xs text-muted">{c.codigo}</span> : null}
+                    <span className="min-w-0 flex-1 truncate">{rotuloCategoria(c.codigo, c.descricao)}</span>
+                    {c.natureza !== naturezaAtual ? (
+                      <span className={`shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-medium ${COR_NATUREZA[c.natureza]}`}>
+                        {ROTULO_NATUREZA[c.natureza]}
+                      </span>
+                    ) : null}
+                    {c.ativa === false ? <EtiquetaEstado estado="inativo" /> : null}
+                  </button>
+                </li>
+              ))}
+              {visiveis.length === 0 ? <li className="px-2.5 py-2 text-sm text-muted">Nenhuma categoria casa com a busca.</li> : null}
+            </ul>
+          </div>
+        </>
+      ) : null}
+    </div>
+  )
 }
 
 function Campo({ rotulo, children }: { rotulo: string; children: ReactNode }) {
