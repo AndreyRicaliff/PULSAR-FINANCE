@@ -3,8 +3,8 @@ import { useState, type MouseEvent } from 'react'
 import { fmtIndicador, type PontoIndicador } from '@/lib/indicadores'
 import { fracVariacao, pctVariacao } from '@/lib/money'
 import { TipLinha, TipTitulo, useTooltipGrafico } from '@/lib/tooltipGrafico'
+import { useLarguraGrafico } from '@/lib/useLarguraGrafico'
 
-const W = 640
 const H = 260
 const PADX = 18
 const PADTOP = 14
@@ -13,6 +13,9 @@ const PADBOT = 26
 export function SerieIndicador({ pontos, cor }: { pontos: readonly PontoIndicador[]; cor: string }) {
   const tip = useTooltipGrafico(cor)
   const [ativo, setAtivo] = useState<number | null>(null)
+  // Largura MEDIDA como largura do viewBox (report 03/08): o modal de análise é largo e
+  // o viewBox fixo de 640 deixava o desenho num tufo centralizado (letterbox).
+  const { ref, largura: W } = useLarguraGrafico()
   if (pontos.length < 2) return null
   const vals = pontos.map((p) => p.valor)
   const max = Math.max(0, ...vals)
@@ -24,7 +27,7 @@ export function SerieIndicador({ pontos, cor }: { pontos: readonly PontoIndicado
   const y = (v: number) => PADTOP + (1 - (v - min) / span) * (H - PADTOP - PADBOT)
   const linha = pontos.map((p, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(p.valor).toFixed(1)}`).join(' ')
   const area = `${linha} L${x(pontos.length - 1).toFixed(1)},${y(min)} L${x(0).toFixed(1)},${y(min)} Z`
-  const passo = Math.max(1, Math.ceil(pontos.length / 12))
+  const passo = Math.max(1, Math.ceil((56 * (pontos.length - 1)) / Math.max(1, W - 2 * PADX)))
 
   function aoMover(e: MouseEvent<SVGSVGElement>) {
     const r = e.currentTarget.getBoundingClientRect()
@@ -51,8 +54,8 @@ export function SerieIndicador({ pontos, cor }: { pontos: readonly PontoIndicado
   const n = pontos.length
 
   return (
-    <>
-      <svg viewBox={`0 0 ${W} ${H}`} className="h-64 w-full" onMouseMove={aoMover} onMouseLeave={aoSair}>
+    <div ref={ref} className="w-full">
+      <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} className="block" onMouseMove={aoMover} onMouseLeave={aoSair}>
         <defs>
           <linearGradient id="si-grad" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor={cor} stopOpacity="0.25" />
@@ -107,6 +110,6 @@ export function SerieIndicador({ pontos, cor }: { pontos: readonly PontoIndicado
         )}
       </svg>
       {tip.tooltip}
-    </>
+    </div>
   )
 }
