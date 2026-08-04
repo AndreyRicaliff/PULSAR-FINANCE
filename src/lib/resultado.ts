@@ -4,7 +4,7 @@
  * não daqui. Valores 100% crus da Omie; sinal pela natureza (R = entrada, P = saída);
  * não-conciliados e neutros (Regra Mãe) ficam de fora.
  */
-import type { Conciliacao, MetaContabil, No } from '@/core/modelo'
+import { entraNaDemonstracao, type Conciliacao, type MetaContabil, type No } from '@/core/modelo'
 import type { Movimento } from '@/core/movimento'
 
 export interface LinhaResultado {
@@ -61,11 +61,25 @@ interface Acum {
   qtd: number
 }
 
-function acumularPorNo(movs: readonly Movimento[], conc: Conciliacao): Map<string, Acum> {
+function acumularPorNo(
+  movs: readonly Movimento[],
+  conc: Conciliacao,
+  tipo?: 'dre' | 'dfc',
+): Map<string, Acum> {
   const porNo = new Map<string, Acum>()
+  const noPorId = new Map(conc.estrutura.map((n) => [n.id, n]))
   for (const m of movs) {
     const noId = conc.mapa[m.categoria]
     if (!noId) continue
+    // Regime do grupo E do subgrupo — mesma regra de totaisEfetivos (core/classes). Sem
+    // isto o espelho ignorava o seletor DRE+DFC: item marcado "só DRE" aparecia também
+    // na DFC (report 2026-08-04).
+    if (tipo) {
+      const no = noPorId.get(noId)
+      const grupoId = no?.paiId ?? noId
+      if (!entraNaDemonstracao(noPorId.get(grupoId)?.meta, tipo)) continue
+      if (no?.paiId && !entraNaDemonstracao(no.meta, tipo)) continue
+    }
     const a = porNo.get(noId) ?? { total: 0, qtd: 0 }
     a.total += comSinal(m)
     a.qtd += 1
@@ -80,8 +94,13 @@ function noEspelho(no: No, porNo: ReadonlyMap<string, Acum>): NoEspelho {
 }
 
 /** Reflete a estrutura AG conciliada (grupo → subgrupo) com totais. Só nós com movimentos. */
-export function espelhoEstrutura(movs: readonly Movimento[], conc: Conciliacao): GrupoEspelho[] {
-  const porNo = acumularPorNo(movs, conc)
+export function espelhoEstrutura(
+  movs: readonly Movimento[],
+  conc: Conciliacao,
+  /** Filtra pelo regime do nó (DRE+DFC / só DRE / só DFC). Ausente = espelho completo. */
+  tipo?: 'dre' | 'dfc',
+): GrupoEspelho[] {
+  const porNo = acumularPorNo(movs, conc, tipo)
   return conc.estrutura
     .filter((n) => !n.paiId)
     .map((raiz) => montarGrupoEspelho(raiz, conc.estrutura, porNo))
