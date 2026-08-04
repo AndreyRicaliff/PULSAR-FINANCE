@@ -163,7 +163,9 @@ function pontosDoMes(
   categorias: readonly Categoria[],
   ponto: (nome: string, v: number | null, percentual: boolean) => void,
 ): void {
-  const grupos = espelhoEstrutura(movsMes, conc)
+  // Regime 'dre': 'Folha / Faturamento' é indicador de RESULTADO — subgrupo marcado
+  // só-DFC não pode entrar na folha (report 2026-08-04, mesmo bug do espelho).
+  const grupos = espelhoEstrutura(movsMes, conc, 'dre')
   // Mesmo motor do app: overrides (classe>subgrupo>grupo); DFC sobre caixa pago (a vencer fora).
   const efDre = totaisEfetivos(movsMes, conc, categorias, demoDre, 'dre')
   const dre = calcular({ linhas: demoDre.linhas, mapa: efDre.mapaEfetivo }, efDre.totalPorChave)
