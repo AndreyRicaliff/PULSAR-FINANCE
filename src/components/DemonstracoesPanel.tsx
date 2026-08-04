@@ -59,7 +59,7 @@ function Conteudo() {
 
   // DFC = caixa: totais/drill do tab DFC excluem valores a vencer (consistente com a linha).
   const movsTab = useMemo(() => (aba === 'dfc' ? movimentosCaixa(r.movimentos) : r.movimentos), [aba, r.movimentos])
-  const espelhoTab = useMemo(() => (aba === 'dfc' ? espelhoEstrutura(movsTab, conc) : r.grupos), [aba, movsTab, conc, r.grupos])
+  const espelhoTab = useMemo(() => (aba === 'dfc' ? espelhoEstrutura(movsTab, conc, 'dfc') : espelhoEstrutura(movsTab, conc, 'dre')), [aba, movsTab, conc, r.grupos])
 
   // Valores do período por grupo, do espelho do tab (caixa no DFC).
   const totalPeriodo = useMemo(() => new Map(espelhoTab.map((g) => [g.id, g.totalCentavos])), [espelhoTab])
@@ -76,7 +76,7 @@ function Conteudo() {
   // Todos os grupos da estrutura — "a alocar" nunca esconde grupo sem movimento no período.
   const gruposAlocaveis = useMemo<GrupoAlocavel[]>(
     () =>
-      espelhoEstrutura(todos, conc).map((g) => ({
+      espelhoEstrutura(todos, conc, tipo).map((g) => ({
         id: g.id,
         nome: g.nome,
         totalCentavos: totalPeriodo.get(g.id) ?? 0,

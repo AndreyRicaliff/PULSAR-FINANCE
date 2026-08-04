@@ -24,7 +24,7 @@ export function RelatorioDFC({ dfc }: { dfc: readonly LinhaCalc[] }) {
   // DFC = caixa: drill e detalhe saem do PAGO (movimentosCaixa), igual às linhas — senão a
   // expansão vaza atrasado/a pagar (competência). Mesma regra do editor, para todo cliente.
   const movsCaixa = useMemo(() => movimentosCaixa(movimentos), [movimentos])
-  const grupos = useMemo(() => espelhoEstrutura(movsCaixa, conc), [movsCaixa, conc])
+  const grupos = useMemo(() => espelhoEstrutura(movsCaixa, conc, 'dfc'), [movsCaixa, conc])
   const detalhe = useDetalheDemonstracao(movsCaixa, conc, categorias.categorias)
   const op = valorLinha(dfc, 'dfc_op')
   const inv = valorLinha(dfc, 'dfc_inv')

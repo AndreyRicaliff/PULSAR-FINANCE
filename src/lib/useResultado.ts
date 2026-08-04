@@ -42,6 +42,8 @@ export interface Resultado {
   readonly movimentos: readonly Movimento[]
   readonly conc: Conciliacao
   readonly grupos: readonly GrupoEspelho[]
+  /** Espelho filtrado pelo regime DFC (drill-down do Fluxo de Caixa). */
+  readonly gruposDfc: readonly GrupoEspelho[]
   readonly totalPorGrupo: ReadonlyMap<string, number>
   readonly dre: readonly LinhaCalc[]
   readonly dfc: readonly LinhaCalc[]
@@ -77,8 +79,15 @@ export function useResultado(): Resultado {
   )
   const movimentos = filtroFilial.dentro
 
-  const grupos = useMemo(() => espelhoEstrutura(movimentos, conc), [movimentos, conc])
-  const totalPorGrupo = useMemo(() => new Map(grupos.map((g) => [g.id, g.totalCentavos])), [grupos])
+  // `grupos` alimenta o drill-down da DRE e o espelho da estrutura → regime 'dre'.
+  // A DFC tem o seu próprio (gruposDfc), senão item marcado "só DRE" aparecia nos dois.
+  const grupos = useMemo(() => espelhoEstrutura(movimentos, conc, 'dre'), [movimentos, conc])
+  const gruposDfc = useMemo(() => espelhoEstrutura(movimentosCaixa(movimentos), conc, 'dfc'), [movimentos, conc])
+  // Total por grupo é visão de ESTRUTURA (Matriz/espelho), não de demonstração: sem filtro.
+  const totalPorGrupo = useMemo(
+    () => new Map(espelhoEstrutura(movimentos, conc).map((g) => [g.id, g.totalCentavos])),
+    [movimentos, conc],
+  )
   // Cálculo com overrides hierárquicos (classe > subgrupo > grupo) via chaves efetivas.
   const calcEf = (movs: readonly Movimento[], demo: Demonstracao, tipo: 'dre' | 'dfc') => {
     const ef = totaisEfetivos(movs, conc, cats, demo, tipo)
@@ -115,7 +124,7 @@ export function useResultado(): Resultado {
     [todos, intervalo, regime, filtro, filial, filtroFilial, movimentos],
   )
 
-  return { movimentos, conc, grupos, totalPorGrupo, dre, dfc, anterior, cob, serie, serieContinua, periodo }
+  return { movimentos, conc, grupos, gruposDfc, totalPorGrupo, dre, dfc, anterior, cob, serie, serieContinua, periodo }
 }
 
 export { valorLinha } from '@/core/demonstracao'
