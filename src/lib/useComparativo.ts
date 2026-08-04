@@ -28,6 +28,8 @@ export interface LadoDemonstracoes {
   readonly dre: readonly LinhaCalc[]
   readonly dfc: readonly LinhaCalc[]
   readonly espelho: readonly GrupoEspelho[]
+  /** Espelho filtrado pelo regime DFC (drill do lado quando o tipo é dfc). */
+  readonly espelhoDfc: readonly GrupoEspelho[]
   readonly totais: TotaisMov
 }
 
@@ -42,7 +44,10 @@ export function useDemonstracoesDe(intervalo: Intervalo, regime: Regime): LadoDe
 
   return useMemo(() => {
     const movs = filtrarPorPeriodo(todos, intervalo, regime).dentro
-    const espelho = espelhoEstrutura(movs, conc)
+    // Dois espelhos: a tela alterna DRE/DFC e o drill precisa respeitar o regime do nó
+    // (senão item só-DRE aparece no drill da DFC — report 2026-08-04).
+    const espelho = espelhoEstrutura(movs, conc, 'dre')
+    const espelhoDfc = espelhoEstrutura(movimentosCaixa(movs), conc, 'dfc')
     const ef = (movsArg: typeof movs, demo: Demonstracao, tipo: 'dre' | 'dfc') => {
       const e = totaisEfetivos(movsArg, conc, cats, demo, tipo)
       return calcular({ linhas: demo.linhas, mapa: e.mapaEfetivo }, e.totalPorChave)
@@ -51,6 +56,7 @@ export function useDemonstracoesDe(intervalo: Intervalo, regime: Regime): LadoDe
       dre: ef(movs, dem.demo.dre, 'dre'),
       dfc: ef(movimentosCaixa(movs), dem.demo.dfc, 'dfc'),
       espelho,
+      espelhoDfc,
       totais: totaisDe(separarNeutros(movs, conc).operacionais),
     }
   }, [todos, intervalo, regime, conc, cats, dem.demo.dre, dem.demo.dfc])

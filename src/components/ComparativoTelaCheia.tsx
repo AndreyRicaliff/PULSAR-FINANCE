@@ -174,7 +174,7 @@ function Lado({ titulo, preset, onPreset, tipo, regime, visao, onVisao }: PropsL
         <TabelaDemonstracao
           titulo={`${tipo.toUpperCase()} · ${rotuloIntervalo(intervalo)}`}
           linhas={linhas}
-          grupos={d.espelho}
+          grupos={tipo === 'dfc' ? d.espelhoDfc : d.espelho}
           base={receitaBruta}
         />
       )}
