@@ -5,7 +5,8 @@
  * e NADA volta a rascunho — o kanban não oferece arrasto que o banco recusaria.
  */
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { useApresentacao } from '@/lib/useApresentacao'
+import { hojeLocalIso } from '@/core/periodo'
+import { estadoInicialApresentacao, useApresentacao } from '@/lib/useApresentacao'
 import { useClientes } from '@/lib/clientes'
 import { supabase } from '@/lib/supabase'
 import { RelatorioApresentacao } from '../relatorios/RelatorioApresentacao.tsx'
@@ -46,6 +47,24 @@ const mesLegivel = (aaaaMm: string) => {
 
 const faixaLegivel = (p?: { de: string | null; ate: string | null } | null) =>
   p?.de || p?.ate ? `${p?.de ? mesLegivel(p.de.slice(0, 7)) : '…'} → ${p?.ate ? mesLegivel(p.ate.slice(0, 7)) : '…'}` : 'todo o histórico'
+
+/**
+ * Competência = mês dos DADOS, não o dia da criação. Fechamento de julho montado em agosto
+ * nascia carimbado 'ago' e o card mentia ("dados: ago/26"). hojeLocalIso, não toISOString:
+ * em UTC o último dia do mês vira o mês seguinte depois das 21h (mesma armadilha do #68).
+ */
+const competenciaDe = (periodo?: { de: string | null; ate: string | null }): string =>
+  periodo?.ate?.slice(0, 7) ?? periodo?.de?.slice(0, 7) ?? hojeLocalIso().slice(0, 7)
+
+/**
+ * 23505 = unique_violation. A única unique da tabela é (cliente_id, competencia, versao) e o
+ * trigger de 06/08 numera a versão sozinho — se ainda estourar aqui é corrida de duas abas,
+ * não duplicata de verdade. O texto cru do Postgres assustava o financeiro sem dizer o que fazer.
+ */
+const mensagemDeErro = (e: { code?: string; message: string }): string =>
+  e.code === '23505'
+    ? 'Outra aba criou uma apresentação para este mês ao mesmo tempo. Tente de novo — o número da versão é atribuído automaticamente.'
+    : e.message
 
 export function ExploradorApresentacoes() {
   const { ativo } = useClientes()
@@ -99,16 +118,18 @@ export function ExploradorApresentacoes() {
     [itens, ordenar],
   )
 
+  /** O roteiro de trabalho é UM por cliente — trocar o que está nele sempre pede confirmação. */
+  function confirmarTroca(destino: string): boolean {
+    if (!abertaId) return true
+    return window.confirm(
+      `${destino} substitui o roteiro em edição${abertaTitulo ? ` ("${abertaTitulo}")` : ''}. Alterações não salvas lá se perdem. Continuar?`,
+    )
+  }
+
   async function abrir(item: Item, editar: boolean) {
     if (!supabase) return
-    // O roteiro de trabalho é UM por cliente: abrir outra apresentação SUBSTITUI o que
-    // está nele. Sem esta confirmação, editar A e abrir B perdia a edição em silêncio.
-    if (abertaId && abertaId !== item.id) {
-      const ok = window.confirm(
-        `Abrir "${item.titulo}" substitui o roteiro em edição${abertaTitulo ? ` ("${abertaTitulo}")` : ''}. Alterações não salvas lá se perdem. Continuar?`,
-      )
-      if (!ok) return
-    }
+    // Sem esta confirmação, editar A e abrir B perdia a edição em silêncio.
+    if (abertaId !== item.id && !confirmarTroca(`Abrir "${item.titulo}"`)) return
     setErro('')
     const { data, error } = await supabase.from('painel_apresentacoes').select('conteudo').eq('id', item.id).single()
     if (error) return setErro(error.message)
@@ -121,19 +142,25 @@ export function ExploradorApresentacoes() {
 
   async function novaApresentacao() {
     if (!supabase) return
-    const titulo = window.prompt('Nome da nova apresentação:', `Fechamento ${mesLegivel(new Date().toISOString().slice(0, 7))}`)
+    if (!confirmarTroca('Criar uma apresentação nova')) return
+    const competencia = competenciaDe()
+    const titulo = window.prompt('Nome da nova apresentação:', `Fechamento ${mesLegivel(competencia)}`)
     if (!titulo?.trim()) return
     setErro('')
+    // Grava o roteiro padrão, não `{}`: criada e fechada sem salvar, ficava vazia no banco.
+    const inicial = estadoInicialApresentacao()
     const { data, error } = await supabase
       .from('painel_apresentacoes')
-      .insert({ cliente_id: ativo.id, competencia: new Date().toISOString().slice(0, 7), titulo: titulo.trim(), status: 'rascunho', conteudo: {}, numeros: {} })
+      .insert({ cliente_id: ativo.id, competencia, titulo: titulo.trim(), status: 'rascunho', conteudo: inicial, numeros: {} })
       .select('id')
       .single()
-    if (error) return setErro(error.message)
-    apre.substituir({})
+    if (error) return setErro(mensagemDeErro(error))
+    apre.substituir(inicial)
     setAbertaId(data.id)
     setAbertaTitulo(titulo.trim())
+    setAbertaStatus('rascunho')
     setEditando(true)
+    await carregar()
   }
 
   async function salvarNaAberta() {
@@ -143,11 +170,11 @@ export function ExploradorApresentacoes() {
     // afetava 0 linhas SEM erro — o financeiro achava que salvou e nada foi gravado.
     const { data, error } = await supabase
       .from('painel_apresentacoes')
-      .update({ conteudo: apre.estado, atualizado_em: new Date().toISOString() })
+      .update({ conteudo: apre.estado, competencia: competenciaDe(apre.estado.periodo), atualizado_em: new Date().toISOString() })
       .eq('id', abertaId)
       .eq('status', 'rascunho')
       .select('id')
-    if (error) return setErro(error.message)
+    if (error) return setErro(mensagemDeErro(error))
     if (!data?.length) return setErro('Nada gravado — esta apresentação não é mais rascunho. Use "Salvar como nova".')
     await carregar()
   }
@@ -159,10 +186,10 @@ export function ExploradorApresentacoes() {
     setErro('')
     const { data, error } = await supabase
       .from('painel_apresentacoes')
-      .insert({ cliente_id: ativo.id, competencia: new Date().toISOString().slice(0, 7), titulo: titulo.trim(), status: 'rascunho', conteudo: apre.estado, numeros: {} })
+      .insert({ cliente_id: ativo.id, competencia: competenciaDe(apre.estado.periodo), titulo: titulo.trim(), status: 'rascunho', conteudo: apre.estado, numeros: {} })
       .select('id')
       .single()
-    if (error) return setErro(error.message)
+    if (error) return setErro(mensagemDeErro(error))
     setAbertaId(data.id)
     setAbertaTitulo(titulo.trim())
     setAbertaStatus('rascunho')

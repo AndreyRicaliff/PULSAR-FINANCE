@@ -3,10 +3,12 @@
  * (argumento rico + observação) ou um slide LIVRE (título + argumento rico em página inteira).
  */
 import { useMemo, useState } from 'react'
+import { diagnosticarApresentacao } from '@/core/diagnosticoApresentacao'
 import { dataDoMovimento, type Intervalo } from '@/core/periodo'
 import { exportarApresentacao } from '@/lib/apresentacaoAutonoma'
 import { brl } from '@/lib/money'
 import { useApresentacao, type ApresentacaoApi } from '@/lib/useApresentacao'
+import { useModelo } from '@/lib/useModelo'
 import { useMovimentos } from '@/lib/movimentos'
 import { useSaldosIniciais } from '@/lib/useSaldosIniciais'
 import { useClientes } from '@/lib/clientes'
@@ -30,9 +32,22 @@ type Estado = { tipo: 'idle' } | { tipo: 'gerando' } | { tipo: 'ok' } | { tipo: 
 export function RelatorioApresentacao() {
   const { ativo } = useClientes()
   const api = useApresentacao()
+  const { movimentos } = useMovimentos()
+  const { modelo } = useModelo()
   const [estado, setEstado] = useState<Estado>({ tipo: 'idle' })
 
+  // O HTML é gerado a partir do MESMO dado que a tela mostra: se aqui está zerado, lá também
+  // estará (report 06/08). Diagnosticar ANTES de exportar é o que impede o relatório R$ 0,00
+  // de chegar ao cliente.
+  const diag = useMemo(
+    () => diagnosticarApresentacao(movimentos, modelo.contas, faixaParaIntervalo(api.estado.periodo)),
+    [movimentos, modelo.contas, api.estado.periodo],
+  )
+
   const gerar = async () => {
+    // Aviso, não bloqueio: existe caso legítimo (mês fechado sem operação). Mas exige o
+    // "sim" explícito — ninguém entrega zerado por descuido.
+    if (!diag.temDado && !window.confirm(`${diag.mensagem}\n\nGerar mesmo assim?`)) return
     setEstado({ tipo: 'gerando' })
     try {
       await exportarApresentacao(ativo, faixaParaIntervalo(api.estado.periodo))
@@ -73,6 +88,15 @@ export function RelatorioApresentacao() {
           ))}
         </div>
       </section>
+
+      {!diag.temDado ? (
+        <p className="flex items-start gap-2 rounded-card border border-warn/40 bg-warn/10 px-4 py-3 text-sm text-warn">
+          <span aria-hidden>⚠</span>
+          <span>
+            <strong>A apresentação sairia zerada.</strong> {diag.mensagem}
+          </span>
+        </p>
+      ) : null}
 
       <div className="flex flex-wrap items-center gap-3">
         <button
