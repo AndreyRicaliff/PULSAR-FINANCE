@@ -19,6 +19,9 @@ import { useTema } from '@/lib/useTema'
 import { useMovimentos } from '@/lib/movimentos'
 import { AprovacoesCliente } from './AprovacoesCliente.tsx'
 import { MancheteCliente } from './cliente/MancheteCliente.tsx'
+import { temaPorId } from '@/core/temaApresentacao'
+import { varsDoPainel, type Canais } from '@/core/temaPainel'
+import { useFicha } from '@/lib/ficha'
 import { MarcaCliente } from './cliente/MarcaCliente.tsx'
 import { RelatoriosPublicados } from './cliente/RelatoriosPublicados.tsx'
 import { useResultado } from '@/lib/useResultado'
@@ -67,6 +70,10 @@ export function HudCliente({ kiosk = false }: { kiosk?: boolean }) {
   )
 }
 
+/** Surfaces reais do index.css — o ajuste de legibilidade do acento e' medido contra elas. */
+const SURFACE_ESCURO: Canais = [20, 20, 40]
+const SURFACE_CLARO: Canais = [253, 252, 255]
+
 const ICONE: Readonly<Record<VistaHud, string>> = {
   indicadores: '▦',
   relatorios: '◈',
@@ -89,8 +96,16 @@ function Kiosk() {
   const [tema, alternarTema] = useTema()
   const [modalSenha, setModalSenha] = useState(false)
   const { clientes, ativo, selecionar } = useClientes()
+  const { ficha } = useFicha()
+  // O tema da ficha deixa de valer só nas apresentacoes e passa a pintar o PAINEL dele.
+  // Só os acentos: as superficies carregam o contraste medido, e trocá-las por cor de
+  // marca devolveria o problema de legibilidade corrigido em 06/08.
+  const vars = varsDoPainel(
+    temaPorId(ficha.temaPadrao, ficha.temasCustom),
+    tema === 'dark' ? SURFACE_ESCURO : SURFACE_CLARO,
+  )
   return (
-    <div className="flex h-dvh flex-col overflow-hidden md:flex-row">
+    <div className="flex h-dvh flex-col overflow-hidden md:flex-row" style={vars}>
       <header className="flex items-center justify-between border-b border-bd bg-surface px-4 py-3 md:hidden">
         <MarcaCliente size={22} />
         <button
