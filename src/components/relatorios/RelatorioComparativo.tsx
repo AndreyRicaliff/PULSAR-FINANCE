@@ -51,7 +51,7 @@ export function RelatorioComparativo() {
     <div className="flex flex-col gap-6">
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-[19px] font-semibold">Comparativo — Mês Atual × Período</h1>
+          <h1 className="text-[19px] font-semibold">Comparativo AV/AH — Mês Atual × Período</h1>
           <p className="text-sm text-muted">
             Mês corrente ({rotuloIntervalo(mes.intervalo)}) lado a lado com o período selecionado (
             {rotuloIntervalo(r.periodo.intervalo)}, {meses} {meses === 1 ? 'mês' : 'meses'} com dado) ·

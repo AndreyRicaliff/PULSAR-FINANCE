@@ -26,40 +26,72 @@ const REGIMES: readonly { id: Regime; rotulo: string }[] = [
 ]
 
 export function FiltroPeriodo({ info }: { info: InfoPeriodo }) {
-  const { preset, regime, intervalo, definirPreset, definirCustom, definirRegime } = usePeriodo()
+  const { preset, regime, intervalo, filial, definirPreset, definirCustom, definirRegime, definirFilial } = usePeriodo()
+  const temRecorte = preset !== 'tudo' || filial.length > 0 || regime !== 'competencia'
   return (
-    <div className="flex flex-col gap-3 rounded-card border border-bd bg-surface p-4">
-      <div className="flex flex-wrap items-center gap-2">
+    <div className="flex flex-col divide-y divide-bd/60 rounded-card border border-bd bg-surface">
+      {/* Cada linha é um eixo do recorte, rotulado. O bloco anterior empilhava presets e
+          regime na mesma fileira de chips — dois eixos diferentes com a mesma aparência. */}
+      <Eixo rotulo="Período">
         {PRESETS.map((p) => (
           <Chip key={p.id} ativo={preset === p.id} onClick={() => definirPreset(p.id)}>
             {p.rotulo}
           </Chip>
         ))}
-        <div className="mx-1 h-5 w-px bg-bd" />
+        <SeletorMeses
+          faixa={{ de: intervalo.inicio?.slice(0, 7) ?? null, ate: intervalo.fim?.slice(0, 7) ?? null }}
+          onChange={(f: FaixaMeses) =>
+            definirCustom({ inicio: f.de ? `${f.de}-01` : null, fim: f.ate ? ultimoDia(f.ate) : null })
+          }
+        />
+      </Eixo>
+
+      {/* Regime é EXCLUDENTE por definição: o mesmo lançamento tem data de competência E de
+          caixa, então marcar os dois o contaria duas vezes. Multi só onde o recorte é união. */}
+      <Eixo rotulo="Regime" nota="competência × caixa — excludentes">
         {REGIMES.map((r) => (
           <Chip key={r.id} ativo={regime === r.id} onClick={() => definirRegime(r.id)}>
             {r.rotulo}
           </Chip>
         ))}
-      </div>
+      </Eixo>
 
-      <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
-        <span className="flex items-center gap-2">
-          <span className="text-xs uppercase tracking-wide text-muted">Calendário</span>
-          <SeletorMeses
-            faixa={{ de: intervalo.inicio?.slice(0, 7) ?? null, ate: intervalo.fim?.slice(0, 7) ?? null }}
-            onChange={(f: FaixaMeses) =>
-              definirCustom({ inicio: f.de ? `${f.de}-01` : null, fim: f.ate ? ultimoDia(f.ate) : null })
-            }
-          />
-        </span>
-        <label className="flex items-center gap-2">
-          <span className="text-xs uppercase tracking-wide text-muted">Filial</span>
-          <SeletorFilial />
-        </label>
-      </div>
+      <Eixo rotulo="Filial" nota={filial.length > 1 ? `${filial.length} somadas` : undefined}>
+        <SeletorFilial />
+        {filial.length > 0 ? (
+          <button type="button" onClick={() => definirFilial([])} className="text-[11px] text-muted underline-offset-2 hover:text-secondary hover:underline">
+            limpar
+          </button>
+        ) : null}
+      </Eixo>
 
-      <Resumo info={info} />
+      <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5">
+        <Resumo info={info} />
+        {temRecorte ? (
+          <button
+            type="button"
+            onClick={() => {
+              definirPreset('tudo')
+              definirRegime('competencia')
+              definirFilial([])
+            }}
+            className="shrink-0 rounded-md border border-bd px-2.5 py-1 text-[11px] text-muted transition-colors hover:border-primary hover:text-secondary"
+          >
+            Limpar filtros
+          </button>
+        ) : null}
+      </div>
+    </div>
+  )
+}
+
+/** Uma linha do painel = um eixo de recorte, com rótulo fixo à esquerda. */
+function Eixo({ rotulo, nota, children }: { rotulo: string; nota?: string; children: React.ReactNode }) {
+  return (
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-2.5">
+      <span className="w-16 shrink-0 text-[11px] font-semibold uppercase tracking-wide text-muted">{rotulo}</span>
+      <div className="flex flex-1 flex-wrap items-center gap-2">{children}</div>
+      {nota ? <span className="text-[11px] text-muted">{nota}</span> : null}
     </div>
   )
 }
@@ -84,7 +116,7 @@ function Resumo({ info }: { info: InfoPeriodo }) {
       <span>
         <strong className="text-text">{info.dentro}</strong> de {info.total} lançamentos no período
         {info.fora > 0 ? ` · ${info.fora} fora` : ''}
-        {info.filial && info.foraFilial > 0 ? (
+        {info.filial.length > 0 && info.foraFilial > 0 ? (
           <span className="text-warn"> · {info.foraFilial} de outras filiais excluídos pelo filtro</span>
         ) : null}
       </span>

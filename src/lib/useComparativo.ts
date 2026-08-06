@@ -5,7 +5,7 @@
 import { useCallback, useMemo } from 'react'
 import { CHAVE_CLASSE, CHAVE_SUB, resolverChaveEfetiva, totaisEfetivos } from '@/core/classes'
 import { calcular, type Demonstracao, type LinhaCalc } from '@/core/demonstracao'
-import { filtrarPorFilial, mapaAuto, type FiltroFilial } from '@/core/filial'
+import { filtrarPorFilial, mapaAuto, SEM_RECORTE, type FiltroFilial } from '@/core/filial'
 import { movimentosCaixa, type Movimento } from '@/core/movimento'
 import { dataDoMovimento, filtrarPorPeriodo, hojeLocalIso, intervaloDoPreset, mesesDoIntervalo, type Intervalo, type Regime } from '@/core/periodo'
 import { useCadastros } from './cadastros'
@@ -107,10 +107,10 @@ export interface MesComparativo {
  * a coluna Total e a soma dos meses saem da mesma fonte). Movido para fora do hook para
  * rodar N vezes num único useMemo sem violar regra de hooks.
  * `filial` é opcional: o comparativo de demonstrações é visão geral por design (default
- * null = consolidado), mas o Comparativo de CAPEX passa a filial do filtro global — sem
+ * vazio = consolidado), mas o Comparativo de CAPEX passa a filial do filtro global — sem
  * isso o numerador (CAPEX, filtrado) e o denominador (linhas, consolidadas) divergiam.
  */
-export function useMesesDe(intervalo: Intervalo, regime: Regime, filial: FiltroFilial = null): readonly MesComparativo[] {
+export function useMesesDe(intervalo: Intervalo, regime: Regime, filial: FiltroFilial = SEM_RECORTE): readonly MesComparativo[] {
   const { modelo } = useModelo()
   const dem = useDemonstracoes()
   const { movimentos: todos } = useMovimentos()

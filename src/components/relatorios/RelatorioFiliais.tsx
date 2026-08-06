@@ -5,7 +5,7 @@
  * não tem dono fica explícito em "Sem filial".
  */
 import { useMemo } from 'react'
-import { resultadoPorFilial, type FiltroFilial, type LinhaFilial } from '@/core/filial'
+import { resultadoPorFilial, type LinhaFilial } from '@/core/filial'
 import { separarNeutros } from '@/core/neutros'
 import { useCadastros } from '@/lib/cadastros'
 import { useProvedor } from '@/lib/clientes'
@@ -101,8 +101,9 @@ function Cobertura({ atribuidos, total, semFilial }: { atribuidos: number; total
 }
 
 function Tabela({ linhas, semFilial }: { linhas: readonly LinhaFilial[]; semFilial: LinhaFilial }) {
-  const { filial, definirFilial } = usePeriodo()
-  const alternar = (noId: FiltroFilial) => definirFilial(filial === noId ? null : noId)
+  // Clicar numa linha ACUMULA no filtro global (multi-seleção 06/08) — clicar de novo tira.
+  const { filial, alternarFilial } = usePeriodo()
+  const selecionadas = new Set(filial)
   return (
     <div className="overflow-hidden rounded-card border border-bd bg-surface">
       <table className="w-full text-sm">
@@ -117,10 +118,10 @@ function Tabela({ linhas, semFilial }: { linhas: readonly LinhaFilial[]; semFili
         </thead>
         <tbody>
           {linhas.map((l) => (
-            <Linha key={l.noId} l={l} ativa={filial === l.noId} onClick={() => alternar(l.noId)} />
+            <Linha key={l.noId} l={l} ativa={selecionadas.has(l.noId)} onClick={() => alternarFilial(l.noId)} />
           ))}
           {semFilial.qtd > 0 ? (
-            <Linha l={semFilial} apagada ativa={filial === semFilial.noId} onClick={() => alternar(semFilial.noId)} />
+            <Linha l={semFilial} apagada ativa={selecionadas.has(semFilial.noId)} onClick={() => alternarFilial(semFilial.noId)} />
           ) : null}
         </tbody>
       </table>

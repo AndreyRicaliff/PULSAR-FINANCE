@@ -11,10 +11,11 @@ import type { ItemConc } from './tipos'
 import { FormRenomeItem, FormRenomeNo, ListaMover } from './MenuFormularios.tsx'
 import { opcoesSelect } from './util'
 
-const REGIMES: [RegimeDemo, string][] = [
+const REGIMES: [RegimeDemo, string, string?][] = [
   ['ambos', 'DRE + DFC'],
   ['dre', 'Só DRE'],
   ['dfc', 'Só DFC'],
+  ['neutro', 'Neutro', 'Aparece nas duas demonstrações como partida informativa, mas fica fora de todos os totais'],
 ]
 
 const CAPEX: [TipoCapex | null, string][] = [
@@ -76,8 +77,13 @@ function Conteudo(props: Props & { vista: Vista; onVista: (v: Vista) => void }) 
     return (
       <div className="py-1">
         <p className="px-3 py-1.5 text-[11px] uppercase tracking-wide text-muted">Entra em qual demonstração?</p>
-        {REGIMES.map(([r, l]) => (
-          <Acao key={r} rotulo={`${atual === r ? '✓ ' : ''}${l}`} onClick={() => fechar(onFechar, () => props.onDefinirRegime(alvo.noId, r))} />
+        {REGIMES.map(([r, l, detalhe]) => (
+          <Acao
+            key={r}
+            rotulo={`${atual === r ? '✓ ' : ''}${l}`}
+            detalhe={detalhe}
+            onClick={() => fechar(onFechar, () => props.onDefinirRegime(alvo.noId, r))}
+          />
         ))}
       </div>
     )

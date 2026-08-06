@@ -21,6 +21,8 @@ export default {
         surface3: cor('surface3'),
         bd: cor('bd'),
         text: cor('text'),
+        /** Nível entre `text` e `muted` — hierarquia de 3 degraus sem cair no ilegível. */
+        soft: cor('soft'),
         muted: cor('muted'),
       },
       fontFamily: {

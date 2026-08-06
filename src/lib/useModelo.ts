@@ -84,9 +84,13 @@ export function useModelo(): ModeloApi {
 
   const definirRegime = useCallback(
     (dim: Dimensao, id: string, regime: RegimeDemo) => {
+      // `neutra` anda em par com o regime: são a MESMA decisão vista de dois ângulos, e um
+      // par contraditório (neutra=true + regime='dre') faria a linha somar e se dizer neutra.
       aplicar(dim, (c) => ({
         ...c,
-        estrutura: c.estrutura.map((n) => (n.id === id ? { ...n, meta: { ...n.meta, regime } } : n)),
+        estrutura: c.estrutura.map((n) =>
+          n.id === id ? { ...n, meta: { ...n.meta, regime, neutra: regime === 'neutro' } } : n,
+        ),
       }))
     },
     [aplicar],

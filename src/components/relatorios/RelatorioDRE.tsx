@@ -11,10 +11,11 @@ import { TabelaDemonstracao } from '../TabelaDemonstracao.tsx'
 import { useDetalheDemonstracao } from '../useDetalheDemonstracao.tsx'
 import { GraficoExpansivel } from '../charts/GraficoExpansivel.tsx'
 import { Waterfall, type PassoWF } from '../charts/Waterfall.tsx'
+import { PartidasNeutrasBloco } from './PartidasNeutrasBloco.tsx'
 
 export function RelatorioDRE({ dre, grupos }: { dre: readonly LinhaCalc[]; grupos: readonly GrupoEspelho[] }) {
   const provedor = useProvedor()
-  const { movimentos, conc, anterior } = useResultado()
+  const { movimentos, conc, anterior, neutrosDre } = useResultado()
   const { categorias } = useCadastros()
   const detalhe = useDetalheDemonstracao(movimentos, conc, categorias.categorias)
   const rb = valorLinha(dre, 'dre_receita')
@@ -54,6 +55,7 @@ export function RelatorioDRE({ dre, grupos }: { dre: readonly LinhaCalc[]; grupo
 
       <Escada dre={dre} liquido={liquido} />
       <TabelaDemonstracao linhas={dre} grupos={grupos} base={rb} anterior={anterior?.dre} onDetalhar={detalhe.detalhar} />
+      <PartidasNeutrasBloco itens={neutrosDre} tipo="DRE" />
       <Insights rl={rl} ebitda={ebitda} liquido={liquido} />
       {detalhe.modal}
     </div>

@@ -94,6 +94,20 @@ function noEspelho(no: No, porNo: ReadonlyMap<string, Acum>): NoEspelho {
 }
 
 /** Reflete a estrutura AG conciliada (grupo → subgrupo) com totais. Só nós com movimentos. */
+/**
+ * Total por nó incluindo SUBGRUPOS (o espelho aninha os filhos dentro do pai, então um mapa
+ * feito só do topo perde 57 dos 72 nós neutros de produção). Sem filtro de regime: quem
+ * consome isto quer o valor bruto do nó, não a visão de uma demonstração.
+ */
+export function totalPorNo(movs: readonly Movimento[], conc: Conciliacao): Map<string, number> {
+  const mapa = new Map<string, number>()
+  for (const g of espelhoEstrutura(movs, conc)) {
+    mapa.set(g.id, g.totalCentavos)
+    for (const s of g.subgrupos) mapa.set(s.id, s.totalCentavos)
+  }
+  return mapa
+}
+
 export function espelhoEstrutura(
   movs: readonly Movimento[],
   conc: Conciliacao,

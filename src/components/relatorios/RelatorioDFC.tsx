@@ -12,6 +12,7 @@ import { TabelaDemonstracao } from '../TabelaDemonstracao.tsx'
 import { useDetalheDemonstracao } from '../useDetalheDemonstracao.tsx'
 import { GraficoExpansivel } from '../charts/GraficoExpansivel.tsx'
 import { Waterfall, type PassoWF } from '../charts/Waterfall.tsx'
+import { PartidasNeutrasBloco } from './PartidasNeutrasBloco.tsx'
 
 function tendenciaAbs(atual: number, ant?: number): number | undefined {
   const f = ant === undefined ? null : fracVariacao(atual, ant)
@@ -19,7 +20,7 @@ function tendenciaAbs(atual: number, ant?: number): number | undefined {
 }
 
 export function RelatorioDFC({ dfc }: { dfc: readonly LinhaCalc[] }) {
-  const { movimentos, conc, anterior } = useResultado()
+  const { movimentos, conc, anterior, neutrosDfc } = useResultado()
   const { categorias } = useCadastros()
   // DFC = caixa: drill e detalhe saem do PAGO (movimentosCaixa), igual às linhas — senão a
   // expansão vaza atrasado/a pagar (competência). Mesma regra do editor, para todo cliente.
@@ -46,7 +47,7 @@ export function RelatorioDFC({ dfc }: { dfc: readonly LinhaCalc[] }) {
     <div className="flex flex-col gap-6">
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-[19px] font-semibold">Fluxo de Caixa</h1>
+          <h1 className="text-[19px] font-semibold">DFC — Demonstração dos Fluxos de Caixa</h1>
           <p className="text-sm text-muted">
             Variação de caixa por atividade (regime caixa · só liquidado) · operacional, investimento e
             financiamento
@@ -73,6 +74,7 @@ export function RelatorioDFC({ dfc }: { dfc: readonly LinhaCalc[] }) {
       </GraficoExpansivel>
 
       <TabelaDemonstracao titulo="Detalhamento por atividade" linhas={dfc} grupos={grupos} anterior={anterior?.dfc} onDetalhar={detalhe.detalhar} />
+      <PartidasNeutrasBloco itens={neutrosDfc} tipo="DFC" />
       {detalhe.modal}
     </div>
   )
