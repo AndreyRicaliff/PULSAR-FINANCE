@@ -2,6 +2,11 @@
 export interface OpcaoSeg<T extends string> {
   readonly id: T
   readonly rotulo: string
+  /**
+   * Explicação em hover/leitor de tela. Existe porque rótulo técnico (DFC, AV/AH) é preciso
+   * para quem é da área e opaco para quem não é — a dica paga a precisão sem diluir o nome.
+   */
+  readonly dica?: string
 }
 
 interface Props<T extends string> {
@@ -20,6 +25,7 @@ export function Segmento<T extends string>({ opcoes, valor, onTrocar }: Props<T>
           type="button"
           onClick={() => onTrocar(o.id)}
           aria-pressed={o.id === valor}
+          title={o.dica}
           className={`mk-tab fx-press ${o.id === valor ? 'mk-tab--ativa' : ''}`}
         >
           {o.rotulo}
