@@ -3,6 +3,7 @@
  * (mesmos componentes) + um snapshot dos dados do cliente. Abre sem rede, idêntico ao app,
  * tema claro por padrão. O app, ao ver window.__AG_SNAPSHOT__, troca o Supabase pelo mock.
  */
+import { WORDMARK } from '@/components/Logo'
 import type { Intervalo } from '@/core/periodo'
 import type { Tenant } from '@/core/tenant'
 import type { SnapshotApresentacao } from './apresentacaoSnapshot'
@@ -15,6 +16,13 @@ interface LinhaEstado {
 
 // Chaves que a apresentação NÃO usa — backup e telemetria de sync só inflam o HTML.
 const CHAVE_INUTIL = /-backup-|:sync-status$|:sync-historico$/
+
+/**
+ * Imagens que o app monta com `<img src="/…">` em runtime. O inliner opera sobre o
+ * index.html estático, então elas escapam dele — e num arquivo aberto por file:// o
+ * caminho absoluto resolve na raiz do disco (404). A marca sumia do relatório do cliente.
+ */
+const ASSETS_DA_MARCA: readonly string[] = [WORDMARK]
 
 /** Junta painel_estado (remoto) + edições locais ainda não sincronizadas do cliente ativo. */
 async function coletarSnapshot(ativo: Tenant): Promise<SnapshotApresentacao> {
@@ -55,12 +63,29 @@ async function buscarTexto(url: string): Promise<string> {
   return r.text()
 }
 
-async function comoDataUri(url: string): Promise<string> {
-  const buf = await (await fetch(url)).arrayBuffer()
+async function comoDataUri(url: string, tipo?: string): Promise<string> {
+  const r = await fetch(url)
+  if (!r.ok) throw new Error(`HTTP ${r.status}`)
+  const buf = await r.arrayBuffer()
   const bytes = new Uint8Array(buf)
   let bin = ''
   for (const b of bytes) bin += String.fromCharCode(b)
-  return `data:font/woff2;base64,${btoa(bin)}`
+  return `data:${tipo ?? r.headers.get('content-type') ?? 'application/octet-stream'};base64,${btoa(bin)}`
+}
+
+/** Baixa as imagens da marca como data: URI. Asset ausente vira aviso, nunca derruba o export. */
+async function coletarAssets(): Promise<Record<string, string>> {
+  const pares = await Promise.all(
+    ASSETS_DA_MARCA.map(async (caminho) => {
+      try {
+        return [caminho, await comoDataUri(new URL(caminho, location.origin).href)] as const
+      } catch (e) {
+        console.warn(`[apresentacao] asset "${caminho}" não embutido:`, e)
+        return null
+      }
+    }),
+  )
+  return Object.fromEntries(pares.filter((p): p is readonly [string, string] => p !== null))
 }
 
 /**
@@ -69,7 +94,7 @@ async function comoDataUri(url: string): Promise<string> {
  */
 async function cssComFontes(css: string): Promise<string> {
   const urls = [...new Set([...css.matchAll(/url\((\/[^)]+\.woff2)\)/g)].map((m) => m[1]!))]
-  const pares = await Promise.all(urls.map(async (u) => [u, await comoDataUri(new URL(u, location.origin).href)] as const))
+  const pares = await Promise.all(urls.map(async (u) => [u, await comoDataUri(new URL(u, location.origin).href, 'font/woff2')] as const))
   for (const [u, data] of pares) css = css.split(u).join(data)
   return css
 }
@@ -138,8 +163,9 @@ const slug = (s: string) => s.toLowerCase().normalize('NFD').replace(/[^a-z0-9]+
 
 /** Gera e baixa o HTML offline autossuficiente da apresentação do cliente ativo. */
 export async function exportarApresentacao(ativo: Tenant, periodo?: Intervalo): Promise<void> {
-  const base = await coletarSnapshot(ativo)
-  const snapshot = periodo && (periodo.inicio || periodo.fim) ? { ...base, periodo: { inicio: periodo.inicio, fim: periodo.fim } } : base
+  const [base, assets] = await Promise.all([coletarSnapshot(ativo), coletarAssets()])
+  const comAssets = { ...base, assets }
+  const snapshot = periodo && (periodo.inicio || periodo.fim) ? { ...comAssets, periodo: { inicio: periodo.inicio, fim: periodo.fim } } : comAssets
   const html = await montarHtmlAutonomo(snapshot, ativo)
   baixar(`apresentacao-${slug(ativo.nome) || 'cliente'}.html`, html)
 }

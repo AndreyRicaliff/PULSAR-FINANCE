@@ -3,6 +3,14 @@
  * wordmark itálico com a 2ª palavra em roxo e linha de EKG saindo da última letra;
  * o hexágono com batimento é o ícone compacto (favicon/avatar).
  */
+import { urlAsset } from '@/lib/apresentacaoSnapshot'
+
+/**
+ * Caminho público do wordmark. Exportado porque o gerador do HTML offline precisa saber
+ * QUAL asset embutir — a `<img>` nasce em runtime, fora do alcance do inliner do bundle.
+ */
+export const WORDMARK = '/pulsar-finance-wordmark.png'
+
 interface MarkProps {
   readonly size?: number
 }
@@ -105,7 +113,7 @@ export function Wordmark({ classe = 'text-base', alturaPx }: WordmarkProps) {
   return (
     <span className={`flex items-center ${classe} leading-none`}>
       <img
-        src="/pulsar-finance-wordmark.png"
+        src={urlAsset(WORDMARK)}
         alt="Pulsar Finance"
         className="block w-auto"
         style={{ height: alturaPx ? `${alturaPx}px` : '1.6em' }}
