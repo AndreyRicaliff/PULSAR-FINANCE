@@ -7,6 +7,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { hojeLocalIso } from '@/core/periodo'
 import { estadoInicialApresentacao, useApresentacao } from '@/lib/useApresentacao'
+import { useCongelar } from '@/lib/useCongelar'
 import { useClientes } from '@/lib/clientes'
 import { supabase } from '@/lib/supabase'
 import { RelatorioApresentacao } from '../relatorios/RelatorioApresentacao.tsx'
@@ -35,6 +36,12 @@ const ORDENS: readonly OpcaoSeg<Ordem>[] = [
   { id: 'nome', rotulo: 'A–Z' },
   { id: 'competencia', rotulo: 'Competência' },
 ]
+
+/** Último dia do mês 'aaaa-mm' → ISO completo, para fechar o intervalo do congelamento. */
+const ultimoDiaDoMes = (aaaaMm: string): string => {
+  const [a, m] = [Number(aaaaMm.slice(0, 4)), Number(aaaaMm.slice(5, 7))]
+  return `${aaaaMm}-${String(new Date(a, m, 0).getDate()).padStart(2, '0')}`
+}
 
 const dataBr = (iso: string | null) =>
   iso ? new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) : '—'
@@ -69,6 +76,7 @@ const mensagemDeErro = (e: { code?: string; message: string }): string =>
 export function ExploradorApresentacoes() {
   const { ativo } = useClientes()
   const apre = useApresentacao()
+  const congelarNumeros = useCongelar()
   const [itens, setItens] = useState<readonly Item[]>([])
   const [carregando, setCarregando] = useState(true)
   const [ordem, setOrdem] = useState<Ordem>('recentes')
@@ -224,9 +232,17 @@ export function ExploradorApresentacoes() {
     } else if (!window.confirm(`Publicar "${item.titulo}" (${mesLegivel(item.competencia)})? O conteúdo congela — corrigir depois é publicar uma nova versão.`)) {
       return
     }
+    // A frase acima promete congelamento; até 06/08 o publish gravava `numeros: {}` e a
+    // promessa era só texto. A foto é tirada AQUI, no período da própria apresentação —
+    // publicar julho em agosto não pode congelar agosto.
+    const p = item.conteudo?.periodo
+    const numeros = congelarNumeros(
+      { inicio: p?.de ? `${p.de}-01` : null, fim: p?.ate ? ultimoDiaDoMes(p.ate) : null },
+      'competencia',
+    )
     const { error } = await supabase
       .from('painel_apresentacoes')
-      .update({ status: 'publicada', publicado_em: new Date().toISOString() })
+      .update({ status: 'publicada', publicado_em: new Date().toISOString(), numeros })
       .eq('id', item.id)
     if (error) {
       return setErro(

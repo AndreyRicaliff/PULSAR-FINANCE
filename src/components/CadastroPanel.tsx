@@ -42,6 +42,8 @@ function FichaEmpresa() {
           <input type="text" value={ficha.notas} onChange={(e) => patch({ notas: e.target.value })} placeholder="Particularidades, combinados…" className={campo} />
         </label>
       </div>
+      <LogoDoCliente valor={ficha.logo} onTrocar={(logo) => patch({ logo })} nome={ativo.nome} />
+
       <div className="flex flex-col gap-3">
         <span className="text-[11px] font-medium uppercase tracking-wide text-muted">Tema padrão das apresentações</span>
         <SeletorTema
@@ -54,6 +56,47 @@ function FichaEmpresa() {
         <CriadorTema onCriar={criarTema} />
       </div>
     </section>
+  )
+}
+
+/**
+ * Logo que passa a assinar o painel DO CLIENTE (a AG continua embaixo, discreta).
+ * Guardado como data: URI na ficha — o painel precisa funcionar dentro do HTML offline,
+ * onde link externo não resolve. Teto de 400 kB: acima disso o doc da ficha começa a pesar
+ * em toda hidratação, e logo de marca não precisa de mais que isso.
+ */
+function LogoDoCliente({ valor, onTrocar, nome }: { valor: string; onTrocar: (v: string) => void; nome: string }) {
+  const [erro, setErro] = useState('')
+  const ler = (file?: File) => {
+    if (!file) return
+    if (!file.type.startsWith('image/')) return setErro('Selecione uma imagem (PNG, JPG ou SVG).')
+    if (file.size > 400 * 1024) return setErro('Imagem maior que 400 kB — reduza antes de enviar.')
+    setErro('')
+    const r = new FileReader()
+    r.onload = () => onTrocar(typeof r.result === 'string' ? r.result : '')
+    r.readAsDataURL(file)
+  }
+  return (
+    <div className="flex flex-col gap-2">
+      <span className="text-[11px] font-medium uppercase tracking-wide text-muted">Logo no painel do cliente</span>
+      <div className="flex flex-wrap items-center gap-3">
+        <label className="fx-press cursor-pointer rounded-lg border border-bd bg-surface2 px-3 py-1.5 text-xs hover:border-primary">
+          {valor ? '↻ Trocar logo' : '+ Enviar logo'}
+          <input type="file" accept="image/*" className="hidden" onChange={(e) => ler(e.target.files?.[0])} />
+        </label>
+        {valor ? (
+          <>
+            <img src={valor} alt={nome} className="h-9 w-auto rounded border border-bd bg-white p-1" />
+            <button type="button" onClick={() => onTrocar('')} className="text-xs text-danger hover:underline">
+              remover
+            </button>
+          </>
+        ) : (
+          <span className="text-xs text-muted">Sem logo, o painel dele abre com a marca Pulsar.</span>
+        )}
+      </div>
+      {erro ? <p className="text-xs text-danger">{erro}</p> : null}
+    </div>
   )
 }
 

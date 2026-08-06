@@ -18,6 +18,12 @@ import { useSync } from '@/lib/useSync'
 import { useTema } from '@/lib/useTema'
 import { useMovimentos } from '@/lib/movimentos'
 import { AprovacoesCliente } from './AprovacoesCliente.tsx'
+import { MancheteCliente } from './cliente/MancheteCliente.tsx'
+import { temaPorId } from '@/core/temaApresentacao'
+import { varsDoPainel, type Canais } from '@/core/temaPainel'
+import { useFicha } from '@/lib/ficha'
+import { MarcaCliente } from './cliente/MarcaCliente.tsx'
+import { RelatoriosPublicados } from './cliente/RelatoriosPublicados.tsx'
 import { useResultado } from '@/lib/useResultado'
 import { DefinirSenha } from './DefinirSenha.tsx'
 import { Logo } from './Logo.tsx'
@@ -34,15 +40,21 @@ import { GrupoArvore } from './drilldown/GrupoArvore.tsx'
 import { TabelaMov } from './drilldown/TabelaMov.tsx'
 import type { Eixo } from './drilldown/rotulos'
 
-type VistaHud = 'indicadores' | 'aprovacoes' | 'dre' | 'dfc' | 'evolucao' | 'detalhamento'
+type VistaHud = 'indicadores' | 'relatorios' | 'aprovacoes' | 'dre' | 'dfc' | 'evolucao' | 'detalhamento'
 
+/**
+ * Linguagem de DONO — o inverso do menu do operador, que é técnico de propósito. Quem abre
+ * aqui não procura "DRE", procura "quanto sobrou". A sigla fica como legenda, para não
+ * perder quem já conhece o termo do contador.
+ */
 const VISTAS: readonly OpcaoSeg<VistaHud>[] = [
-  { id: 'indicadores', rotulo: 'Indicadores' },
-  { id: 'aprovacoes', rotulo: 'Aprovações' },
-  { id: 'dre', rotulo: 'DRE' },
-  { id: 'dfc', rotulo: 'Fluxo de Caixa' },
-  { id: 'evolucao', rotulo: 'Evolução & Projeção' },
-  { id: 'detalhamento', rotulo: 'Detalhamento de Conta' },
+  { id: 'indicadores', rotulo: 'Meu resumo' },
+  { id: 'relatorios', rotulo: 'Meus relatórios' },
+  { id: 'aprovacoes', rotulo: 'Contas a aprovar' },
+  { id: 'dre', rotulo: 'Resultado do mês' },
+  { id: 'dfc', rotulo: 'Entradas e saídas' },
+  { id: 'evolucao', rotulo: 'Como venho indo' },
+  { id: 'detalhamento', rotulo: 'Ver lançamentos' },
 ]
 
 /**
@@ -58,8 +70,13 @@ export function HudCliente({ kiosk = false }: { kiosk?: boolean }) {
   )
 }
 
+/** Surfaces reais do index.css — o ajuste de legibilidade do acento e' medido contra elas. */
+const SURFACE_ESCURO: Canais = [20, 20, 40]
+const SURFACE_CLARO: Canais = [253, 252, 255]
+
 const ICONE: Readonly<Record<VistaHud, string>> = {
   indicadores: '▦',
+  relatorios: '◈',
   aprovacoes: '✓',
   dre: '≣',
   dfc: '◵',
@@ -79,10 +96,18 @@ function Kiosk() {
   const [tema, alternarTema] = useTema()
   const [modalSenha, setModalSenha] = useState(false)
   const { clientes, ativo, selecionar } = useClientes()
+  const { ficha } = useFicha()
+  // O tema da ficha deixa de valer só nas apresentacoes e passa a pintar o PAINEL dele.
+  // Só os acentos: as superficies carregam o contraste medido, e trocá-las por cor de
+  // marca devolveria o problema de legibilidade corrigido em 06/08.
+  const vars = varsDoPainel(
+    temaPorId(ficha.temaPadrao, ficha.temasCustom),
+    tema === 'dark' ? SURFACE_ESCURO : SURFACE_CLARO,
+  )
   return (
-    <div className="flex h-dvh flex-col overflow-hidden md:flex-row">
+    <div className="flex h-dvh flex-col overflow-hidden md:flex-row" style={vars}>
       <header className="flex items-center justify-between border-b border-bd bg-surface px-4 py-3 md:hidden">
-        <Logo size={26} subtitulo="" />
+        <MarcaCliente size={22} />
         <button
           type="button"
           onClick={() => setMenuAberto(true)}
@@ -106,7 +131,7 @@ function Kiosk() {
         }`}
       >
         <div className="border-b border-bd px-5 py-5">
-          <Logo size={30} />
+          <MarcaCliente size={30} />
         </div>
         {clientes.length > 1 ? (
           // Grupo (ex.: AUTAG 36/27): o cliente alterna só entre as empresas dele (RLS já filtra a lista).
@@ -261,11 +286,14 @@ function Corpo({ vista }: { vista: VistaHud }) {
           </button>
         </div>
       ) : null}
+      {/* A resposta ANTES da ferramenta: a manchete abre a tela, o filtro vem recolhido
+          abaixo. Só na vista de resumo — nas outras o cliente já escolheu o que olhar. */}
+      {vista === 'indicadores' ? <MancheteCliente /> : null}
       <FiltroPeriodo info={periodo} />
       <ResumoPeriodo
         contexto="periodo"
-        rotulo={`Visualizando ${rotuloIntervalo(periodo.intervalo)} · regime ${periodo.regime}${
-          neutros.length ? ` · ${neutros.length} neutros fora` : ''
+        rotulo={`Visualizando ${rotuloIntervalo(periodo.intervalo)}${
+          neutros.length ? ` · ${neutros.length} transferências fora da conta` : ''
         }`}
         movimentos={operacionais}
         regime={periodo.regime}
@@ -273,6 +301,7 @@ function Corpo({ vista }: { vista: VistaHud }) {
       />
       <div key={vista} className="anim-tab-in">
         {vista === 'indicadores' ? <IndicadoresPanel /> : null}
+        {vista === 'relatorios' ? <RelatoriosPublicados /> : null}
         {vista === 'aprovacoes' ? <AprovacoesCliente /> : null}
         {vista === 'dre' ? <RelatorioDRE dre={dre} grupos={grupos} /> : null}
         {vista === 'dfc' ? <RelatorioDFC dfc={dfc} /> : null}
