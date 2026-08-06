@@ -8,6 +8,7 @@ import { fmtIndicador, type PontoIndicador } from '@/lib/indicadores'
 import { fracVariacao, pctVariacao } from '@/lib/money'
 import { TipLinha, TipTitulo, useTooltipGrafico } from '@/lib/tooltipGrafico'
 import { useLarguraGrafico } from '@/lib/useLarguraGrafico'
+import { FONTE_GRAFICO } from '@/core/graficoTema'
 
 const H = 64
 const PADX = 6
@@ -101,7 +102,7 @@ export function MiniSerie({ pontos, cor }: { pontos: readonly PontoIndicador[]; 
             y={H - 4}
             textAnchor={i === 0 ? 'start' : i === pontos.length - 1 ? 'end' : 'middle'}
             className="fill-muted"
-            style={{ fontSize: 7 }}
+            style={{ fontSize: FONTE_GRAFICO.mini }}
           >
             {pontos[i]!.rotulo}
           </text>

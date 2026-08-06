@@ -13,6 +13,7 @@ import { useEscalaGrafico } from '@/lib/escalaGrafico'
 import { brl } from '@/lib/money'
 import { TipTitulo, useTooltipGrafico } from '@/lib/tooltipGrafico'
 import { useLarguraGrafico } from '@/lib/useLarguraGrafico'
+import { FONTE_GRAFICO } from '@/core/graficoTema'
 
 const H_BASE = 240
 const PAD_E = 56
@@ -90,7 +91,7 @@ export function ComparativoLinhas({ meses, series }: { meses: readonly string[];
         {ticks.map((t) => (
           <g key={`t-${t}`}>
             <line x1={PAD_E} y1={y(t)} x2={W - PAD_D} y2={y(t)} stroke="rgb(var(--c-bd))" strokeWidth="0.5" strokeOpacity={t === 0 ? 0 : 0.55} />
-            <text x={PAD_E - 6} y={y(t) + 3} textAnchor="end" className="fill-muted tabular-nums" style={{ fontSize: 8.5 }}>
+            <text x={PAD_E - 6} y={y(t) + 3} textAnchor="end" className="fill-muted tabular-nums" style={{ fontSize: FONTE_GRAFICO.eixoY }}>
               {brlCompacto(t)}
             </text>
           </g>
@@ -136,7 +137,7 @@ export function ComparativoLinhas({ meses, series }: { meses: readonly string[];
           if (!ehUltimo && (i % passoX !== 0 || n - 1 - i < Math.ceil(passoX / 2))) return null
           const anchor = i === 0 ? 'start' : ehUltimo ? 'end' : 'middle'
           return (
-            <text key={`r-${mes}`} x={x(i)} y={H - 8} textAnchor={anchor} className="fill-muted" style={{ fontSize: 9 }}>
+            <text key={`r-${mes}`} x={x(i)} y={H - 8} textAnchor={anchor} className="fill-muted" style={{ fontSize: FONTE_GRAFICO.eixoX }}>
               {rotuloMes(mes)}
             </text>
           )

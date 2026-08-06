@@ -1,5 +1,6 @@
 /** @file Série mensal ampliada do indicador (modal de análise): linha + área, média tracejada, rótulos e tooltip rico. */
 import { useState, type MouseEvent } from 'react'
+import { FONTE_GRAFICO } from '@/core/graficoTema'
 import { fmtIndicador, type PontoIndicador } from '@/lib/indicadores'
 import { fracVariacao, pctVariacao } from '@/lib/money'
 import { TipLinha, TipTitulo, useTooltipGrafico } from '@/lib/tooltipGrafico'
@@ -66,7 +67,7 @@ export function SerieIndicador({ pontos, cor }: { pontos: readonly PontoIndicado
           <line x1={PADX} y1={y(0)} x2={W - PADX} y2={y(0)} stroke="rgb(var(--c-bd))" strokeWidth="1" />
         ) : null}
         <line x1={PADX} y1={y(media)} x2={W - PADX} y2={y(media)} stroke="rgb(var(--c-warn))" strokeWidth="1" strokeDasharray="3 4" strokeOpacity="0.8" />
-        <text x={W - PADX} y={y(media) - 5} textAnchor="end" className="fill-warn" style={{ fontSize: 9 }}>
+        <text x={W - PADX} y={y(media) - 5} textAnchor="end" className="fill-warn" style={{ fontSize: FONTE_GRAFICO.nota }}>
           média {fmtIndicador(media, percentual)}
         </text>
         <path d={area} fill="url(#si-grad)" className="anim-area-fade" />
@@ -102,7 +103,7 @@ export function SerieIndicador({ pontos, cor }: { pontos: readonly PontoIndicado
               y={H - 8}
               textAnchor={i === 0 ? 'start' : i === pontos.length - 1 ? 'end' : 'middle'}
               className="fill-muted"
-              style={{ fontSize: 9 }}
+              style={{ fontSize: FONTE_GRAFICO.eixoX }}
             >
               {p.rotulo}
             </text>

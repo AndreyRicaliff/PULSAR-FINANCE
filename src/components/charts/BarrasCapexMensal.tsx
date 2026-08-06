@@ -14,6 +14,7 @@ import { useEscalaGrafico } from '@/lib/escalaGrafico'
 import { brl } from '@/lib/money'
 import { TipLinha, TipTitulo, useTooltipGrafico } from '@/lib/tooltipGrafico'
 import { useLarguraGrafico } from '@/lib/useLarguraGrafico'
+import { FONTE_GRAFICO } from '@/core/graficoTema'
 
 const BAR_W_MIN = 10
 const BAR_W_MAX = 48
@@ -89,7 +90,7 @@ export function BarrasCapexMensal({ dados }: { dados: readonly CapexMes[] }) {
                   <rect x={x} y={baseY - 2} width={BAR_W} height="2" fill="rgb(var(--c-muted))" opacity="0.6" />
                 ) : null}
                 {rotula ? (
-                  <text x={x + BAR_W / 2} y={alto - 5} textAnchor="middle" className="fill-muted tabular-nums" style={{ fontSize: 9, fontWeight: i === ativo ? 700 : 400 }}>
+                  <text x={x + BAR_W / 2} y={alto - 5} textAnchor="middle" className="fill-muted tabular-nums" style={{ fontSize: FONTE_GRAFICO.nota, fontWeight: i === ativo ? 700 : 400 }}>
                     {rotuloMes(d.mes)}
                   </text>
                 ) : null}

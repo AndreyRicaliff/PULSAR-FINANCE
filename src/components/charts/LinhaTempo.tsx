@@ -6,6 +6,7 @@
  */
 import { useState, type MouseEvent } from 'react'
 import { brlCompacto, ticksDoEixo } from '@/core/eixo'
+import { AREA_OPACIDADE, CROSSHAIR, FONTE_GRAFICO, MAX_PONTOS_VISIVEIS, REFERENCIA } from '@/core/graficoTema'
 import { useEscalaGrafico } from '@/lib/escalaGrafico'
 import { brl, fracVariacao, pctVariacao } from '@/lib/money'
 import { TipLinha, TipTitulo, useTooltipGrafico } from '@/lib/tooltipGrafico'
@@ -88,8 +89,8 @@ export function LinhaTempo({ pontos, cor = 'rgb(var(--c-accent))' }: { pontos: r
       <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} className="block" onMouseMove={aoMover} onMouseLeave={aoSair}>
         <defs>
           <linearGradient id="lt-grad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={cor} stopOpacity="0.3" />
-            <stop offset="100%" stopColor={cor} stopOpacity="0" />
+            <stop offset="0%" stopColor={cor} stopOpacity={AREA_OPACIDADE.topo} />
+            <stop offset="100%" stopColor={cor} stopOpacity={AREA_OPACIDADE.base} />
           </linearGradient>
         </defs>
 
@@ -97,7 +98,7 @@ export function LinhaTempo({ pontos, cor = 'rgb(var(--c-accent))' }: { pontos: r
         {ticks.map((t) => (
           <g key={`t-${t}`}>
             <line x1={PAD_E} y1={y(t)} x2={W - PAD_D} y2={y(t)} stroke="rgb(var(--c-bd))" strokeWidth="0.5" strokeOpacity={t === 0 ? 0 : 0.55} />
-            <text x={PAD_E - 6} y={y(t) + 3} textAnchor="end" className="fill-muted tabular-nums" style={{ fontSize: 8.5 }}>
+            <text x={PAD_E - 6} y={y(t) + 3.5} textAnchor="end" className="fill-muted tabular-nums" style={{ fontSize: FONTE_GRAFICO.eixoY }}>
               {brlCompacto(t)}
             </text>
           </g>
@@ -107,8 +108,8 @@ export function LinhaTempo({ pontos, cor = 'rgb(var(--c-accent))' }: { pontos: r
         <line x1={PAD_E} y1={y(0)} x2={W - PAD_D} y2={y(0)} stroke="rgb(var(--c-bd))" strokeWidth={cruzaZero ? 1.5 : 1} strokeOpacity={cruzaZero ? 0.9 : 0.7} />
 
         {/* Linha de referência: média do HISTÓRICO (projeção não entra na média). */}
-        <line x1={PAD_E} y1={y(media)} x2={W - PAD_D} y2={y(media)} stroke="rgb(var(--c-warn))" strokeWidth="1" strokeDasharray="2 4" strokeOpacity="0.8" />
-        <text x={W - PAD_D} y={y(media) - 4} textAnchor="end" className="fill-warn" style={{ fontSize: 8.5 }}>
+        <line x1={PAD_E} y1={y(media)} x2={W - PAD_D} y2={y(media)} stroke="rgb(var(--c-warn))" strokeWidth={REFERENCIA.largura} strokeDasharray={REFERENCIA.traco} strokeOpacity="0.8" />
+        <text x={W - PAD_D} y={y(media) - 5} textAnchor="end" className="fill-warn" style={{ fontSize: FONTE_GRAFICO.nota }}>
           média {brlCompacto(media)}
         </text>
 
@@ -117,21 +118,36 @@ export function LinhaTempo({ pontos, cor = 'rgb(var(--c-accent))' }: { pontos: r
         {projD ? (
           <path d={projD} fill="none" stroke={cor} strokeWidth="2.5" strokeDasharray="6 5" strokeOpacity="0.7" pathLength={1000} className="anim-draw-line" style={{ animationDelay: '0.1s' }} />
         ) : null}
-        {ativo !== null ? <line x1={x(ativo)} y1={PAD_V / 2} x2={x(ativo)} y2={H - PAD_V} stroke={cor} strokeWidth="1" strokeOpacity="0.35" /> : null}
-
-        {pontos.map((p, i) => (
-          <circle
-            key={p.rotulo}
-            cx={x(i)}
-            cy={y(p.valor)}
-            r={i === ativo ? 5 : p.projetado ? 3 : 3.5}
-            fill={p.projetado ? 'rgb(var(--c-surface))' : cor}
-            stroke={cor}
-            strokeWidth="2"
-            className="anim-dot-pop"
-            style={{ animationDelay: `${(i / (n - 1)) * 0.8}s` }}
+        {/* Mira cinza tracejada, nunca na cor da série: a linha é o dado, a mira é ferramenta. */}
+        {ativo !== null ? (
+          <line
+            x1={x(ativo)}
+            y1={PAD_V / 2}
+            x2={x(ativo)}
+            y2={H - PAD_V}
+            stroke="rgb(var(--c-muted))"
+            strokeWidth={CROSSHAIR.largura}
+            strokeDasharray={CROSSHAIR.traco}
+            strokeOpacity={CROSSHAIR.opacidade}
           />
-        ))}
+        ) : null}
+
+        {/* Acima do teto, ponto por marcação vira poeira — só o ativo permanece. */}
+        {pontos.map((p, i) =>
+          n > MAX_PONTOS_VISIVEIS && i !== ativo ? null : (
+            <circle
+              key={p.rotulo}
+              cx={x(i)}
+              cy={y(p.valor)}
+              r={i === ativo ? 5 : p.projetado ? 3 : 3.5}
+              fill={p.projetado ? 'rgb(var(--c-surface))' : cor}
+              stroke={i === ativo ? 'rgb(var(--c-surface))' : cor}
+              strokeWidth="2"
+              className="anim-dot-pop"
+              style={{ animationDelay: `${(i / (n - 1)) * 0.8}s` }}
+            />
+          ),
+        )}
 
         {/* Rótulos seletivos de valor: só máx e mín do histórico. */}
         {[...extremos].map((i) => (
@@ -141,7 +157,7 @@ export function LinhaTempo({ pontos, cor = 'rgb(var(--c-accent))' }: { pontos: r
             y={y(hist[i]!.valor) + (i === iMin ? 14 : -8)}
             textAnchor="middle"
             className="fill-muted tabular-nums"
-            style={{ fontSize: 8.5, fontWeight: 600 }}
+            style={{ fontSize: FONTE_GRAFICO.nota, fontWeight: 600 }}
           >
             {brlCompacto(hist[i]!.valor)}
           </text>
@@ -155,7 +171,7 @@ export function LinhaTempo({ pontos, cor = 'rgb(var(--c-accent))' }: { pontos: r
           if (!ehUltimo && (i % passoX !== 0 || n - 1 - i < Math.ceil(passoX / 2))) return null
           const anchor = i === 0 ? 'start' : ehUltimo ? 'end' : 'middle'
           return (
-            <text key={`r-${p.rotulo}`} x={x(i)} y={H - 8} textAnchor={anchor} className="fill-muted" style={{ fontSize: 9 }}>
+            <text key={`r-${p.rotulo}`} x={x(i)} y={H - 8} textAnchor={anchor} className="fill-muted" style={{ fontSize: FONTE_GRAFICO.eixoX }}>
               {p.rotulo}
             </text>
           )

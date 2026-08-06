@@ -14,6 +14,7 @@ import { useEscalaGrafico } from '@/lib/escalaGrafico'
 import { brl, fracVariacao, pctVariacao } from '@/lib/money'
 import { TipLinha, TipTitulo, useTooltipGrafico } from '@/lib/tooltipGrafico'
 import { useLarguraGrafico } from '@/lib/useLarguraGrafico'
+import { FONTE_GRAFICO } from '@/core/graficoTema'
 
 const BAR_W_MIN = 8
 const BAR_W_MAX = 44
@@ -94,7 +95,7 @@ export function BarrasMensais({ dados }: { dados: readonly BarraMes[] }) {
                 {hE > 0 ? <rect x={x} y={baseY - hE} width={BAR_W} height={hE} rx="2" fill="url(#bm-ent)" /> : null}
                 {hS > 0 ? <rect x={x} y={baseY} width={BAR_W} height={hS} rx="2" fill="url(#bm-sai)" /> : null}
                 {rotula ? (
-                  <text x={xCentro(i)} y={alto - 5} textAnchor="middle" className="fill-muted tabular-nums" style={{ fontSize: 9, fontWeight: i === ativo ? 700 : 400 }}>
+                  <text x={xCentro(i)} y={alto - 5} textAnchor="middle" className="fill-muted tabular-nums" style={{ fontSize: FONTE_GRAFICO.nota, fontWeight: i === ativo ? 700 : 400 }}>
                     {d.mes}
                   </text>
                 ) : null}
