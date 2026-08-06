@@ -18,7 +18,11 @@
     --c-surface3: 45 42 66;
     --c-bd: 60 56 84;
     --c-text: 234 238 246;
-    --c-muted: 145 135 182;
+    /* Era 145 135 182 (contraste 5,47 sobre o surface) — e /80 num subgrupo caía para 3,94,
+       REPROVANDO o mínimo AA de 4,5 para texto normal. Era isso o "difícil de ler no escuro"
+       (report 06/08): o problema estava no token, não em cada tela. 8,05 = AAA, e ainda
+       guarda distância do --c-text (15,56) para a hierarquia não achatar. */
+    --c-muted: 176 168 206;
     color-scheme: dark;
 
     /* v3.1 — tokens de apoio (§1). Cores-base acima já estavam em v3.1: conferidas
@@ -57,6 +61,9 @@
     --c-bd: 231 232 236;
     --c-text: 20 20 40;
     --c-muted: 107 107 128;
+    /* Nível intermediário text↔muted (10,13 = AAA). Existia só no escuro; sem o par claro,
+       `text-soft` viraria herança silenciosa no tema claro. */
+    --c-soft: 62 62 86;
     --c-primary: 64 28 127;
     --c-secondary: 111 90 166;
     --c-accent: 46 125 91;

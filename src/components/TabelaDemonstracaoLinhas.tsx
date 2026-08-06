@@ -68,7 +68,10 @@ interface PropsGrupo {
 function LinhasGrupo({ grupo, base, deltaLigado, onDetalhar }: PropsGrupo) {
   return (
     <>
-      <tr className="border-b border-bd/30 text-muted">
+      {/* Hierarquia por 3 degraus de contraste, todos legíveis: linha=text, grupo=soft,
+          subgrupo=muted. Antes eram muted e muted/80 — o subgrupo caía a 3,94, abaixo do
+          mínimo AA, e era ele que o financeiro precisava ler (report 06/08). */}
+      <tr className="border-b border-bd/30 text-soft">
         <td className="py-1.5 pl-10 pr-4 text-xs font-medium">↳ {grupo.nome}</td>
         {deltaLigado ? <td /> : null}
         <CelulasValor valor={grupo.totalCentavos} base={base} compacta />
@@ -77,7 +80,7 @@ function LinhasGrupo({ grupo, base, deltaLigado, onDetalhar }: PropsGrupo) {
       {[...grupo.subgrupos]
         .sort((a, b) => Math.abs(b.totalCentavos) - Math.abs(a.totalCentavos))
         .map((s) => (
-        <tr key={s.id} className="border-b border-bd/20 text-muted/80">
+        <tr key={s.id} className="border-b border-bd/20 text-muted">
           <td className="py-1 pl-14 pr-4 text-xs">{s.nome}</td>
           {deltaLigado ? <td /> : null}
           <CelulasValor valor={s.totalCentavos} base={base} compacta />
