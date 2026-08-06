@@ -23,6 +23,13 @@ function normalizar(bruto: unknown): EstadoApresentacao {
   }
 }
 
+/**
+ * Estado de uma apresentação recém-criada. Existe para o INSERT gravar o roteiro padrão em
+ * vez de `{}`: apresentação criada e não salva ficava vazia no banco para sempre (HOPE PIZZAS,
+ * 04/08) e o card dizia "nova · 0 slides" mesmo depois de editada na tela.
+ */
+export const estadoInicialApresentacao = (): EstadoApresentacao => normalizar(null)
+
 export interface ApresentacaoApi {
   readonly estado: EstadoApresentacao
   readonly definirCapa: (patch: Partial<CapaConfig>) => void
