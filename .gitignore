@@ -16,3 +16,4 @@ src/data/*.json
 .vercel
 .env*
 .env.offline
+.claude/

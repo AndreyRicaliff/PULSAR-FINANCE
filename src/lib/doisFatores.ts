@@ -7,6 +7,7 @@
  * um flag local seria trivial de forjar no console.
  */
 import { useCallback, useEffect, useState } from 'react'
+import { AUTH_ATIVO } from './auth'
 import { supabase } from './supabase'
 
 export type Estado2FA = 'checando' | 'pendente' | 'liberado'
@@ -84,7 +85,9 @@ export function use2FA(): { readonly estado: Estado2FA; readonly revalidar: () =
   const [estado, setEstado] = useState<Estado2FA>('checando')
 
   const revalidar = useCallback(async () => {
-    if (!supabase) return setEstado('liberado') // sem backend não há o que proteger (modo offline)
+    // Sem auth não há o que proteger: dev com VITE_AUTH_ENABLED=false OU a Apresentação
+    // offline — onde `supabase` é o MOCK do snapshot, não um client de auth de verdade.
+    if (!AUTH_ATIVO || !supabase) return setEstado('liberado')
     const { data: s } = await supabase.auth.getSession()
     const token = s.session?.access_token
     if (!token) return setEstado('pendente')
@@ -97,7 +100,7 @@ export function use2FA(): { readonly estado: Estado2FA; readonly revalidar: () =
 
   useEffect(() => {
     void revalidar()
-    if (!supabase) return
+    if (!AUTH_ATIVO || !supabase) return
     // O login acontece DEPOIS do mount. Sem este listener, a única checagem rodava antes
     // de existir sessão — o aparelho confiável nunca era tentado e a tela do código
     // aparecia sempre (5 tokens emitidos, 0 resgatados em prod, 2026-07-29).
