@@ -17,7 +17,7 @@ import { serieMensal, type PontoSerie } from '@/core/serie'
 import { useCadastros } from './cadastros'
 import { useMovimentos } from './movimentos'
 import { usePeriodoOpcional } from './periodo'
-import { cobertura, espelhoEstrutura, type Cobertura, type GrupoEspelho } from './resultado'
+import { cobertura, espelhoEstrutura, totalPorNo, type Cobertura, type GrupoEspelho } from './resultado'
 import { useDemonstracoes } from './useDemonstracoes'
 import { useModelo } from './useModelo'
 
@@ -93,11 +93,13 @@ export function useResultado(): Resultado {
   )
   // Partidas neutras: exibidas ao pé de cada demonstração, cada uma no SEU regime —
   // competência na DRE, caixa na DFC. Sem filtro de regime porque neutro nunca passaria nele.
-  const neutrosDre = useMemo(() => partidasNeutras(conc.estrutura, totalPorGrupo), [conc.estrutura, totalPorGrupo])
-  const neutrosDfc = useMemo(() => {
-    const porGrupo = new Map(espelhoEstrutura(movimentosCaixa(movimentos), conc).map((g) => [g.id, g.totalCentavos]))
-    return partidasNeutras(conc.estrutura, porGrupo)
-  }, [movimentos, conc])
+  // totalPorNo (e não totalPorGrupo): em prod o neutro quase sempre é SUBGRUPO, e o mapa
+  // do topo não os alcança.
+  const neutrosDre = useMemo(() => partidasNeutras(conc.estrutura, totalPorNo(movimentos, conc)), [movimentos, conc])
+  const neutrosDfc = useMemo(
+    () => partidasNeutras(conc.estrutura, totalPorNo(movimentosCaixa(movimentos), conc)),
+    [movimentos, conc],
+  )
   // Cálculo com overrides hierárquicos (classe > subgrupo > grupo) via chaves efetivas.
   const calcEf = (movs: readonly Movimento[], demo: Demonstracao, tipo: 'dre' | 'dfc') => {
     const ef = totaisEfetivos(movs, conc, cats, demo, tipo)

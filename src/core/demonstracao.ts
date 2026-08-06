@@ -114,20 +114,33 @@ export interface PartidaNeutra {
 }
 
 /**
- * Grupos neutros com o valor do período, para EXIBIR ao pé da DRE/DFC (pedido 06/08:
+ * Nós neutros com o valor do período, para EXIBIR ao pé da DRE/DFC (pedido 06/08:
  * "sempre aparecer nos regimes mas sem interferir nos valores").
  *
  * Deliberadamente FORA de `calcular`: a garantia de não-interferência é estrutural, não
  * comportamental — quem soma a cascata nunca vê estas linhas, então nenhum bug futuro aqui
- * consegue mexer num total. Só grupos-raiz: subgrupo neutro é somado no seu grupo.
+ * consegue mexer num total.
+ *
+ * Inclui SUBGRUPO neutro, e não só raiz: em produção (06/08) os neutros são 57 subgrupos —
+ * "Transferência entre Contas Próprias", "Aplicação/Resgate D+0", "Estornos" — contra 15
+ * raízes. Listar só raiz fazia sumir justamente o caso real. Subgrupo sob raiz JÁ neutra não
+ * entra: o total do pai já o contém, e repetir seria contar duas vezes na mesma vista.
  */
 export function partidasNeutras(
   estruturaGeral: readonly No[],
-  totalPorGrupo: ReadonlyMap<string, number>,
+  totalPorNo: ReadonlyMap<string, number>,
 ): PartidaNeutra[] {
+  const raizNeutra = new Set(estruturaGeral.filter((n) => !n.paiId && n.meta?.neutra).map((n) => n.id))
+  const nomeRaiz = new Map(estruturaGeral.filter((n) => !n.paiId).map((n) => [n.id, n.nome]))
   return estruturaGeral
-    .filter((n) => !n.paiId && n.meta?.neutra)
-    .map((n) => ({ id: n.id, nome: n.nome, valorCentavos: totalPorGrupo.get(n.id) ?? 0 }))
+    .filter((n) => n.meta?.neutra && !(n.paiId && raizNeutra.has(n.paiId)))
+    .map((n) => ({
+      id: n.id,
+      // Subgrupo qualificado pelo pai: "Transferência entre Contas Próprias" sozinho não
+      // diz de onde saiu quando dois grupos têm subgrupo de mesmo nome.
+      nome: n.paiId ? `${nomeRaiz.get(n.paiId) ?? '—'} · ${n.nome}` : n.nome,
+      valorCentavos: totalPorNo.get(n.id) ?? 0,
+    }))
 }
 
 export interface LinhaCalc extends LinhaDemo {
