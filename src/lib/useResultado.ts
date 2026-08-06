@@ -1,7 +1,7 @@
 /** @file Fonte única do resultado: movimentos filtrados por período E filial → espelho → DRE/DFC → série. */
 import { useMemo } from 'react'
 import { totaisEfetivos } from '@/core/classes'
-import { calcular, type Demonstracao, type LinhaCalc } from '@/core/demonstracao'
+import { calcular, partidasNeutras, type Demonstracao, type LinhaCalc, type PartidaNeutra } from '@/core/demonstracao'
 import { filtrarPorFilial, mapaAuto, type FiltroFilial } from '@/core/filial'
 import type { Conciliacao } from '@/core/modelo'
 import { movimentosCaixa, type Movimento } from '@/core/movimento'
@@ -47,6 +47,9 @@ export interface Resultado {
   readonly totalPorGrupo: ReadonlyMap<string, number>
   readonly dre: readonly LinhaCalc[]
   readonly dfc: readonly LinhaCalc[]
+  /** Grupos neutros com o valor do período — exibidos ao pé da demonstração, fora de toda soma. */
+  readonly neutrosDre: readonly PartidaNeutra[]
+  readonly neutrosDfc: readonly PartidaNeutra[]
   /** DRE/DFC do período imediatamente anterior (mesma duração e filtros) — null com janela aberta. */
   readonly anterior: DemonstracoesAnteriores | null
   readonly cob: Cobertura
@@ -88,6 +91,13 @@ export function useResultado(): Resultado {
     () => new Map(espelhoEstrutura(movimentos, conc).map((g) => [g.id, g.totalCentavos])),
     [movimentos, conc],
   )
+  // Partidas neutras: exibidas ao pé de cada demonstração, cada uma no SEU regime —
+  // competência na DRE, caixa na DFC. Sem filtro de regime porque neutro nunca passaria nele.
+  const neutrosDre = useMemo(() => partidasNeutras(conc.estrutura, totalPorGrupo), [conc.estrutura, totalPorGrupo])
+  const neutrosDfc = useMemo(() => {
+    const porGrupo = new Map(espelhoEstrutura(movimentosCaixa(movimentos), conc).map((g) => [g.id, g.totalCentavos]))
+    return partidasNeutras(conc.estrutura, porGrupo)
+  }, [movimentos, conc])
   // Cálculo com overrides hierárquicos (classe > subgrupo > grupo) via chaves efetivas.
   const calcEf = (movs: readonly Movimento[], demo: Demonstracao, tipo: 'dre' | 'dfc') => {
     const ef = totaisEfetivos(movs, conc, cats, demo, tipo)
@@ -124,7 +134,7 @@ export function useResultado(): Resultado {
     [todos, intervalo, regime, filtro, filial, filtroFilial, movimentos],
   )
 
-  return { movimentos, conc, grupos, gruposDfc, totalPorGrupo, dre, dfc, anterior, cob, serie, serieContinua, periodo }
+  return { movimentos, conc, grupos, gruposDfc, totalPorGrupo, dre, dfc, neutrosDre, neutrosDfc, anterior, cob, serie, serieContinua, periodo }
 }
 
 export { valorLinha } from '@/core/demonstracao'

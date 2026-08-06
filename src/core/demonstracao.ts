@@ -107,6 +107,29 @@ export function semNeutros(demo: Demonstracao, neutros: ReadonlySet<string>): De
   return { ...demo, mapa }
 }
 
+export interface PartidaNeutra {
+  readonly id: string
+  readonly nome: string
+  readonly valorCentavos: number
+}
+
+/**
+ * Grupos neutros com o valor do período, para EXIBIR ao pé da DRE/DFC (pedido 06/08:
+ * "sempre aparecer nos regimes mas sem interferir nos valores").
+ *
+ * Deliberadamente FORA de `calcular`: a garantia de não-interferência é estrutural, não
+ * comportamental — quem soma a cascata nunca vê estas linhas, então nenhum bug futuro aqui
+ * consegue mexer num total. Só grupos-raiz: subgrupo neutro é somado no seu grupo.
+ */
+export function partidasNeutras(
+  estruturaGeral: readonly No[],
+  totalPorGrupo: ReadonlyMap<string, number>,
+): PartidaNeutra[] {
+  return estruturaGeral
+    .filter((n) => !n.paiId && n.meta?.neutra)
+    .map((n) => ({ id: n.id, nome: n.nome, valorCentavos: totalPorGrupo.get(n.id) ?? 0 }))
+}
+
 export interface LinhaCalc extends LinhaDemo {
   readonly valorCentavos: number
   readonly gruposIds: readonly string[]

@@ -29,7 +29,13 @@ export type PapelDRE =
 export type AtividadeDFC = 'operacional' | 'investimento' | 'financiamento'
 
 /** Regimes em que o GRUPO entra. Ausente = ambos (compat). */
-export type RegimeDemo = 'dre' | 'dfc' | 'ambos'
+/**
+ * 'neutro' é o quarto estado do seletor da Matriz (pedido 06/08): o grupo continua VISÍVEL
+ * nas duas demonstrações, como partida informativa, mas fica fora de toda soma. É o único
+ * jeito de marcar neutro pela UI — antes só o plano padrão nascia com `neutra`.
+ * Invariante: `regime === 'neutro'` ⟺ `neutra === true` (definirRegime mantém os dois em par).
+ */
+export type RegimeDemo = 'dre' | 'dfc' | 'ambos' | 'neutro'
 
 /** Balde do indicador de CAPEX: expansão (investimento) × reposição/conservação (manutenção). */
 export type TipoCapex = 'investimento' | 'manutencao'
@@ -48,8 +54,13 @@ export interface MetaContabil {
   readonly capex?: TipoCapex | null
 }
 
-/** O grupo entra na demonstração `tipo`? (regime ausente = ambos). Neutro nunca entra por padrão. */
+/**
+ * O grupo SOMA na demonstração `tipo`? (regime ausente = ambos). Neutro nunca soma — nem por
+ * `regime: 'neutro'`, nem pelo `neutra` da Regra Mãe. Aparecer é outra pergunta: ver
+ * `partidasNeutras` (core/demonstracao), que lista o que é exibido sem entrar na conta.
+ */
 export function entraNaDemonstracao(meta: MetaContabil | undefined, tipo: 'dre' | 'dfc'): boolean {
+  if (meta?.neutra) return false
   const r = meta?.regime ?? 'ambos'
   return r === 'ambos' || r === tipo
 }
@@ -108,7 +119,12 @@ export const ROTULO_ATIVIDADE_DFC: Readonly<Record<AtividadeDFC, string>> = {
 }
 
 /** Etiquetas curtas legíveis para exibir o papel contábil de um nó. */
-const ROTULO_REGIME: Readonly<Record<RegimeDemo, string>> = { ambos: 'DRE + DFC', dre: 'Só DRE', dfc: 'Só DFC' }
+export const ROTULO_REGIME: Readonly<Record<RegimeDemo, string>> = {
+  ambos: 'DRE + DFC',
+  dre: 'Só DRE',
+  dfc: 'Só DFC',
+  neutro: 'Neutro (aparece, não soma)',
+}
 
 export const ROTULO_CAPEX: Readonly<Record<TipoCapex, string>> = {
   investimento: 'Investimento',
