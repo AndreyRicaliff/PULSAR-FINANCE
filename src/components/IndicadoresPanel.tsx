@@ -25,17 +25,28 @@ export function IndicadoresPanel({ resumo = false }: { resumo?: boolean } = {}) 
 
   return (
     <div className="flex flex-col gap-6">
+      {/* Duas línguas: o operador precisa saber DE ONDE vem cada número (e como editar);
+          o cliente precisa saber o que o número significa. "Editar DRE/DFC" e "conciliar"
+          são instruções de uma tela que ele nem enxerga. */}
       <header>
-        <h1 className="text-[19px] font-semibold">Indicadores & Gráficos</h1>
+        <h1 className="text-[19px] font-semibold">{somenteLeitura ? 'Seus números' : 'Indicadores & Gráficos'}</h1>
         <p className="text-sm text-muted">
-          Derivados da DRE/DFC <strong>configurada</strong> em "Editar DRE/DFC" · cada indicador aponta
-          sua fórmula · neutros e não conciliados ficam de fora
+          {somenteLeitura ? (
+            <>Os principais indicadores do período · transferências entre suas contas ficam de fora</>
+          ) : (
+            <>
+              Derivados da DRE/DFC <strong>configurada</strong> em "Editar DRE/DFC" · cada indicador aponta
+              sua fórmula · neutros e não conciliados ficam de fora
+            </>
+          )}
         </p>
       </header>
 
       {grupos.length === 0 ? (
         <p className="rounded-card border border-dashed border-bd p-8 text-center text-muted">
-          Nada conciliado ainda — concilie em "Matriz de Classificações" para os indicadores aparecerem.
+          {somenteLeitura
+            ? 'Seus números aparecem aqui assim que a classificação das contas for concluída pela nossa equipe.'
+            : 'Nada conciliado ainda — concilie em "Matriz de Classificações" para os indicadores aparecerem.'}
         </p>
       ) : (
         <>

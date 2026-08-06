@@ -18,6 +18,7 @@ import { useSync } from '@/lib/useSync'
 import { useTema } from '@/lib/useTema'
 import { useMovimentos } from '@/lib/movimentos'
 import { AprovacoesCliente } from './AprovacoesCliente.tsx'
+import { MancheteCliente } from './cliente/MancheteCliente.tsx'
 import { useResultado } from '@/lib/useResultado'
 import { DefinirSenha } from './DefinirSenha.tsx'
 import { Logo } from './Logo.tsx'
@@ -36,13 +37,18 @@ import type { Eixo } from './drilldown/rotulos'
 
 type VistaHud = 'indicadores' | 'aprovacoes' | 'dre' | 'dfc' | 'evolucao' | 'detalhamento'
 
+/**
+ * Linguagem de DONO — o inverso do menu do operador, que é técnico de propósito. Quem abre
+ * aqui não procura "DRE", procura "quanto sobrou". A sigla fica como legenda, para não
+ * perder quem já conhece o termo do contador.
+ */
 const VISTAS: readonly OpcaoSeg<VistaHud>[] = [
-  { id: 'indicadores', rotulo: 'Indicadores' },
-  { id: 'aprovacoes', rotulo: 'Aprovações' },
-  { id: 'dre', rotulo: 'DRE' },
-  { id: 'dfc', rotulo: 'Fluxo de Caixa' },
-  { id: 'evolucao', rotulo: 'Evolução & Projeção' },
-  { id: 'detalhamento', rotulo: 'Detalhamento de Conta' },
+  { id: 'indicadores', rotulo: 'Meu resumo' },
+  { id: 'aprovacoes', rotulo: 'Contas a aprovar' },
+  { id: 'dre', rotulo: 'Resultado do mês' },
+  { id: 'dfc', rotulo: 'Entradas e saídas' },
+  { id: 'evolucao', rotulo: 'Como venho indo' },
+  { id: 'detalhamento', rotulo: 'Ver lançamentos' },
 ]
 
 /**
@@ -261,11 +267,14 @@ function Corpo({ vista }: { vista: VistaHud }) {
           </button>
         </div>
       ) : null}
+      {/* A resposta ANTES da ferramenta: a manchete abre a tela, o filtro vem recolhido
+          abaixo. Só na vista de resumo — nas outras o cliente já escolheu o que olhar. */}
+      {vista === 'indicadores' ? <MancheteCliente /> : null}
       <FiltroPeriodo info={periodo} />
       <ResumoPeriodo
         contexto="periodo"
-        rotulo={`Visualizando ${rotuloIntervalo(periodo.intervalo)} · regime ${periodo.regime}${
-          neutros.length ? ` · ${neutros.length} neutros fora` : ''
+        rotulo={`Visualizando ${rotuloIntervalo(periodo.intervalo)}${
+          neutros.length ? ` · ${neutros.length} transferências fora da conta` : ''
         }`}
         movimentos={operacionais}
         regime={periodo.regime}
