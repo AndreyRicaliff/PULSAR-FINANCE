@@ -20,6 +20,13 @@ export interface FichaEmpresa {
   readonly temaPadrao: string | null
   /** Temas criados pela empresa (nome + 2 cores; palco deriva do escuro). */
   readonly temasCustom: readonly TemaApresentacao[]
+  /**
+   * Logo do CLIENTE como data: URI — aparece no painel dele no lugar da marca Pulsar.
+   * Data URI e não URL: o painel precisa funcionar dentro do HTML offline exportado, onde
+   * link externo não resolve; e evita depender de um host que pode sair do ar depois.
+   * Vazio = painel assinado pela AG, como antes.
+   */
+  readonly logo: string
 }
 
 function normalizar(bruto: unknown): FichaEmpresa {
@@ -33,6 +40,7 @@ function normalizar(bruto: unknown): FichaEmpresa {
     notas: f.notas ?? '',
     temaPadrao: f.temaPadrao ?? null,
     temasCustom: Array.isArray(f.temasCustom) ? f.temasCustom : [],
+    logo: typeof f.logo === 'string' ? f.logo : '',
   }
 }
 
