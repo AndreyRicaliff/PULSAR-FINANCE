@@ -63,33 +63,24 @@ async function comoDataUri(url: string): Promise<string> {
   return `data:font/woff2;base64,${btoa(bin)}`
 }
 
-/** Embute a Inter (Google Fonts) como base64 no CSS → fonte idêntica mesmo offline. */
-async function inlinarFontes(doc: Document): Promise<void> {
-  doc.querySelectorAll('link[rel="preconnect"]').forEach((l) => l.remove())
-  await Promise.all(
-    [...doc.querySelectorAll('link[rel="stylesheet"][href*="fonts.googleapis.com"]')].map(async (link) => {
-      const href = link.getAttribute('href')
-      if (!href) return
-      let css = await buscarTexto(href)
-      const urls = [
-        ...new Set([...css.matchAll(/url\((https:\/\/fonts\.gstatic\.com\/[^)]+)\)/g)].map((m) => m[1]!)),
-      ]
-      const pares = await Promise.all(urls.map(async (u) => [u, await comoDataUri(u)] as const))
-      for (const [u, data] of pares) css = css.split(u).join(data)
-      const style = doc.createElement('style')
-      style.textContent = css
-      link.replaceWith(style)
-    }),
-  )
+/**
+ * Embute as fontes SELF-HOSTED (@fontsource no bundle) como base64 no CSS. A Inter deixou
+ * de vir do Google Fonts (main.tsx) — sem isto o HTML offline caía na fonte do sistema.
+ */
+async function cssComFontes(css: string): Promise<string> {
+  const urls = [...new Set([...css.matchAll(/url\((\/[^)]+\.woff2)\)/g)].map((m) => m[1]!))]
+  const pares = await Promise.all(urls.map(async (u) => [u, await comoDataUri(new URL(u, location.origin).href)] as const))
+  for (const [u, data] of pares) css = css.split(u).join(data)
+  return css
 }
 
-async function inlinar(doc: Document, seletor: string, atrib: string, criar: (conteudo: string) => Element): Promise<void> {
+async function inlinar(doc: Document, seletor: string, atrib: string, criar: (conteudo: string) => Element | Promise<Element>): Promise<void> {
   const base = location.origin
   await Promise.all(
     [...doc.querySelectorAll(seletor)].map(async (el) => {
       const ref = el.getAttribute(atrib)
       if (!ref) return
-      el.replaceWith(criar(await buscarTexto(new URL(ref, base).href)))
+      el.replaceWith(await criar(await buscarTexto(new URL(ref, base).href)))
     }),
   )
 }
@@ -104,10 +95,9 @@ async function montarHtmlAutonomo(snapshot: SnapshotApresentacao, ativo: Tenant)
   doc.documentElement.classList.remove('dark')
   doc.documentElement.classList.add('light')
 
-  await inlinarFontes(doc)
-  await inlinar(doc, 'link[rel="stylesheet"]', 'href', (css) => {
+  await inlinar(doc, 'link[rel="stylesheet"]', 'href', async (css) => {
     const style = doc.createElement('style')
-    style.textContent = css
+    style.textContent = await cssComFontes(css)
     return style
   })
   await inlinar(doc, 'script[src]', 'src', (js) => {
