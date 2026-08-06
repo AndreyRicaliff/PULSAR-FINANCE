@@ -110,26 +110,38 @@ export function resolverFilial(
   return herdada ? { noId: herdada, origem: 'auto' } : null
 }
 
-/** null = todas; 'sem_filial' = só o não-atribuído (auditoria). */
-export type FiltroFilial = string | null
+/**
+ * Conjunto de filiais selecionadas. VAZIO = todas (sem recorte); vários ids = UNIÃO, o
+ * consolidado das escolhidas — pedido 06/08 de multi-seleção. `SEM_FILIAL.id` no conjunto
+ * inclui também o não-atribuído (auditoria).
+ *
+ * Vazio, e não `null`, para "todas": o conjunto vazio já significa "nenhum recorte" e
+ * dispensa o segundo estado, que só existiria para ser confundido com ele.
+ */
+export type FiltroFilial = readonly string[]
+
+export const SEM_RECORTE: FiltroFilial = []
 
 export interface FiltroFilialResultado {
   readonly dentro: readonly Movimento[]
   readonly fora: number
 }
 
-/** Filtra movimentos pela filial resolvida (mesma cascata exibida no detalhamento). */
+/** Filtra movimentos pelas filiais resolvidas (mesma cascata exibida no detalhamento). */
 export function filtrarPorFilial(
   movs: readonly Movimento[],
   filtro: FiltroFilial,
   centros: Conciliacao,
   auto: ReadonlyMap<string, string>,
 ): FiltroFilialResultado {
-  if (filtro === null) return { dentro: movs, fora: 0 }
+  if (filtro.length === 0) return { dentro: movs, fora: 0 }
+  const alvo = new Set(filtro)
+  const querSemFilial = alvo.has(SEM_FILIAL.id)
   const dentro = movs.filter((m) => {
     const id = resolverFilial(m, centros, auto)?.noId ?? null
-    if (filtro === SEM_FILIAL.id) return id === null || id === SEM_FILIAL.id
-    return id === filtro
+    // Movimento sem filial resolvida só entra quando "Sem filial" foi escolhido de propósito.
+    if (id === null) return querSemFilial
+    return alvo.has(id)
   })
   return { dentro, fora: movs.length - dentro.length }
 }

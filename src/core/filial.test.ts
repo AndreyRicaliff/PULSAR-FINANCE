@@ -130,16 +130,41 @@ describe('filtrarPorFilial', () => {
   ]
   const auto = new Map<string, string>()
 
-  it('null passa tudo (sem custo fora do filtro)', () => {
-    expect(filtrarPorFilial(movs, null, CENTROS, auto).dentro).toHaveLength(3)
+  it('vazio passa tudo (sem custo fora do filtro)', () => {
+    expect(filtrarPorFilial(movs, [], CENTROS, auto).dentro).toHaveLength(3)
   })
   it('filtra pela filial resolvida e conta os excluídos', () => {
-    const r = filtrarPorFilial(movs, 'dep:4', CENTROS, auto)
+    const r = filtrarPorFilial(movs, ['dep:4'], CENTROS, auto)
     expect(r.dentro.map((m) => m.valorCentavos)).toEqual([10])
     expect(r.fora).toBe(2)
   })
   it("'sem_filial' devolve só o não-atribuído", () => {
-    const r = filtrarPorFilial(movs, 'sem_filial', CENTROS, auto)
+    const r = filtrarPorFilial(movs, ['sem_filial'], CENTROS, auto)
     expect(r.dentro.map((m) => m.valorCentavos)).toEqual([30])
+  })
+
+  // Multi-seleção (06/08): o consolidado de N filiais é a UNIÃO delas, e a soma dos
+  // recortes individuais tem de fechar com ele — senão o filtro inventa ou perde dinheiro.
+  it('duas filiais devolvem a união, sem duplicar movimento', () => {
+    const r = filtrarPorFilial(movs, ['dep:4', 'dep:3'], CENTROS, auto)
+    expect(r.dentro.map((m) => m.valorCentavos).sort((a, b) => a - b)).toEqual([10, 20])
+    expect(r.fora).toBe(1)
+  })
+  it('união fecha com a soma dos recortes individuais', () => {
+    const so4 = filtrarPorFilial(movs, ['dep:4'], CENTROS, auto).dentro.length
+    const so3 = filtrarPorFilial(movs, ['dep:3'], CENTROS, auto).dentro.length
+    expect(filtrarPorFilial(movs, ['dep:4', 'dep:3'], CENTROS, auto).dentro).toHaveLength(so4 + so3)
+  })
+  it('filial + sem_filial junta o atribuído e o órfão', () => {
+    const r = filtrarPorFilial(movs, ['dep:3', 'sem_filial'], CENTROS, auto)
+    expect(r.dentro.map((m) => m.valorCentavos).sort((a, b) => a - b)).toEqual([20, 30])
+  })
+  it('selecionar TODAS explicitamente equivale a não filtrar', () => {
+    const r = filtrarPorFilial(movs, ['dep:4', 'dep:3', 'sem_filial'], CENTROS, auto)
+    expect(r.dentro).toHaveLength(3)
+    expect(r.fora).toBe(0)
+  })
+  it('id repetido não duplica o movimento', () => {
+    expect(filtrarPorFilial(movs, ['dep:4', 'dep:4'], CENTROS, auto).dentro).toHaveLength(1)
   })
 })

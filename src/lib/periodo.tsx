@@ -1,6 +1,6 @@
 /** @file Filtros do módulo de relatórios (período/regime/filial) — default sem filtro fora dele. */
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react'
-import type { FiltroFilial } from '@/core/filial'
+import { SEM_RECORTE, type FiltroFilial } from '@/core/filial'
 import { hojeLocalIso, INTERVALO_TUDO, intervaloDoPreset, type Intervalo, type Preset, type Regime } from '@/core/periodo'
 import { snapshotApresentacao } from './apresentacaoSnapshot'
 
@@ -13,6 +13,8 @@ interface PeriodoCtx {
   readonly definirCustom: (i: Intervalo) => void
   readonly definirRegime: (r: Regime) => void
   readonly definirFilial: (f: FiltroFilial) => void
+  /** Marca/desmarca uma filial mantendo as demais — a interação natural do multi-select. */
+  readonly alternarFilial: (id: string) => void
 }
 
 const Ctx = createContext<PeriodoCtx | null>(null)
@@ -24,7 +26,7 @@ export function PeriodoProvider({ children }: { children: ReactNode }) {
   const [preset, setPreset] = useState<Preset>(seedIntervalo === INTERVALO_TUDO ? 'tudo' : 'custom')
   const [intervalo, setIntervalo] = useState<Intervalo>(seedIntervalo)
   const [regime, setRegime] = useState<Regime>('competencia')
-  const [filial, setFilial] = useState<FiltroFilial>(null)
+  const [filial, setFilial] = useState<FiltroFilial>(SEM_RECORTE)
   const hojeIso = useMemo(() => hojeLocalIso(), [])
 
   const definirPreset = useCallback(
@@ -39,9 +41,13 @@ export function PeriodoProvider({ children }: { children: ReactNode }) {
     setIntervalo(i)
   }, [])
 
+  const alternarFilial = useCallback((id: string) => {
+    setFilial((atual) => (atual.includes(id) ? atual.filter((x) => x !== id) : [...atual, id]))
+  }, [])
+
   const valor = useMemo<PeriodoCtx>(
-    () => ({ intervalo, regime, preset, filial, definirPreset, definirCustom, definirRegime: setRegime, definirFilial: setFilial }),
-    [intervalo, regime, preset, filial, definirPreset, definirCustom],
+    () => ({ intervalo, regime, preset, filial, definirPreset, definirCustom, definirRegime: setRegime, definirFilial: setFilial, alternarFilial }),
+    [intervalo, regime, preset, filial, definirPreset, definirCustom, alternarFilial],
   )
   return <Ctx.Provider value={valor}>{children}</Ctx.Provider>
 }
@@ -58,5 +64,5 @@ export function usePeriodoOpcional(): { intervalo: Intervalo; regime: Regime; fi
   const c = useContext(Ctx)
   return c
     ? { intervalo: c.intervalo, regime: c.regime, filial: c.filial }
-    : { intervalo: INTERVALO_TUDO, regime: 'competencia', filial: null }
+    : { intervalo: INTERVALO_TUDO, regime: 'competencia', filial: SEM_RECORTE }
 }
