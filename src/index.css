@@ -1515,3 +1515,34 @@ html.light .login-fundo { background-color: rgb(var(--c-bg)); }
 .fixed.inset-0.z-50 > .anim-pop {
   overscroll-behavior: contain;
 }
+
+/* ============================================================
+   §v4 — ENTRADA E SAÍDA DA SESSÃO (revisão 07/08)
+   O login é a única vitrine; a troca login⇄shell ganhou cena própria.
+   Saída usa fill FORWARDS de propósito: o elemento precisa SEGURAR o
+   estado final até o unmount (backwards o faria voltar num flash).
+   ============================================================ */
+@keyframes login-card-out {
+  to { opacity: 0; transform: translateY(-10px) scale(0.98); }
+}
+.login-card-out {
+  animation: login-card-out var(--t-in) var(--ease) forwards;
+  pointer-events: none;
+}
+@keyframes app-entrada {
+  from { opacity: 0; }
+}
+.app-entrada {
+  animation: app-entrada var(--t-in) var(--ease) backwards;
+}
+@keyframes app-saida {
+  to { opacity: 0; transform: translateY(6px); }
+}
+.app-saida {
+  animation: app-saida 400ms var(--ease) forwards;
+  pointer-events: none;
+}
+/* ?static=1: colapsa ao estado final — entrada fica visível; saídas viram corte seco. */
+html[data-static] .app-entrada { animation: none !important; opacity: 1 !important; }
+html[data-static] .login-card-out,
+html[data-static] .app-saida { animation: none !important; }

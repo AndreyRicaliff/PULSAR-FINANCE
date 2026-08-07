@@ -69,8 +69,8 @@ function Palco({ children }: { children?: React.ReactNode }) {
             <stop offset="1" stopColor="#A55EFF" stopOpacity="0" />
           </linearGradient>
         </defs>
-        <polyline points="0,30 180,30 220,26 240,30 256,18 270,42 286,30 400,30 520,30 540,26 560,30 576,18 590,42 606,30 800,30" pathLength={860} />
-        <polyline className="lp-varre" points="0,30 180,30 220,26 240,30 256,18 270,42 286,30 400,30 520,30 540,26 560,30 576,18 590,42 606,30 800,30" pathLength={860} stroke="url(#lpGrad)" fill="none" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+        <polyline points="0,30 117,30 129,19 139,40 149,8 159,44 168,22 176,30 310,30 323,16 333,42 344,4 355,45 365,20 373,30 507,30 519,18 529,41 539,6 549,44 558,21 566,30 800,30" pathLength={860} />
+        <polyline className="lp-varre" points="0,30 117,30 129,19 139,40 149,8 159,44 168,22 176,30 310,30 323,16 333,42 344,4 355,45 365,20 373,30 507,30 519,18 529,41 539,6 549,44 558,21 566,30 800,30" pathLength={860} stroke="url(#lpGrad)" fill="none" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
       {children}
     </>

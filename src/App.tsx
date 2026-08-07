@@ -119,6 +119,13 @@ export function App() {
 }
 
 function Shell({ email }: { email?: string }) {
+  // Saída da sessão (v4): o shell se despede em 400ms ANTES do signOut desmontar tudo —
+  // sem isso o app sumia num corte seco. A entrada é a .app-entrada no root (1× por mount).
+  const [saindo, setSaindo] = useState(false)
+  const sairComCena = () => {
+    setSaindo(true)
+    setTimeout(() => void sair(), 400)
+  }
   // A aba sobrevive a reload/deploy — "voltar pro início sozinho" era exatamente isso.
   const [aba, setAba] = useState<Aba>(() => {
     const salva = localStorage.getItem('lf-aba') as Aba | null
@@ -201,7 +208,7 @@ function Shell({ email }: { email?: string }) {
     <OverridesProvider>
       <BoasVindas />
       {paleta ? <PaletaAbas onIr={setAba} onFechar={() => setPaleta(false)} /> : null}
-      <div className="flex h-dvh overflow-hidden">
+      <div className={`flex h-dvh overflow-hidden app-entrada ${saindo ? 'app-saida' : ''}`}>
         <Sidebar
           ativa={aba}
           onSelecionar={(a) => {
@@ -228,7 +235,7 @@ function Shell({ email }: { email?: string }) {
               tema={tema}
               onAlternarTema={alternarTema}
               email={email}
-              onSair={AUTH_ATIVO ? () => void sair() : undefined}
+              onSair={AUTH_ATIVO ? sairComCena : undefined}
               menuAberto={menuAberto}
               onAlternarMenu={() => setMenuAberto((v) => !v)}
             />

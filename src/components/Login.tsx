@@ -53,6 +53,7 @@ export function Login() {
   const [login, setLogin] = useState('')
   const [senha, setSenha] = useState('')
   const [erro, setErro] = useState('')
+  const [saindo, setSaindo] = useState(false)
   const [carregando, setCarregando] = useState(false)
   const [mostrarSenha, setMostrarSenha] = useState(false)
   const [capsAtivo, setCapsAtivo] = useState(false)
@@ -66,6 +67,10 @@ export function Login() {
     try {
       await entrar(login, senha)
       somSucesso(audio)
+      // Coreografia de saída da cena (v4): o card se recolhe enquanto o listener de auth
+      // troca para o Shell (que entra com .app-entrada). Se o unmount vier antes do fim,
+      // sem problema — é polimento de transição, não gate.
+      setSaindo(true)
     } catch (err) {
       setErro(err instanceof Error ? err.message : 'Falha ao entrar')
     } finally {
@@ -86,7 +91,7 @@ export function Login() {
         <Tagline />
       </header>
 
-      <form onSubmit={submeter} className="login-card anim-pop flex flex-col gap-4">
+      <form onSubmit={submeter} className={`login-card anim-pop flex flex-col gap-4 ${saindo ? 'login-card-out' : ''}`}>
         <div>
           <label className="login-label" htmlFor="campo-login">
             Login
@@ -201,8 +206,8 @@ function Centro({ children }: { children: ReactNode }) {
             <stop offset="1" stopColor="#A55EFF" stopOpacity="0" />
           </linearGradient>
         </defs>
-        <polyline className="lp-base" points="0,30 180,30 220,26 240,30 256,18 270,42 286,30 400,30 520,30 540,26 560,30 576,18 590,42 606,30 800,30" pathLength={860} />
-        <polyline className="lp-varre" points="0,30 180,30 220,26 240,30 256,18 270,42 286,30 400,30 520,30 540,26 560,30 576,18 590,42 606,30 800,30" pathLength={860} stroke="url(#lpGradTela)" fill="none" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+        <polyline className="lp-base" points="0,30 117,30 129,19 139,40 149,8 159,44 168,22 176,30 310,30 323,16 333,42 344,4 355,45 365,20 373,30 507,30 519,18 529,41 539,6 549,44 558,21 566,30 800,30" pathLength={860} />
+        <polyline className="lp-varre" points="0,30 117,30 129,19 139,40 149,8 159,44 168,22 176,30 310,30 323,16 333,42 344,4 355,45 365,20 373,30 507,30 519,18 529,41 539,6 549,44 558,21 566,30 800,30" pathLength={860} stroke="url(#lpGradTela)" fill="none" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
       <CenaPulso />
       <div className="relative flex w-full max-w-[440px] flex-col items-center gap-4">{children}</div>
