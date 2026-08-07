@@ -139,6 +139,12 @@ function Shell({ email }: { email?: string }) {
   // Navegação sem mouse (UX 03/08): Ctrl/Cmd+K abre o quick-switcher; "/" foca a busca
   // visível do painel (âncora data-campo-busca). Nunca sequestra tecla dentro de campo.
   const [paleta, setPaleta] = useState(false)
+  // Gatilho VISÍVEL da sidebar (v4): mesmo quick-switcher, agora descobrível sem saber o atalho.
+  useEffect(() => {
+    const abrir = () => setPaleta(true)
+    window.addEventListener('lf-abrir-paleta', abrir)
+    return () => window.removeEventListener('lf-abrir-paleta', abrir)
+  }, [])
   useEffect(() => {
     const aoTeclar = (e: KeyboardEvent) => {
       const alvo = e.target as HTMLElement | null
@@ -212,20 +218,21 @@ function Shell({ email }: { email?: string }) {
             aria-hidden
           />
         ) : null}
-        <div className="flex min-w-0 flex-1 flex-col">
-          <Topbar
-            titulo={ROTULO_ABA[aba]}
-            tema={tema}
-            onAlternarTema={alternarTema}
-            email={email}
-            onSair={AUTH_ATIVO ? () => void sair() : undefined}
-            menuAberto={menuAberto}
-            onAlternarMenu={() => setMenuAberto((v) => !v)}
-          />
-          <main ref={mainRef} className="fx-grid-bg min-w-0 flex-1 overflow-auto p-4 md:p-8">
-            {/* UM período pro Shell inteiro (padrão líder/beto): trocar de aba não reseta
-                mais o filtro — os painéis deixaram de montar providers próprios. */}
-            <PeriodoProvider>
+        {/* UM período pro Shell inteiro (padrão líder/beto). O provider ABRAÇA a Topbar
+            desde a v4: os chips de atalho (mês/anterior/3m/ano) moram lá e mexem no MESMO
+            filtro global — dois providers dariam dois filtros mentindo um pro outro. */}
+        <PeriodoProvider>
+          <div className="flex min-w-0 flex-1 flex-col">
+            <Topbar
+              titulo={ROTULO_ABA[aba]}
+              tema={tema}
+              onAlternarTema={alternarTema}
+              email={email}
+              onSair={AUTH_ATIVO ? () => void sair() : undefined}
+              menuAberto={menuAberto}
+              onAlternarMenu={() => setMenuAberto((v) => !v)}
+            />
+            <main ref={mainRef} className="fx-grid-bg min-w-0 flex-1 overflow-auto p-4 md:p-8">
               {/* max-width (UX 03/08): em ultrawide as tabelas corriam de ponta a ponta —
                   largura de leitura limitada, centrada; o grid de KPIs não muda. */}
               <div className="mx-auto w-full max-w-[1600px]">
@@ -240,9 +247,9 @@ function Shell({ email }: { email?: string }) {
                   })}
                 </AbaAtivaContext.Provider>
               </div>
-            </PeriodoProvider>
-          </main>
-        </div>
+            </main>
+          </div>
+        </PeriodoProvider>
       </div>
     </OverridesProvider>
   )

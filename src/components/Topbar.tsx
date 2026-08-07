@@ -1,8 +1,10 @@
-/** @file Barra superior: cliente ativo, música ambiente, tema, definir senha e sessão. */
+/** @file Barra superior: cliente ativo, atalhos de período, música, tema, senha e sessão. */
 import { useMemo, useState } from 'react'
+import type { Preset } from '@/core/periodo'
 import { rotulosProvedor } from '@/core/provedor'
 import type { Tenant } from '@/core/tenant'
 import { useClientes } from '@/lib/clientes'
+import { usePeriodoTalvez } from '@/lib/periodo'
 import { useSomMaster } from '@/lib/useMusicaAmbiente'
 import type { Tema } from '@/lib/useTema'
 import { DefinirSenha } from './DefinirSenha.tsx'
@@ -33,10 +35,10 @@ export function Topbar({ titulo, tema, onAlternarTema, email, onSair, menuAberto
         >
           <IconeMenu />
         </button>
-        <div>
-          <p className="text-[11px] font-medium uppercase tracking-wider text-muted">Pulsar Finance</p>
-          <h1 className="text-lg font-bold tracking-tight">{titulo}</h1>
-        </div>
+        {/* Sem o eyebrow "Pulsar Finance" (v4): a marca já está na sidebar — repetir aqui
+            só empurrava o título pra baixo. */}
+        <h1 className="text-lg font-bold tracking-tight">{titulo}</h1>
+        <ChipsPeriodo />
       </div>
       <div className="flex items-center gap-3">
         <SeloSync />
@@ -44,27 +46,62 @@ export function Topbar({ titulo, tema, onAlternarTema, email, onSair, menuAberto
         <ToggleMusica />
         <ToggleTema tema={tema} onAlternar={onAlternarTema} />
         {email ? <span className="hidden text-sm text-muted lg:inline">{email}</span> : null}
+        {/* hover não move layout (v4): cor e borda respondem; scale saiu. */}
         <button
           type="button"
           onClick={() => setSenhaAberta(true)}
           title="Definir senha"
-          className="grid h-9 w-9 place-items-center rounded-lg border border-bd bg-surface text-base text-muted transition-all duration-200 hover:scale-105 hover:text-primary"
+          className="grid h-9 w-9 place-items-center rounded-lg border border-bd bg-surface text-muted transition-colors hover:border-primary hover:text-primary"
         >
-          ⚿
+          <IconeChave />
         </button>
         {onSair ? (
           <button
             type="button"
             onClick={onSair}
             title="Sair"
-            className="grid h-9 w-9 place-items-center rounded-lg border border-bd bg-surface text-base text-muted transition-all duration-200 hover:scale-105 hover:text-danger"
+            className="grid h-9 w-9 place-items-center rounded-lg border border-bd bg-surface text-muted transition-colors hover:border-danger hover:text-danger"
           >
-            ⎋
+            <IconeSair />
           </button>
         ) : null}
       </div>
       {senhaAberta ? <DefinirSenha email={email} onFechar={() => setSenhaAberta(false)} /> : null}
     </header>
+  )
+}
+
+/**
+ * Atalhos do período GLOBAL na barra (v4): o filtro já era um só para o app inteiro —
+ * faltava o acesso de um clique. Some sem provider (HUD kiosk) e em tela estreita.
+ */
+const CHIPS: readonly { preset: Preset; rotulo: string }[] = [
+  { preset: 'mes-atual', rotulo: 'Mês' },
+  { preset: 'mes-anterior', rotulo: 'Anterior' },
+  { preset: '3m', rotulo: '3m' },
+  { preset: 'ano', rotulo: 'Ano' },
+]
+
+function ChipsPeriodo() {
+  const periodo = usePeriodoTalvez()
+  if (!periodo) return null
+  return (
+    <div className="hidden items-center gap-1 lg:flex">
+      {CHIPS.map((c) => (
+        <button
+          key={c.preset}
+          type="button"
+          onClick={() => periodo.definirPreset(c.preset)}
+          className={`rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors ${
+            periodo.preset === c.preset
+              ? 'border-primary bg-primary/15 text-secondary'
+              : 'border-bd bg-surface text-muted hover:border-primary/50 hover:text-text'
+          }`}
+        >
+          {c.rotulo}
+        </button>
+      ))}
+    </div>
   )
 }
 
@@ -92,9 +129,12 @@ function SeletorCliente() {
     [clientes, repetidos],
   )
   return (
-    <label className="flex items-center gap-2 rounded-lg border border-bd bg-surface px-3 py-1.5">
-      <span className="pulso-vivo h-1.5 w-1.5 rounded-full bg-accent shadow-[0_0_8px_rgb(var(--c-accent)/0.6)]" />
-      <span className="text-[11px] font-semibold uppercase tracking-wider text-muted">Cliente</span>
+    <label className="flex items-center gap-2 rounded-lg border border-bd bg-surface px-2.5 py-1.5">
+      {/* Avatar com a inicial, não o dot "ao vivo" (v4): o pulso-vivo é reservado a dado
+          REALTIME de verdade (§5 do index.css) — aqui não há nenhum. */}
+      <span className="grid h-[22px] w-[22px] shrink-0 place-items-center rounded-md bg-primary/15 text-[11px] font-bold text-secondary">
+        {ativo.nome.trim().charAt(0).toUpperCase() || '?'}
+      </span>
       <SeletorBusca
         opcoes={opcoes}
         valor={ativo.id}
@@ -103,7 +143,27 @@ function SeletorCliente() {
         classeGatilho="flex max-w-[44vw] items-center gap-1.5 bg-transparent text-left text-sm font-semibold text-text outline-none sm:max-w-none"
       />
       <TagProvedor provedor={ativo.provedor} />
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" className="text-muted" aria-hidden>
+        <path d="m6 9 6 6 6-6" />
+      </svg>
     </label>
+  )
+}
+
+function IconeChave() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <circle cx="8" cy="15" r="4" />
+      <path d="m10.9 12.1 8.8-8.8M15 7l3 3" />
+    </svg>
+  )
+}
+
+function IconeSair() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" />
+    </svg>
   )
 }
 
@@ -126,7 +186,7 @@ function ToggleMusica() {
       onClick={som.alternar}
       aria-label={som.ligado ? 'Desligar todos os sons' : 'Ligar sons'}
       title={som.ligado ? 'Som: ligado (música, efeitos e intro)' : 'Som: desligado'}
-      className={`fx-press grid h-9 w-9 place-items-center rounded-lg border border-bd bg-surface transition-all duration-200 hover:scale-105 ${
+      className={`fx-press grid h-9 w-9 place-items-center rounded-lg border border-bd bg-surface transition-colors hover:border-primary ${
         som.ligado ? 'text-secondary' : 'text-muted opacity-60'
       }`}
     >
@@ -164,7 +224,7 @@ function ToggleTema({ tema, onAlternar }: { tema: Tema; onAlternar: () => void }
       onClick={onAlternar}
       aria-label={claro ? 'Ativar modo escuro' : 'Ativar modo claro'}
       title={claro ? 'Modo escuro' : 'Modo claro'}
-      className="flex items-center gap-2 rounded-lg border border-bd bg-surface px-3 py-1.5 text-sm font-medium text-muted transition-all duration-200 hover:scale-105 hover:text-text"
+      className="flex items-center gap-2 rounded-lg border border-bd bg-surface px-3 py-1.5 text-sm font-medium text-muted transition-colors hover:border-primary hover:text-text"
     >
       {claro ? <IconeLua /> : <IconeSol />}
       <span className="hidden sm:inline">{claro ? 'Escuro' : 'Claro'}</span>

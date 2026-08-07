@@ -1,6 +1,7 @@
-/** @file Navegação lateral fixa do painel (padrão AG 240px) — acordeão por camada. */
+/** @file Navegação lateral fixa do painel (padrão AG 240px) — todas as funções visíveis. */
 import { comProvedor } from '@/core/provedor'
 import { useProvedor } from '@/lib/clientes'
+import { usePendencias, type Pendencias } from '@/lib/usePendencias'
 import { somSelecao, somTick } from '@/lib/som'
 import { IconeNav } from './IconesNav.tsx'
 import { BotaoNovidades } from './Novidades.tsx'
@@ -38,6 +39,8 @@ interface Secao {
   readonly itens: readonly Item[]
 }
 
+// Títulos em linguagem de FUNÇÃO, não de arquitetura (revisão 07/08): "Camada Semântica"
+// e "Camada Analítica" descreviam o desenho interno do sistema, não o que se faz nelas.
 const SECOES: readonly Secao[] = [
   {
     titulo: 'Visão geral',
@@ -56,7 +59,7 @@ const SECOES: readonly Secao[] = [
     ],
   },
   {
-    titulo: 'Camada Semântica',
+    titulo: 'Classificação',
     itens: [
       { id: 'modelo', rotulo: 'Matriz de Classificações' },
       { id: 'demonstracoes', rotulo: 'Demonstrações (DRE/DFC)' },
@@ -69,11 +72,11 @@ const SECOES: readonly Secao[] = [
     itens: [{ id: 'aprovacoes', rotulo: 'Aprovações de Pagamento' }],
   },
   {
-    titulo: 'Camada Analítica',
+    titulo: 'Relatórios & Cliente',
     itens: [
       { id: 'relatorios', rotulo: 'Relatórios' },
       { id: 'apresentacao', rotulo: 'Apresentações' },
-      { id: 'hud', rotulo: 'HUD do Cliente', divisorAntes: 'Visão do cliente' },
+      { id: 'hud', rotulo: 'Visão do Cliente', divisorAntes: 'Visão do cliente' },
     ],
   },
   {
@@ -89,6 +92,13 @@ export const ROTULO_ABA: Readonly<Record<Aba, string>> = Object.fromEntries(
   SECOES.flatMap((s) => s.itens.map((i) => [i.id, i.rotulo])),
 ) as Record<Aba, string>
 
+/** Qual pendência alimenta o badge de cada item — só itens que têm FILA real. */
+const BADGE_DE: Readonly<Partial<Record<Aba, keyof Pendencias>>> = {
+  aprovacoes: 'aprovacoes',
+  modelo: 'orfas',
+  fornecedores: 'duplicidades',
+}
+
 interface Props {
   readonly ativa: Aba
   readonly onSelecionar: (aba: Aba) => void
@@ -97,6 +107,7 @@ interface Props {
 
 export function Sidebar({ ativa, onSelecionar, aberta }: Props) {
   const { nome: provedor } = useProvedor()
+  const pendencias = usePendencias()
   // Sem acordeão (UX 03/08): o auto-colapso perseguia a aba ativa e fazia a sidebar
   // reflowar a cada troca — mata o vai-e-vem entre 2-3 telas. Tudo visível, zero clique.
   return (
@@ -111,8 +122,9 @@ export function Sidebar({ ativa, onSelecionar, aberta }: Props) {
           <Logo />
         </div>
         <nav className="flex flex-col gap-1.5 overflow-y-auto p-3">
+          <BuscaNav />
           {SECOES.map((secao) => (
-            <Camada key={secao.titulo} secao={secao} ativa={ativa} onSelecionar={onSelecionar} />
+            <Camada key={secao.titulo} secao={secao} ativa={ativa} pendencias={pendencias} onSelecionar={onSelecionar} />
           ))}
         </nav>
         <div className="mt-auto px-3 pb-1 pt-3">
@@ -127,13 +139,36 @@ export function Sidebar({ ativa, onSelecionar, aberta }: Props) {
   )
 }
 
+/**
+ * Gatilho VISÍVEL da paleta de abas. O Ctrl+K sempre existiu ligado no App — mas atalho
+ * invisível é atalho de quem já sabe; o botão é o que faz o resto descobrir que existe.
+ */
+function BuscaNav() {
+  return (
+    <button
+      type="button"
+      onClick={() => window.dispatchEvent(new CustomEvent('lf-abrir-paleta'))}
+      className="mb-1 flex w-full items-center gap-2.5 rounded-lg border border-bd bg-surface2/60 px-3 py-2 text-sm text-muted transition-colors hover:border-primary/50 hover:text-text"
+    >
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden>
+        <circle cx="11" cy="11" r="7" />
+        <path d="m20 20-3.5-3.5" />
+      </svg>
+      <span className="flex-1 text-left">Buscar função…</span>
+      <kbd className="rounded border border-bd bg-surface px-1.5 py-0.5 text-[10px] font-semibold text-muted/80">Ctrl K</kbd>
+    </button>
+  )
+}
+
 function Camada({
   secao,
   ativa,
+  pendencias,
   onSelecionar,
 }: {
   secao: Secao
   ativa: Aba
+  pendencias: Pendencias
   onSelecionar: (aba: Aba) => void
 }) {
   const temAtiva = secao.itens.some((i) => i.id === ativa)
@@ -147,9 +182,18 @@ function Camada({
         {secao.titulo}
       </p>
       <div className="ml-2 flex flex-col gap-0.5 border-l border-bd/60 pb-1 pl-2">
-        {secao.itens.map((item, i) => (
-          <ItemNav key={item.id} item={item} ativo={item.id === ativa} indice={i} onSelecionar={onSelecionar} />
-        ))}
+        {secao.itens.map((item) => {
+          const fila = BADGE_DE[item.id]
+          return (
+            <ItemNav
+              key={item.id}
+              item={item}
+              ativo={item.id === ativa}
+              pendentes={fila ? pendencias[fila] : 0}
+              onSelecionar={onSelecionar}
+            />
+          )
+        })}
       </div>
     </div>
   )
@@ -158,13 +202,13 @@ function Camada({
 function ItemNav({
   item,
   ativo,
-  indice,
+  pendentes,
   onSelecionar,
 }: {
   item: Item
   ativo: boolean
-  /** Posição dentro da seção — vira o prefixo mono 01..0n (§6). */
-  indice: number
+  /** Fila real do item (0 = sem badge — zero NUNCA vira badge). */
+  pendentes: number
   onSelecionar: (aba: Aba) => void
 }) {
   const rotulos = useProvedor()
@@ -182,9 +226,13 @@ function ItemNav({
         aria-current={ativo ? 'page' : undefined}
         className={`nav-item ${ativo ? 'nav-item--ativo' : ''}`}
       >
-        <span className="nav-item__num">{String(indice + 1).padStart(2, '0')}</span>
         <IconeNav aba={item.id} />
         <span className="truncate">{item.rotulo}</span>
+        {pendentes > 0 ? (
+          <span className="ml-auto rounded-full bg-warn/15 px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-warn">
+            {pendentes}
+          </span>
+        ) : null}
       </button>
     </>
   )

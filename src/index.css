@@ -1182,7 +1182,9 @@ html:not([data-static]) .login-cena .pulso-piso span {
 .mk-kpi__valor {
   font-family: var(--f-display);
   font-size: 27px;
-  font-weight: 800;
+  /* 700, não 800 (v4): no claro apagado o extrabold virava mancha; a hierarquia do
+     número-mestre vem do TAMANHO (27px) — o peso a mais só engordava. */
+  font-weight: 700;
   line-height: 1.1;
   font-variant-numeric: tabular-nums;
   color: rgb(var(--c-text));
@@ -1256,25 +1258,16 @@ html:not([data-static]) .login-cena .pulso-piso span {
   transition: color var(--t-fast) var(--ease-soft), padding-left var(--t-fast) var(--ease-soft),
     background-color var(--t-fast) var(--ease-soft);
 }
-.nav-item__num {
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.18em;
-  color: var(--c-ring);
-  font-variant-numeric: tabular-nums;
-  transition: color var(--t-fast) var(--ease-soft);
-}
 .nav-item:hover {
   color: var(--c-lilac);
-  padding-left: 20px; /* +8px — o deslize */
+  padding-left: 16px; /* +4px — o deslize v4 (8 empurrava demais o rótulo) */
   background-color: rgb(var(--c-surface2) / 0.5);
 }
-.nav-item:hover .nav-item__num { color: var(--c-lilac); }
 /* Ativo: barra lateral 3px no gradiente do pulso — a ÚNICA energia vibrante da sidebar. */
 .nav-item--ativo {
   color: rgb(var(--c-text));
   background-color: rgb(112 72 232 / 0.16);
-  padding-left: 20px;
+  padding-left: 16px;
 }
 .nav-item--ativo::before {
   content: '';
@@ -1286,7 +1279,6 @@ html:not([data-static]) .login-cena .pulso-piso span {
   border-radius: 0 3px 3px 0;
   background: var(--grad-pulse);
 }
-.nav-item--ativo .nav-item__num { color: var(--c-lilac); }
 
 /* ============================================================
    §3 — MARCA VIVA: símbolo cardíaco (anel + EKG + batimento)

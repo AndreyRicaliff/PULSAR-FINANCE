@@ -59,6 +59,11 @@ export function usePeriodo(): PeriodoCtx {
   return c
 }
 
+/** Controles completos OU null — para UI opcional (chips da Topbar) que se esconde sem provider. */
+export function usePeriodoTalvez(): PeriodoCtx | null {
+  return useContext(Ctx)
+}
+
 /** Para o pipeline: filtros correntes; sem provider, devolve "tudo" (não filtra nada). */
 export function usePeriodoOpcional(): { intervalo: Intervalo; regime: Regime; filial: FiltroFilial } {
   const c = useContext(Ctx)
