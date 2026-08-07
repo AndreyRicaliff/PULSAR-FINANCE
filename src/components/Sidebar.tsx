@@ -121,7 +121,7 @@ export function Sidebar({ ativa, onSelecionar, aberta }: Props) {
         <div className="border-b border-bd px-6 py-5">
           <Logo />
         </div>
-        <nav className="flex flex-col gap-1.5 overflow-y-auto p-3">
+        <nav className="flex flex-col gap-1 overflow-y-auto p-3">
           <BuscaNav />
           {SECOES.map((secao) => (
             <Camada key={secao.titulo} secao={secao} ativa={ativa} pendencias={pendencias} onSelecionar={onSelecionar} />
@@ -148,7 +148,7 @@ function BuscaNav() {
     <button
       type="button"
       onClick={() => window.dispatchEvent(new CustomEvent('lf-abrir-paleta'))}
-      className="mb-1 flex w-full items-center gap-2.5 rounded-lg border border-bd bg-surface2/60 px-3 py-2 text-sm text-muted transition-colors hover:border-primary/50 hover:text-text"
+      className="mb-1 flex w-full items-center gap-2.5 rounded-lg border border-bd bg-surface2/60 px-3 py-1.5 text-sm text-muted transition-colors hover:border-primary/50 hover:text-text"
     >
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden>
         <circle cx="11" cy="11" r="7" />
@@ -175,7 +175,7 @@ function Camada({
   return (
     <div className="flex flex-col">
       <p
-        className={`px-3 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wider ${
+        className={`px-3 pb-0.5 pt-1.5 text-[11px] font-semibold uppercase tracking-wider ${
           temAtiva ? 'text-secondary' : 'text-muted/70'
         }`}
       >
@@ -215,7 +215,7 @@ function ItemNav({
   return (
     <>
       {item.divisorAntes ? (
-        <p className="px-3 pb-0.5 pt-1.5 text-[10px] font-medium uppercase tracking-wider text-muted/50">
+        <p className="px-3 pb-0.5 pt-1 text-[10px] font-medium uppercase tracking-wider text-muted/50">
           {comProvedor(item.divisorAntes, rotulos)}
         </p>
       ) : null}

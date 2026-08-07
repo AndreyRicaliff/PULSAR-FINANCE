@@ -112,7 +112,8 @@ export function BotaoNovidades() {
   return (
     <>
       <button type="button" onClick={abrir} className="nav-item w-full">
-        <span className="nav-item__num">✦</span>
+        {/* A classe nav-item__num morreu com a numeração da sidebar (v4) — o ✦ vira glifo próprio. */}
+        <span className="text-[11px] font-semibold text-[color:var(--c-lilac)]" aria-hidden>✦</span>
         <span className="flex-1 truncate text-left">Novidades</span>
         {temNaoLido ? <i className="mk-dot shrink-0" aria-label="há novidades não lidas" /> : null}
       </button>
