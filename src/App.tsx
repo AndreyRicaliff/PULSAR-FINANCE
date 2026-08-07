@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState, type ComponentType } from 'react'
 import { useTema } from './lib/useTema'
 import { AbaAtivaContext } from './lib/abaAtiva'
 import { useAutoScrollDrag } from './lib/useAutoScrollDrag'
@@ -25,42 +25,58 @@ import { Carregando, Login } from './components/Login.tsx'
 import { ConviteInterstitial, LinkExpirado } from './components/ConviteFluxo.tsx'
 import { RecuperarSenha } from './components/RecuperarSenha.tsx'
 import { PaletaAbas } from './components/PaletaAbas.tsx'
-import { CadastroPanel } from './components/CadastroPanel.tsx'
-import { InicioPanel } from './components/InicioPanel.tsx'
-import { CategoriasPanel } from './components/CategoriasPanel.tsx'
-import { ValoresPanel } from './components/ValoresPanel.tsx'
-import { FornecedoresPanel } from './components/FornecedoresPanel.tsx'
-import { ContasPagarPanel, ContasReceberPanel } from './components/ContasPanel.tsx'
-import { LancamentosManuaisPanel } from './components/LancamentosManuaisPanel.tsx'
-import { AprovacoesPanel } from './components/AprovacoesPanel.tsx'
-import { ProjecaoPanel } from './components/ProjecaoPanel.tsx'
-import { ComparativoCapexPanel } from './components/ComparativoCapexPanel.tsx'
-import { ModeloPanel } from './components/ModeloPanel.tsx'
-import { DemonstracoesPanel } from './components/DemonstracoesPanel.tsx'
-import { RelatoriosPanel } from './components/RelatoriosPanel.tsx'
-import { ExploradorApresentacoes } from './components/apresentacoes/ExploradorApresentacoes.tsx'
-import { ConfiguracoesPanel } from './components/ConfiguracoesPanel.tsx'
-import { AcessosPanel } from './components/AcessosPanel.tsx'
+/**
+ * Painel carregado SOB DEMANDA. Eles são exports nomeados, não default, então a adaptação
+ * mora aqui em vez de repetir `.then((m) => ({ default: m.X }))` dezesseis vezes.
+ *
+ * `K extends keyof M` não é enfeite: sem ele o nome seria uma string solta e um typo só
+ * apareceria em runtime, ao abrir aquela aba — o `tsc` passaria limpo. Com o genérico, o
+ * TypeScript resolve o tipo do módulo importado e recusa nome que não existe lá.
+ */
+function sobDemanda<M extends Record<string, unknown>, K extends keyof M>(
+  importar: () => Promise<M>,
+  nome: K,
+): ComponentType {
+  return lazy(async () => ({ default: (await importar())[nome] as ComponentType }))
+}
 
-const PAINEIS: Readonly<Record<Aba, () => JSX.Element>> = {
-  inicio: InicioPanel,
-  cadastro: CadastroPanel,
-  plano: CategoriasPanel,
-  valores: ValoresPanel,
-  fornecedores: FornecedoresPanel,
-  pagar: ContasPagarPanel,
-  receber: ContasReceberPanel,
-  manuais: LancamentosManuaisPanel,
-  aprovacoes: AprovacoesPanel,
-  projecao: ProjecaoPanel,
-  capexcomp: ComparativoCapexPanel,
-  modelo: ModeloPanel,
-  demonstracoes: DemonstracoesPanel,
-  relatorios: () => <RelatoriosPanel inicial="visao" />,
-  apresentacao: ExploradorApresentacoes,
+/**
+ * O app inteiro cabia num chunk só de 670 kB: quem abria a área do CLIENTE baixava os 18
+ * painéis administrativos para ver um HUD. Cada painel vira uma entrada própria.
+ *
+ * Dois pontos que NÃO podem virar lazy, e o motivo:
+ *
+ * - `hud` aponta para o `HudCliente` importado estaticamente lá em cima, porque ele também é
+ *   a tela inteira nos modos cliente/kiosk — adiar aqui não economizaria nada e ainda poria
+ *   um Suspense no caminho principal do cliente.
+ * - O HTML offline da apresentação é UM arquivo: o exportador inlina os `script[src]` do
+ *   index.html e não tem como buscar chunk pela rede (`file://`). Isso continua correto
+ *   porque o Vite mantém no chunk do entry tudo que é alcançável ESTATICAMENTE a partir
+ *   dele — e o `Slideshow` alcança `ConteudoSecao` → relatórios, `IndicadoresPanel` e
+ *   `ProjecaoPanel`. Esses três seguem no entry mesmo declarados aqui; o `lazy` deles é
+ *   inofensivo, resolve para o próprio chunk. Se um dia o Slideshow passar a fazer
+ *   `import()` de verdade, a apresentação offline quebra — é a linha vermelha.
+ */
+const PAINEIS: Readonly<Record<Aba, ComponentType>> = {
+  inicio: sobDemanda(() => import('./components/InicioPanel.tsx'), 'InicioPanel'),
+  cadastro: sobDemanda(() => import('./components/CadastroPanel.tsx'), 'CadastroPanel'),
+  plano: sobDemanda(() => import('./components/CategoriasPanel.tsx'), 'CategoriasPanel'),
+  valores: sobDemanda(() => import('./components/ValoresPanel.tsx'), 'ValoresPanel'),
+  fornecedores: sobDemanda(() => import('./components/FornecedoresPanel.tsx'), 'FornecedoresPanel'),
+  pagar: sobDemanda(() => import('./components/ContasPanel.tsx'), 'ContasPagarPanel'),
+  receber: sobDemanda(() => import('./components/ContasPanel.tsx'), 'ContasReceberPanel'),
+  manuais: sobDemanda(() => import('./components/LancamentosManuaisPanel.tsx'), 'LancamentosManuaisPanel'),
+  aprovacoes: sobDemanda(() => import('./components/AprovacoesPanel.tsx'), 'AprovacoesPanel'),
+  projecao: sobDemanda(() => import('./components/ProjecaoPanel.tsx'), 'ProjecaoPanel'),
+  capexcomp: sobDemanda(() => import('./components/ComparativoCapexPanel.tsx'), 'ComparativoCapexPanel'),
+  modelo: sobDemanda(() => import('./components/ModeloPanel.tsx'), 'ModeloPanel'),
+  demonstracoes: sobDemanda(() => import('./components/DemonstracoesPanel.tsx'), 'DemonstracoesPanel'),
+  // `inicial` já tem 'visao' como padrão — o wrapper anterior só repetia o default.
+  relatorios: sobDemanda(() => import('./components/RelatoriosPanel.tsx'), 'RelatoriosPanel'),
+  apresentacao: sobDemanda(() => import('./components/apresentacoes/ExploradorApresentacoes.tsx'), 'ExploradorApresentacoes'),
   hud: () => <HudCliente />,
-  acessos: AcessosPanel,
-  config: ConfiguracoesPanel,
+  acessos: sobDemanda(() => import('./components/AcessosPanel.tsx'), 'AcessosPanel'),
+  config: sobDemanda(() => import('./components/ConfiguracoesPanel.tsx'), 'ConfiguracoesPanel'),
 }
 
 export function App() {
@@ -116,6 +132,16 @@ export function App() {
     </ClientesProvider>
     </>
   )
+}
+
+/**
+ * Espera do chunk do painel. Deliberadamente discreto — `Carregando` é o splash de boot, com
+ * fundo de login e min-h-screen; dentro do <main> ele pareceria que o app reiniciou. O chunk
+ * chega em milissegundos numa rede normal, e o que não pode acontecer é a troca de aba
+ * piscar uma tela cheia.
+ */
+function PainelCarregando() {
+  return <p className="p-8 text-sm text-muted">Carregando…</p>
 }
 
 function Shell({ email }: { email?: string }) {
@@ -234,7 +260,13 @@ function Shell({ email }: { email?: string }) {
                     const Painel = PAINEIS[a]
                     return (
                       <div key={a} className={a === aba ? 'anim-tab-in' : 'hidden'}>
-                        <Painel />
+                        {/* Um Suspense POR painel, não um em volta da lista: com um só,
+                            carregar uma aba nova suspenderia o grupo inteiro e trocaria as
+                            já visitadas pelo fallback — matando o "voltar é instantâneo"
+                            que manter as abas montadas existe para dar. */}
+                        <Suspense fallback={<PainelCarregando />}>
+                          <Painel />
+                        </Suspense>
                       </div>
                     )
                   })}
