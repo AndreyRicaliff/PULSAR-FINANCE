@@ -155,11 +155,11 @@
   /* fill backwards (não both): o estado final é o natural, e reter transform após a
      animação criaria containing block — position:fixed descendente prenderia no painel. */
   .anim-fade-up {
-    animation: fade-up 0.32s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+    animation: fade-up var(--t-in) var(--ease) backwards;
   }
 
   .anim-fade-in {
-    animation: fade-in 0.25s ease backwards;
+    animation: fade-in var(--t-in) var(--ease) backwards;
   }
 
   @keyframes grow-y {
@@ -192,22 +192,22 @@
   }
 
   .anim-grow-y {
-    animation: grow-y 0.55s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+    animation: grow-y var(--t-data) var(--ease) backwards;
     transform-origin: bottom;
   }
 
   .anim-grow-x {
-    animation: grow-x 0.6s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+    animation: grow-x var(--t-data) var(--ease) backwards;
     transform-origin: left;
   }
 
   .anim-pop {
-    animation: pop 0.3s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+    animation: pop var(--t-in) var(--ease) backwards;
   }
 
   /* Card que reage ao mouse: sobe e ganha sombra colorida suave. */
   .card-hover {
-    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    transition: transform var(--t-micro) var(--ease), box-shadow var(--t-micro) var(--ease), border-color var(--t-micro) var(--ease);
   }
 
   .card-hover:hover {
@@ -216,36 +216,26 @@
     border-color: rgb(var(--c-primary) / 0.4);
   }
 
-  /* Entrada escalonada de filhos (listas, grade de KPIs). */
+  /* Entrada escalonada de filhos (listas, grade de KPIs) — v4: passo de 40ms com TETO
+     no 6º filho (todos os seguintes entram juntos em 0.2s). A escada até o 10º fazia
+     lista longa virar fila de espera. */
   .anim-stagger > * {
-    animation: fade-up 0.32s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+    animation: fade-up var(--t-in) var(--ease) backwards;
   }
   .anim-stagger > *:nth-child(2) {
-    animation-delay: 0.06s;
+    animation-delay: 40ms;
   }
   .anim-stagger > *:nth-child(3) {
-    animation-delay: 0.12s;
+    animation-delay: 80ms;
   }
   .anim-stagger > *:nth-child(4) {
-    animation-delay: 0.18s;
+    animation-delay: 120ms;
   }
   .anim-stagger > *:nth-child(5) {
-    animation-delay: 0.24s;
+    animation-delay: 160ms;
   }
-  .anim-stagger > *:nth-child(6) {
-    animation-delay: 0.3s;
-  }
-  .anim-stagger > *:nth-child(7) {
-    animation-delay: 0.36s;
-  }
-  .anim-stagger > *:nth-child(8) {
-    animation-delay: 0.42s;
-  }
-  .anim-stagger > *:nth-child(9) {
-    animation-delay: 0.48s;
-  }
-  .anim-stagger > *:nth-child(10) {
-    animation-delay: 0.54s;
+  .anim-stagger > *:nth-child(n + 6) {
+    animation-delay: 200ms;
   }
 
   /* Troca de aba: fade + deslocamento. O blur saiu — chamava atenção para a transição
@@ -261,7 +251,7 @@
     }
   }
   .anim-tab-in {
-    animation: tab-in 0.28s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+    animation: tab-in var(--t-in) var(--ease) backwards;
   }
 
   /* Drill-down (abrir linha/grupo da DRE). */
@@ -276,7 +266,7 @@
     }
   }
   .anim-expand {
-    animation: expand 0.22s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+    animation: expand var(--t-in) var(--ease) backwards;
     transform-origin: top;
   }
 
@@ -845,7 +835,7 @@ html:not([data-static]) .login-cena .pulso-piso span {
 .fx-grid-bg::after { display: none !important; animation: none !important; }
 
 /* troca de aba sem blur */
-.anim-tab-in { animation: fade-up 0.28s cubic-bezier(0.22, 1, 0.36, 1) backwards !important; }
+.anim-tab-in { animation: fade-up var(--t-in) var(--ease) backwards !important; }
 
 /* tilt 3D do card → estático */
 .tilt-3d { transform: none !important; }
