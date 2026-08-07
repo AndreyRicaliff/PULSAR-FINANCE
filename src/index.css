@@ -12,17 +12,16 @@
     --c-danger: 225 116 107;
     --c-warn: 201 162 39;
     --c-info: 145 135 182;
-    --c-bg: 14 14 22;
+    --c-bg: 13 13 21; /* #0D0D15 — v4: um passo mais fundo, surface ganha relevo */
     --c-surface: 20 20 40;
-    --c-surface2: 29 27 46;
+    --c-surface2: 28 26 46; /* #1C1A2E */
     --c-surface3: 45 42 66;
-    --c-bd: 60 56 84;
-    --c-text: 234 238 246;
-    /* Era 145 135 182 (contraste 5,47 sobre o surface) — e /80 num subgrupo caía para 3,94,
-       REPROVANDO o mínimo AA de 4,5 para texto normal. Era isso o "difícil de ler no escuro"
-       (report 06/08): o problema estava no token, não em cada tela. 8,05 = AAA, e ainda
-       guarda distância do --c-text (15,56) para a hierarquia não achatar. */
-    --c-muted: 176 168 206;
+    --c-bd: 46 43 69; /* #2E2B45 — hairline mais quieta (era 60 56 84); divisória, não moldura */
+    --c-text: 233 237 246;
+    /* História do muted: 145 135 182 dava 5,47 e /80 caía a 3,94 — REPROVANDO AA (report
+       06/08, corrigido para 176 168 206 = 8,05). O v4 assenta em 173 166 203 (#ADA6CB):
+       7,84 na surface e 5,44 mesmo a /80 — conforto sem achatar a hierarquia com o text. */
+    --c-muted: 173 166 203;
     color-scheme: dark;
 
     /* v3.1 — tokens de apoio (§1). Cores-base acima já estavam em v3.1: conferidas
@@ -35,12 +34,21 @@
     --c-ring: #8b5cf6; /* traço do anel do símbolo */
     --c-lilac: #a78bfa; /* lilás vivo — hover de menu, dots, satélites */
 
-    /* Vocabulário de movimento — um só no projeto inteiro (§4). */
-    --ease-soft: cubic-bezier(0.22, 1, 0.36, 1);
+    /* Vocabulário de movimento v4 — um easing, quatro papéis de duração (revisão 07/08):
+       micro-interação (hover/press) · entrada de UI · entrada de DADO (gráfico/tabela) ·
+       cena (login/troca de tema). Sempre `fill: backwards`, nunca `both` (retém transform
+       e quebra position:fixed descendente). */
+    --ease: cubic-bezier(0.22, 1, 0.36, 1);
+    --ease-soft: var(--ease); /* alias legado — CSS existente continua válido */
     --ease-expo: cubic-bezier(0.16, 1, 0.3, 1);
-    --t-fast: 0.3s;
-    --t-med: 0.6s;
-    --t-slow: 1s;
+    --t-micro: 120ms;
+    --t-in: 240ms;
+    --t-data: 480ms;
+    --t-cena: 700ms;
+    /* aliases legados (retimed): quem usava fast/med/slow herda o papel equivalente */
+    --t-fast: var(--t-in);
+    --t-med: var(--t-data);
+    --t-slow: var(--t-cena);
 
     /* Design v3 sóbrio: fx neutralizados na origem (neon/edge/sheen/grid a zero). */
     --fx-neon-text: 0 0 0;
@@ -53,21 +61,26 @@
     --fx-border-gradient: rgb(var(--c-bd));
   }
 
+  /* Claro v4 (revisão 07/08): "apagado" — tinta ARDÓSIA, sem preto e sem bloco escuro.
+     Todo valor daqui foi medido nesta casa (WCAG), não copiado: o pacote de design alegava
+     warn 4,6 e muted 4,9 que na régua davam 3,35 e 4,33 sobre o bg — corrigidos abaixo
+     preservando o matiz. Pior fundo (bg) é a referência. */
   .light {
-    --c-bg: 248 247 251;
+    --c-bg: 247 246 250; /* #F7F6FA */
     --c-surface: 253 252 255;
     --c-surface2: 245 242 251;
     --c-surface3: 239 234 247;
-    --c-bd: 231 232 236;
-    --c-text: 20 20 40;
-    --c-muted: 107 107 128;
-    /* Nível intermediário text↔muted (10,13 = AAA). Existia só no escuro; sem o par claro,
-       `text-soft` viraria herança silenciosa no tema claro. */
-    --c-soft: 62 62 86;
+    --c-bd: 233 231 241; /* #E9E7F1 — hairline mais quieta que a v3 */
+    --c-text: 62 59 84; /* #3E3B54 ardósia · 10,5 AAA — o "sem preto" do claro apagado */
+    --c-muted: 115 109 143; /* #736D8F · 4,53 no bg (proposta 767093 dava 4,33 — reprovava) */
+    --c-soft: 86 82 115; /* #565273 · 7,2 — degrau intermediário text↔muted */
     --c-primary: 64 28 127;
     --c-secondary: 111 90 166;
-    --c-accent: 46 125 91;
-    --c-danger: 192 86 78;
+    --c-accent: 55 121 91; /* #37795B · 5,07 */
+    /* Par claro do warn — NOVO. O warn escuro (201 162 39) dá 2,6 sobre branco: toda tela
+       clara com âmbar estava fora de norma. (Proposta A8863B dava 3,35 — também reprovava.) */
+    --c-warn: 134 107 47; /* #866B2F · 4,69 no bg */
+    --c-danger: 182 82 74; /* #B6524A · 4,54 (o antigo 192 86 78 dava 4,39 — limítrofe) */
     color-scheme: light;
 
     /* Design v3 sóbrio: sem neon/sheen no claro também. */
