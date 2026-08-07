@@ -52,7 +52,7 @@ export function ResumoPeriodo({ rotulo, contexto, movimentos, regime = 'competen
         <button
           type="button"
           onClick={() => setComparando(true)}
-          className="fx-sheen fx-press rounded-lg bg-gradient-to-r from-primary to-secondary px-3.5 py-2 text-xs font-semibold text-white transition-opacity hover:opacity-90"
+          className="fx-press rounded-lg bg-gradient-to-r from-primary to-secondary px-3.5 py-2 text-xs font-semibold text-white transition-opacity hover:opacity-90"
         >
           ⇆ Comparativo
         </button>

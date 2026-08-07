@@ -103,7 +103,7 @@ export function RelatorioApresentacao() {
           type="button"
           onClick={gerar}
           disabled={estado.tipo === 'gerando' || api.estado.roteiro.length === 0}
-          className="fx-sheen fx-press rounded-lg bg-gradient-to-r from-primary to-secondary px-6 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
+          className="fx-press rounded-lg bg-gradient-to-r from-primary to-secondary px-6 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
         >
           {estado.tipo === 'gerando' ? 'Gerando…' : 'Gerar e baixar (.html)'}
         </button>

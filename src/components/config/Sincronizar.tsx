@@ -55,7 +55,7 @@ export function Sincronizar() {
             type="button"
             onClick={() => void sync.sincronizar()}
             disabled={rodando}
-            className="fx-sheen fx-press rounded-lg bg-gradient-to-r from-primary to-secondary px-5 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
+            className="fx-press rounded-lg bg-gradient-to-r from-primary to-secondary px-5 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
           >
             {rodando ? (
               <span className="flex items-center gap-2">

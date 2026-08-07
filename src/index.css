@@ -341,26 +341,12 @@
     75% {
       transform: translateX(4px);
     }
-  }
-  @keyframes sparkle {
-    0%,
-    100% {
-      transform: scale(1) rotate(0deg);
-    }
-    50% {
-      transform: scale(1.15) rotate(8deg);
-    }
-  }
-  .anim-flash {
+  }  .anim-flash {
     animation: flash 0.8s ease-out backwards;
   }
   .anim-shake {
     animation: shake 0.3s ease-in-out backwards;
   }
-  .anim-sparkle {
-    animation: sparkle 1.6s ease-out infinite;
-  }
-
   /* Loops — só estado vivo/processando. */
   @keyframes spin {
     to {
@@ -375,17 +361,7 @@
     50% {
       opacity: 0.35;
     }
-  }
-  @keyframes glow-pulse {
-    0%,
-    100% {
-      box-shadow: 0 0 0 0 rgb(var(--c-primary) / 0);
-    }
-    50% {
-      box-shadow: 0 0 24px -4px rgb(var(--c-primary) / 0.5);
-    }
-  }
-  @keyframes shimmer {
+  }  @keyframes shimmer {
     0% {
       background-position: -150% 0;
     }
@@ -398,11 +374,7 @@
   }
   .anim-pulse {
     animation: pulse 1.8s ease-out infinite;
-  }
-  .anim-glow-pulse {
-    animation: glow-pulse 2s ease-out infinite;
-  }
-  .anim-skeleton {
+  }  .anim-skeleton {
     background: linear-gradient(
       90deg,
       rgb(var(--c-surface2)) 25%,
@@ -440,7 +412,7 @@
     pointer-events: none;
     z-index: 1;
   }
-  .fx-sheen:hover::after {
+  .login-cena .fx-sheen:hover::after {
     animation: sheen var(--fx-sheen-dur) cubic-bezier(0.22, 1, 0.36, 1);
   }
 
@@ -735,11 +707,6 @@
   }
 
   /* Card com tilt 3D (transform setado via JS no mousemove — GPU only). */
-  .tilt-3d {
-    transition: transform 0.18s ease-out;
-    will-change: transform;
-  }
-
   /* Ponto "ao vivo" pulsante. */
   @keyframes pulso-vivo {
     0%,
@@ -759,22 +726,6 @@
 
 /* Acessibilidade: colapsa toda animação ao estado final (MOTION_GUIDE). */
 
-
-/* ── Console FX (PS5/Xbox): ondas ambientes + tile focus ── */
-.fx-grid-bg { position: relative; }
-.fx-grid-bg::after {
-  content: ''; position: fixed; inset: 0; z-index: 0; pointer-events: none;
-  background:
-    radial-gradient(42vmax 42vmax at 12% 8%, rgb(var(--c-primary) / 0.10), transparent 70%),
-    radial-gradient(38vmax 38vmax at 88% 92%, rgb(var(--c-secondary) / 0.08), transparent 70%);
-  animation: fx-ondas 38s cubic-bezier(.45, 0, .55, 1) infinite alternate;
-  will-change: background-position;
-}
-@keyframes fx-ondas {
-  0%   { background-position: 0 0, 0 0; }
-  100% { background-position: 5vmax -4vmax, -4vmax 4vmax; }
-}
-.fx-grid-bg > * { position: relative; z-index: 1; }
 .fx-tile { transition: transform .18s cubic-bezier(.22, 1, .36, 1), box-shadow .18s cubic-bezier(.22, 1, .36, 1); }
 .fx-tile:hover { transform: translateY(-2px) scale(1.01); box-shadow: 0 0 0 1.5px rgb(var(--c-primary) / 0.35), 0 10px 32px rgb(var(--c-primary) / 0.16); }
 
@@ -786,7 +737,7 @@
    Bloco sem @layer → vence as utilities por prioridade de cascata.
    ============================================================ */
 /* glow / pulso decorativo infinito → parado */
-.anim-glow-pulse, .anim-sparkle, .pulso-respira, .pulso-vivo,
+.pulso-respira, .pulso-vivo,
 .pulso-borda::before, .pulso-aneis span, .pulso-piso span,
 .boot-halo-fin, .boot-anel-fin, .boot-word-pulse, .ekg-ambiente path,
 .orbe { animation: none !important; }
@@ -836,9 +787,6 @@ html:not([data-static]) .login-cena .pulso-piso span {
 
 /* troca de aba sem blur */
 .anim-tab-in { animation: fade-up var(--t-in) var(--ease) backwards !important; }
-
-/* tilt 3D do card → estático */
-.tilt-3d { transform: none !important; }
 
 /* rede de segurança: mata TODA animação em loop residual.
    Entradas seguem (play 1x); spinners de loading restaurados. */
@@ -1420,9 +1368,7 @@ main h1 + p {
 html[data-static] *,
 html[data-static] *::before,
 html[data-static] *::after { animation: none !important; transition: none !important; }
-html[data-static] .anim-fade-up, html[data-static] .anim-fade-in, html[data-static] .anim-pop, html[data-static] .anim-grow-y, html[data-static] .anim-grow-x, html[data-static] .anim-draw, html[data-static] .anim-draw-line, html[data-static] .anim-area-fade, html[data-static] .anim-dot-pop, html[data-static] .anim-donut-fatia, html[data-static] .anim-donut-total, html[data-static] .anim-tab-in, html[data-static] .anim-expand, html[data-static] .anim-flash, html[data-static] .anim-shake, html[data-static] .anim-sparkle, html[data-static] .anim-skeleton, html[data-static] .anim-spin, html[data-static] .anim-pulse, html[data-static] .anim-glow-pulse, html[data-static] .anim-stagger > *, html[data-static] .fx-sheen:hover::after, html[data-static] .pulso-aneis span, html[data-static] .pulso-respira, html[data-static] .pulso-borda::before, html[data-static] .pulso-halo, html[data-static] .pulso-vivo, html[data-static] .pulso-piso span, html[data-static] .orbe, html[data-static] .ekg-ambiente path { animation: none !important; }
-html[data-static] .tilt-3d { transition: none !important;
-    transform: none !important; }
+html[data-static] .anim-fade-up, html[data-static] .anim-fade-in, html[data-static] .anim-pop, html[data-static] .anim-grow-y, html[data-static] .anim-grow-x, html[data-static] .anim-draw, html[data-static] .anim-draw-line, html[data-static] .anim-area-fade, html[data-static] .anim-dot-pop, html[data-static] .anim-donut-fatia, html[data-static] .anim-donut-total, html[data-static] .anim-tab-in, html[data-static] .anim-expand, html[data-static] .anim-flash, html[data-static] .anim-shake, html[data-static] .anim-skeleton, html[data-static] .anim-spin, html[data-static] .anim-pulse, html[data-static] .anim-stagger > *, html[data-static] .login-cena .fx-sheen:hover::after, html[data-static] .pulso-aneis span, html[data-static] .pulso-respira, html[data-static] .pulso-borda::before, html[data-static] .pulso-halo, html[data-static] .pulso-vivo, html[data-static] .pulso-piso span, html[data-static] .orbe, html[data-static] .ekg-ambiente path { animation: none !important; }
 html[data-static] .anim-fade-up, html[data-static] .anim-pop, html[data-static] .anim-grow-y, html[data-static] .anim-grow-x, html[data-static] .anim-tab-in, html[data-static] .anim-expand, html[data-static] .anim-stagger > * { opacity: 1 !important;
     transform: none !important;
     filter: none !important; }
