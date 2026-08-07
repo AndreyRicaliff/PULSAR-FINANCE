@@ -121,8 +121,12 @@
   }
 
   /* Transição suave ao alternar tema. */
-  body,
-  body * {
+  /* Transição de cor SÓ durante a troca de tema (portão .tema-anima, ligado por useTema
+     por ~350ms). A regra antiga `body, body *` animava TODO elemento do documento a cada
+     mudança de estilo — jank visível em tabela grande, pago o tempo inteiro por um efeito
+     que só importa no toggle. */
+  html.tema-anima body,
+  html.tema-anima body * {
     transition: background-color 0.25s ease, border-color 0.25s ease, color 0.2s ease;
   }
 }

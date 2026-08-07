@@ -11,10 +11,17 @@ function inicial(): Tema {
   return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'
 }
 
+let timerAnima: ReturnType<typeof setTimeout> | null = null
+
 function aplicar(tema: Tema): void {
   const html = document.documentElement
+  // Portão da transição de cor: a regra global `body *` saiu do CSS (jank permanente em
+  // tabela grande) e só volta durante a troca — 350ms cobre os 0.25s da transição.
+  html.classList.add('tema-anima')
   html.classList.toggle('light', tema === 'light')
   html.classList.toggle('dark', tema === 'dark')
+  if (timerAnima) clearTimeout(timerAnima)
+  timerAnima = setTimeout(() => html.classList.remove('tema-anima'), 350)
 }
 
 export function useTema(): readonly [Tema, () => void] {
