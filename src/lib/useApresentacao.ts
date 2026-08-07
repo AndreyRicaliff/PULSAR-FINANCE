@@ -1,7 +1,6 @@
 /** @file Estado editável da Apresentação por cliente: capa + roteiro ordenado (slides de seção e livres). */
 import { useCallback } from 'react'
 import {
-  ROTEIRO_PADRAO,
   type CapaConfig,
   type EstadoApresentacao,
   type SecaoSlideId,
@@ -9,26 +8,11 @@ import {
 } from '@/components/apresentacao/tipos'
 import { useChaveCliente } from './clientes'
 import { useEstadoSincronizado } from './persistencia'
+// normalizar mora fora do hook: o explorador precisa dele para comparar o roteiro em edição
+// com o doc do banco ANTES de sobrescrever (ver rascunhoApresentacao).
+import { normalizarApresentacao as normalizar } from './rascunhoApresentacao'
 
 const BASE = 'apresentacao-v2'
-
-function normalizar(bruto: unknown): EstadoApresentacao {
-  const e = (bruto ?? {}) as Partial<EstadoApresentacao>
-  return {
-    capa: { titulo: '', subtitulo: '', elaboradoPor: 'AG Consultoria', ...e.capa },
-    roteiro: e.roteiro?.length ? e.roteiro : ROTEIRO_PADRAO,
-    periodo: { de: e.periodo?.de ?? null, ate: e.periodo?.ate ?? null },
-    // null = herda o tema padrão da EMPRESA (ficha); só a escolha explícita viaja aqui.
-    tema: e.tema ?? null,
-  }
-}
-
-/**
- * Estado de uma apresentação recém-criada. Existe para o INSERT gravar o roteiro padrão em
- * vez de `{}`: apresentação criada e não salva ficava vazia no banco para sempre (HOPE PIZZAS,
- * 04/08) e o card dizia "nova · 0 slides" mesmo depois de editada na tela.
- */
-export const estadoInicialApresentacao = (): EstadoApresentacao => normalizar(null)
 
 export interface ApresentacaoApi {
   readonly estado: EstadoApresentacao
