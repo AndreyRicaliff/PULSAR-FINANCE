@@ -125,6 +125,30 @@ function Resumo({ info }: { info: InfoPeriodo }) {
         {pctData}% têm data no regime “{info.regime}”
         {baixaCobertura ? ' — período e projeção cobrem só esse subconjunto' : ''}
       </span>
+      <AvisoAncoragem info={info} />
     </div>
+  )
+}
+
+/**
+ * O aviso que "100% com data" escondia: em competência, evento de extrato (sem emissão)
+ * ancora pela data de PAGAMENTO. Medido em prod (07/08): 94–99,9% dos lançamentos em 4
+ * tenants Omie — a DRE desses clientes é, na prática, regime de caixa. Isso não é erro do
+ * app (a alternativa era o evento sumir da série), mas a equipe PRECISA ver quando o mês
+ * que ela lê está ancorado pelo caixa — "registro que muda de mês" nasce exatamente aqui.
+ */
+function AvisoAncoragem({ info }: { info: InfoPeriodo }) {
+  const { emprestadas, semData, total } = info.ancoragem
+  if (!total || info.regime !== 'competencia' || (emprestadas === 0 && semData === 0)) return null
+  const pct = Math.round((emprestadas / total) * 100)
+  return (
+    <span
+      className={pct >= 50 ? 'text-warn' : ''}
+      title="Lançamentos de extrato bancário não têm data de emissão — a única data real deles é a do pagamento. Nesses casos a competência é ancorada pelo caixa."
+    >
+      {emprestadas > 0 ? `${emprestadas} (${pct}%) ancorados pela data de pagamento — extrato sem emissão` : null}
+      {emprestadas > 0 && semData > 0 ? ' · ' : null}
+      {semData > 0 ? `${semData} sem data utilizável` : null}
+    </span>
   )
 }

@@ -4,7 +4,7 @@
  * e, como sua categoria pode não estar mapeada, cai naturalmente em "a conciliar".
  * Import relativo (sem alias @) para rodar também no Deno da Edge Function.
  */
-import type { Movimento } from './movimento.ts'
+import { chaveMovimento, type Movimento } from './movimento.ts'
 
 export interface ResultadoSync {
   readonly movimentos: readonly Movimento[]
@@ -47,18 +47,23 @@ export function mesclarMovimentos(
   atuais: readonly Movimento[],
   recebidos: readonly Movimento[],
 ): ResultadoSync {
-  const porId = new Map(atuais.map((m) => [m.idTitulo, m]))
+  // chaveMovimento, NUNCA idTitulo cru: 68.696 eventos de extrato em prod têm idTitulo '0' —
+  // um Map por idTitulo colapsaria todos numa entrada só e o merge apagaria o extrato inteiro
+  // do tenant. Mina desarmada em 07/08 ANTES do primeiro chamador (a função era exportada e
+  // ainda sem uso; o comentário do arquivo já prometia rodar na edge).
+  const porId = new Map(atuais.map((m) => [chaveMovimento(m), m]))
   let novos = 0
   let atualizados = 0
   for (const novo of recebidos) {
-    const atual = porId.get(novo.idTitulo)
+    const chave = chaveMovimento(novo)
+    const atual = porId.get(chave)
     if (!atual) {
-      porId.set(novo.idTitulo, novo)
+      porId.set(chave, novo)
       novos += 1
       continue
     }
     if (mudouValor(atual, novo)) {
-      porId.set(novo.idTitulo, comValoresAtualizados(atual, novo))
+      porId.set(chave, comValoresAtualizados(atual, novo))
       atualizados += 1
     }
   }

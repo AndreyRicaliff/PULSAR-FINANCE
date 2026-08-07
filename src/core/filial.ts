@@ -7,15 +7,15 @@
 import { idDep, SEM_FILIAL } from './centros'
 import { codigoContraparte } from './cliente'
 import type { Conciliacao } from './modelo'
-import type { Movimento } from './movimento'
+import { chaveMovimento, type Movimento } from './movimento'
 import { normalizarTexto } from './texto'
 
-/** Identidade estável do movimento p/ a atribuição manual (mapa da dimensão centros). */
-export function chaveMovFilial(m: Movimento): string {
-  if (m.idMovCC) return `cc:${m.idMovCC}`
-  if (m.idTitulo && m.idTitulo !== '0') return `t:${m.idTitulo}|${m.parcela}`
-  return `x:${m.documento}|${m.contaCorrente}|${m.data}|${m.valorCentavos}`
-}
+/**
+ * Identidade do movimento p/ a atribuição manual (mapa da dimensão centros).
+ * Alias da chave CANÔNICA — este formato está PERSISTIDO nos mapas de centros dos tenants;
+ * a promoção para core/movimento.ts (07/08) preservou os bytes, e este alias preserva o nome.
+ */
+export const chaveMovFilial = chaveMovimento
 
 /** Filial atribuída automaticamente pelo rateio Omie (null = sem rateio lá). */
 export function filialOmie(m: Movimento, centros: Conciliacao): string | null {

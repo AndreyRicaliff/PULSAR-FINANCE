@@ -6,10 +6,12 @@ import { filtrarPorFilial, mapaAuto, type FiltroFilial } from '@/core/filial'
 import type { Conciliacao } from '@/core/modelo'
 import { movimentosCaixa, type Movimento } from '@/core/movimento'
 import {
+  coberturaAncoragem,
   coberturaDatas,
   filtrarPorPeriodo,
   intervaloAnterior,
   type Cobertura as CoberturaData,
+  type CoberturaAncoragem,
   type Intervalo,
   type Regime,
 } from '@/core/periodo'
@@ -28,6 +30,8 @@ export interface InfoPeriodo {
   readonly fora: number
   readonly total: number
   readonly coberturaData: CoberturaData
+  /** Qualidade da ancoragem: quantos ancoram por data do outro regime (extrato em competência). */
+  readonly ancoragem: CoberturaAncoragem
   readonly filial: FiltroFilial
   /** Movimentos do período excluídos por serem de OUTRA filial (transparência do filtro). */
   readonly foraFilial: number
@@ -130,6 +134,8 @@ export function useResultado(): Resultado {
       fora: filtro.fora,
       total: filtro.total,
       coberturaData: coberturaDatas(todos, regime),
+      // Sobre os movimentos DO PERÍODO (não `todos`): o aviso fala do que está na tela.
+      ancoragem: coberturaAncoragem(movimentos, regime),
       filial,
       foraFilial: filtroFilial.fora,
     }),

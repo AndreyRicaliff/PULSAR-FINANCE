@@ -26,13 +26,66 @@ export function isoDeMov(data: string): string | null {
   return `${a}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`
 }
 
+/** De onde veio a data que ancora o movimento no regime — a proveniência que faltava nomear. */
+export type FonteAncora =
+  | 'emissao'
+  | 'vencimento'
+  | 'registro'
+  | 'pagamento'
+  | 'conciliacao'
+  /** `data` canônica gravada no sync sem bater com nenhum campo cru (ex.: lançamento manual antigo). */
+  | 'canonica'
+  | 'nenhuma'
+
+export interface Ancora {
+  readonly iso: string | null
+  readonly fonte: FonteAncora
+  /** true = a âncora veio de data do OUTRO regime (competência ancorada por pagamento/conciliação). */
+  readonly emprestada: boolean
+}
+
+const SEM_ANCORA: Ancora = { iso: null, fonte: 'nenhuma', emprestada: false }
+
+/**
+ * Âncora do movimento no regime, com a FONTE nomeada.
+ *
+ * Por que existe: medido em produção (07/08/2026) que em 4 tenants Omie 94–99,9% dos
+ * movimentos são eventos de extrato SEM emissão — em competência eles ancoram pela data de
+ * pagamento (o fallback de `data`), e a DRE desses clientes é caixa com outro rótulo. O
+ * comportamento é uma escolha consciente (evento sem emissão não pode sumir da série), mas
+ * era INVISÍVEL: `coberturaDatas` respondia "100% com data" e ninguém via o empréstimo.
+ *
+ * Contrato: `iso` reproduz EXATAMENTE o `dataDoMovimento` de sempre (nenhum número muda);
+ * a fonte é diagnóstico por comparação com os campos crus, não uma nova regra de ancoragem.
+ */
+export function ancoraDoMovimento(m: Movimento, regime: Regime): Ancora {
+  if (regime === 'caixa') {
+    if (m.dataPagamento) return { iso: isoDeMov(m.dataPagamento), fonte: 'pagamento', emprestada: false }
+    if (m.dataConciliacao) return { iso: isoDeMov(m.dataConciliacao), fonte: 'conciliacao', emprestada: false }
+    return SEM_ANCORA
+  }
+  if (m.dataEmissao) return { iso: isoDeMov(m.dataEmissao), fonte: 'emissao', emprestada: false }
+  if (!m.data) return SEM_ANCORA
+  const iso = isoDeMov(m.data)
+  // A canônica nasceu no sync da cadeia emissão>venc>registro>pagamento>conciliação; comparar
+  // com os campos crus recupera a proveniência sem rodar a cadeia de novo (à prova de doc antigo).
+  const fonte: FonteAncora =
+    m.data === m.dataVencimento
+      ? 'vencimento'
+      : m.data === m.dataRegistro
+        ? 'registro'
+        : m.data === m.dataPagamento
+          ? 'pagamento'
+          : m.data === m.dataConciliacao
+            ? 'conciliacao'
+            : 'canonica'
+  return { iso, fonte, emprestada: fonte === 'pagamento' || fonte === 'conciliacao' }
+}
+
 /** Data ISO que ancora o movimento no regime escolhido (null = fora do critério). */
 export function dataDoMovimento(m: Movimento, regime: Regime): string | null {
-  if (regime === 'caixa') return isoDeMov(m.dataPagamento || m.dataConciliacao || '')
-  // Título tem emissão; evento de extrato (idTitulo=0) não — cai em `data`, a data canônica
-  // que o sync resolve (emissão > venc > registro > pagamento). Sem isso o evento entra no
-  // total do período mas em NENHUM mês — série mensal zerada com headline correto.
-  return isoDeMov(m.dataEmissao || m.data)
+  // Delegação: a âncora é a MESMA de sempre — ancoraDoMovimento só nomeia a proveniência.
+  return ancoraDoMovimento(m, regime).iso
 }
 
 export interface FiltroResultado {
@@ -89,6 +142,33 @@ export interface Cobertura {
 export function coberturaDatas(movs: readonly Movimento[], regime: Regime): Cobertura {
   const comData = movs.filter((m) => dataDoMovimento(m, regime)).length
   return { comData, total: movs.length }
+}
+
+export interface CoberturaAncoragem {
+  readonly total: number
+  /** Ancorados por data do PRÓPRIO regime (competência: emissão/venc/registro). */
+  readonly nativas: number
+  /** Ancorados por data do OUTRO regime — o empréstimo que "100% com data" escondia. */
+  readonly emprestadas: number
+  readonly semData: number
+}
+
+/**
+ * Qualidade da ancoragem, não só presença de data. `coberturaDatas` dizia "100% com data"
+ * num tenant onde 99,9% ancorava pela data de pagamento EM COMPETÊNCIA — verdade inútil.
+ * É isto que o aviso do período passa a mostrar.
+ */
+export function coberturaAncoragem(movs: readonly Movimento[], regime: Regime): CoberturaAncoragem {
+  let nativas = 0
+  let emprestadas = 0
+  let semData = 0
+  for (const m of movs) {
+    const a = ancoraDoMovimento(m, regime)
+    if (!a.iso) semData += 1
+    else if (a.emprestada) emprestadas += 1
+    else nativas += 1
+  }
+  return { total: movs.length, nativas, emprestadas, semData }
 }
 
 /**
