@@ -10,7 +10,12 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { PontoSerie } from '@/core/serie'
 
 const serie = vi.hoisted(() => ({ atual: [] as PontoSerie[] }))
+// Fonte da linha de caixa (decisão 07/08: resultado + caixa empilhados). Vazio por padrão —
+// a maioria dos casos testa a manchete sem rodapé.
+const caixa = vi.hoisted(() => ({ movimentos: [] as unknown[], saldos: {} as Record<string, number> }))
 vi.mock('@/lib/useResultado', () => ({ useResultado: () => ({ serieContinua: serie.atual }) }))
+vi.mock('@/lib/movimentos', () => ({ useMovimentos: () => ({ movimentos: caixa.movimentos }) }))
+vi.mock('@/lib/useSaldosIniciais', () => ({ useSaldosIniciais: () => ({ saldos: caixa.saldos }) }))
 // Data fixa: a manchete descarta o mês corrente, então o teste não pode depender de "hoje".
 vi.mock('@/core/periodo', async (orig) => ({
   ...(await orig<typeof import('@/core/periodo')>()),
@@ -28,7 +33,11 @@ const ponto = (mes: string, entrada: number, saida: number): PontoSerie => ({
   projetado: false,
 })
 
-afterEach(cleanup)
+afterEach(() => {
+  cleanup()
+  caixa.movimentos = []
+  caixa.saldos = {}
+})
 
 /**
  * `toLocaleString('pt-BR', {currency})` separa com espaço NÃO-QUEBRÁVEL, e o valor mora em
@@ -66,5 +75,31 @@ describe('MancheteCliente', () => {
     serie.atual = [ponto('2026-06', 200_000, 100_000), ponto('2026-07', 300_000, 150_000)]
     const { container } = render(<MancheteCliente />)
     expect(container.textContent).not.toMatch(/compet[êe]ncia|regime|DRE|DFC|conciliad/i)
+  })
+
+  it('linha de caixa: aparece como rodapé com a cobertura e o carimbo de sincronização', () => {
+    serie.atual = [ponto('2026-06', 200_000, 100_000), ponto('2026-07', 300_000, 150_000)]
+    caixa.saldos = { '2026-08': 90_000 }
+    caixa.movimentos = [
+      { natureza: 'P', valorAbertoCentavos: 40_000, dataVencimento: '20/08/2026', valorPagoCentavos: 0 },
+      { natureza: 'P', valorAbertoCentavos: 80_000, dataVencimento: '02/09/2026', valorPagoCentavos: 0 },
+    ]
+    render(<MancheteCliente sincronizadoEm="2026-08-15T09:30:00.000Z" />)
+    expect(screen.getByText('O caixa de hoje cobre as contas até 20 de agosto.')).toBeTruthy()
+    expect(screen.getByText(/sincronizado em 15\/08/)).toBeTruthy()
+  })
+
+  it('sem saldo informado, o rodapé NÃO promete cobertura', () => {
+    serie.atual = [ponto('2026-06', 200_000, 100_000), ponto('2026-07', 300_000, 150_000)]
+    caixa.movimentos = [{ natureza: 'P', valorAbertoCentavos: 40_000, dataVencimento: '20/08/2026', valorPagoCentavos: 0 }]
+    render(<MancheteCliente />)
+    expect(screen.getByText(/cobertura aparece quando o saldo do mês estiver informado/)).toBeTruthy()
+    expect(screen.queryByText(/caixa de hoje cobre/)).toBeNull()
+  })
+
+  it('sem dado nenhum de caixa, o rodapé simplesmente não existe', () => {
+    serie.atual = [ponto('2026-06', 200_000, 100_000), ponto('2026-07', 300_000, 150_000)]
+    const { container } = render(<MancheteCliente />)
+    expect(container.textContent).not.toMatch(/a pagar|caixa/i)
   })
 })

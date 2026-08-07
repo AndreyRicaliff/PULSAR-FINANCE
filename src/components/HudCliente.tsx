@@ -256,6 +256,9 @@ function Embedded() {
 function Corpo({ vista }: { vista: VistaHud }) {
   const { dre, dfc, grupos, periodo, movimentos, conc } = useResultado()
   const fonte = useMovimentos()
+  const { ativo } = useClientes()
+  // Só pelo carimbo de frescor da linha de caixa (sync.ultimo.em) — o disparo mora no botão.
+  const sync = useSync(ativo.id, ativo.nome)
   // Igual aos relatórios: o apresentativo mostra só o operacional; neutros (Regra Mãe) ficam fora.
   const { operacionais, neutros } = useMemo(() => separarNeutros(movimentos, conc), [movimentos, conc])
 
@@ -288,7 +291,7 @@ function Corpo({ vista }: { vista: VistaHud }) {
       ) : null}
       {/* A resposta ANTES da ferramenta: a manchete abre a tela, o filtro vem recolhido
           abaixo. Só na vista de resumo — nas outras o cliente já escolheu o que olhar. */}
-      {vista === 'indicadores' ? <MancheteCliente /> : null}
+      {vista === 'indicadores' ? <MancheteCliente sincronizadoEm={sync.ultimo?.em} /> : null}
       <FiltroPeriodo info={periodo} />
       <ResumoPeriodo
         contexto="periodo"
