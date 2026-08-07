@@ -12,7 +12,10 @@ Implementação: `GET /schedules` (Credit→R / Debit→P; uma varredura aliment
    nos dois níveis, senão o Plano de Contas perdia o subgrupo.
 2. **`/categories` não devolve categorias arquivadas** que os schedules ainda referenciam (52 de 95
    na DR PIZZA) — o cadastro é completado com `categoryName/parent` do próprio schedule, senão o
-   GUID cru vazaria como nome (pendência 2026-07-14 fechada para NIBO).
+   GUID cru vazaria como nome (pendência 2026-07-14 fechada para NIBO). O rateio `s.categories[]`
+   também traz **`type` próprio (`'in'`/`'out'`)** — conferido com payload real 2026-08-07 — e é
+   dele que sai a natureza da arquivada (fallback: sinal `Credit`/`Debit` do schedule). A omissão
+   do campo nesta doc gerou um falso positivo de auditoria em 07/08.
 3. **Natureza de agrupadora pela PREDOMINANTE** das filhas — pela "primeira filha", "Receitas
    operacionais" era classificada como despesa.
 4. **`paidValue` vem NEGATIVO em débito.** O app usa magnitude + sinal pela natureza, e
