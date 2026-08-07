@@ -6,7 +6,8 @@
  */
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { hojeLocalIso } from '@/core/periodo'
-import { estadoInicialApresentacao, useApresentacao } from '@/lib/useApresentacao'
+import { useApresentacao } from '@/lib/useApresentacao'
+import { estadoInicialApresentacao, perdeTrabalho, temTrabalho } from '@/lib/rascunhoApresentacao'
 import { useClientes } from '@/lib/clientes'
 import { supabase } from '@/lib/supabase'
 import { RelatorioApresentacao } from '../relatorios/RelatorioApresentacao.tsx'
@@ -118,18 +119,33 @@ export function ExploradorApresentacoes() {
     [itens, ordenar],
   )
 
+  /**
+   * O roteiro em edição não está gravado em NENHUMA apresentação desta empresa.
+   *
+   * Contra a lista inteira, não só contra a aberta: depois de um remount `abertaId` é null, e
+   * medir só por ela acusaria perda inexistente a cada volta para a aba. Roteiro pristino
+   * devolve false em `perdeTrabalho`, então buffer intocado nunca alarma. `carregar()` atualiza
+   * `itens` depois de salvar, então o indicador se apaga sozinho.
+   */
+  const naoSalvo = useMemo(
+    () => temTrabalho(apre.estado) && !itens.some((i) => !perdeTrabalho(apre.estado, i.conteudo)),
+    [itens, apre.estado],
+  )
+
   /** O roteiro de trabalho é UM por cliente — trocar o que está nele sempre pede confirmação. */
   function confirmarTroca(destino: string): boolean {
-    if (!abertaId) return true
     return window.confirm(
-      `${destino} substitui o roteiro em edição${abertaTitulo ? ` ("${abertaTitulo}")` : ''}. Alterações não salvas lá se perdem. Continuar?`,
+      `${destino} substitui o roteiro em edição${abertaTitulo ? ` ("${abertaTitulo}")` : ''}. As alterações não salvas se perdem. Continuar?`,
     )
   }
 
   async function abrir(item: Item, editar: boolean) {
     if (!supabase) return
-    // Sem esta confirmação, editar A e abrir B perdia a edição em silêncio.
-    if (abertaId !== item.id && !confirmarTroca(`Abrir "${item.titulo}"`)) return
+    // O guard olha CONTEÚDO, não id. Com `abertaId !== item.id` ele calava justamente nos dois
+    // caminhos que a equipe usa: reabrir o MESMO card, e voltar depois de trocar de aba (aí o
+    // efeito de [carregar] já zerou abertaId e o confirm antigo se auto-aprovava). Perda
+    // silenciosa de fechamento em 3 das 6 empresas — 07/08.
+    if (naoSalvo && perdeTrabalho(apre.estado, item.conteudo) && !confirmarTroca(`Abrir "${item.titulo}"`)) return
     setErro('')
     const { data, error } = await supabase.from('painel_apresentacoes').select('conteudo').eq('id', item.id).single()
     if (error) return setErro(error.message)
@@ -142,7 +158,7 @@ export function ExploradorApresentacoes() {
 
   async function novaApresentacao() {
     if (!supabase) return
-    if (!confirmarTroca('Criar uma apresentação nova')) return
+    if (naoSalvo && !confirmarTroca('Criar uma apresentação nova')) return
     const competencia = competenciaDe()
     const titulo = window.prompt('Nome da nova apresentação:', `Fechamento ${mesLegivel(competencia)}`)
     if (!titulo?.trim()) return
@@ -257,6 +273,13 @@ export function ExploradorApresentacoes() {
           <p className="min-w-0 flex-1 truncate text-sm">
             Editando: <strong>{abertaTitulo || 'roteiro avulso'}</strong>
           </p>
+          {/* O aviso é o que quebra o ciclo: até 07/08 nada na tela distinguia "salvo" de
+              "só na memória de trabalho", e a equipe saía do editor achando que tinha salvo. */}
+          {naoSalvo ? (
+            <span className="shrink-0 rounded-full bg-warn/15 px-2.5 py-1 text-xs font-medium text-warn">
+              • alterações não salvas
+            </span>
+          ) : null}
           {abertaId && abertaStatus === 'rascunho' ? (
             <button type="button" onClick={() => void salvarNaAberta()} className="fx-press rounded-lg bg-primary px-4 py-1.5 text-sm font-semibold text-white">
               Salvar nesta apresentação
