@@ -2,7 +2,8 @@
 import { useMemo } from 'react'
 import { classeDe } from '@/core/classes'
 import type { No } from '@/core/modelo'
-import { chaveContraparte, type Movimento } from '@/core/movimento'
+import { chaveContraparte, chaveMovimento, type Movimento } from '@/core/movimento'
+import { descreverOrigem } from '@/core/origens'
 import { useCadastros } from '@/lib/cadastros'
 import { useProvedor } from '@/lib/clientes'
 import { useFilialSelecao, type FilialSelecaoApi } from '@/lib/filialSelecao'
@@ -109,14 +110,23 @@ function CelulaFilial({ m, api, somenteLeitura }: { m: Movimento; api: FilialSel
 
 function TituloCelula({ m, somenteLeitura }: { m: Movimento; somenteLeitura: boolean }) {
   const { resolvedor } = useOverrides()
-  const chave = m.idTitulo || m.documento
-  if (!chave) return <span className="text-muted">—</span>
+  // chaveMovimento, não `idTitulo || documento`: '0' é string TRUTHY — todo evento de extrato
+  // caía na chave '0' e renomear UM renomeava TODOS (era o "registro sem código" do report
+  // 07/08). A canônica dá cc:<idMovCC> a cada evento; prod confirmou 0 overrides gravados
+  // no formato antigo, então a troca não órfã nada.
+  const chave = chaveMovimento(m)
   // Fallback do nº do documento (report 03/08): extrato/título sem cNumTitulo mostra o
   // texto livre do ERP (que carrega o código) em vez de "Sem documento".
   const resolvido = resolvedor.titulo(chave, m.documento || m.descricao || '')
+  const dica = descreverOrigem(m.origem, m.idTitulo)
   // Cliente (read-only): nome resolvido puro, sem o ✎ que grava override.
-  if (somenteLeitura) return <span>{resolvido.nome}</span>
-  return <NomeEditavel entidade="titulo" codigo={chave} resolvido={resolvido} />
+  if (somenteLeitura) return <span title={dica}>{resolvido.nome || '—'}</span>
+  // Editável mesmo sem rótulo: apelidar um evento de extrato sem documento é caso real.
+  return (
+    <span title={dica}>
+      <NomeEditavel entidade="titulo" codigo={chave} resolvido={resolvido} />
+    </span>
+  )
 }
 
 function corStatus(status: string): string {

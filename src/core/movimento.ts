@@ -62,6 +62,22 @@ export interface MovimentosSeed {
 }
 
 /**
+ * Identidade ESTÁVEL do movimento — a resposta única para "qual é o código deste registro?".
+ *
+ * Censo de produção (07/08/2026): 68.696 eventos de extrato/transferência têm idTitulo '0' —
+ * e TODOS têm idMovCC. Antes desta função, cada consumidor inventava a própria chave e dois
+ * erravam: override de título usava `idTitulo || documento` ('0' é string truthy → renomear
+ * UM evento de extrato renomeava TODOS), e o merge de sync mapeava por idTitulo cru (todos os
+ * eventos colapsariam numa entrada só). A ordem cc: → t: → x: é a MESMA que `chaveMovFilial`
+ * já persistia no mapa de centros — mudar a ordem órfãria atribuições de filial salvas.
+ */
+export function chaveMovimento(m: Movimento): string {
+  if (m.idMovCC) return `cc:${m.idMovCC}`
+  if (m.idTitulo && m.idTitulo !== '0') return `t:${m.idTitulo}|${m.parcela}`
+  return `x:${m.documento}|${m.contaCorrente}|${m.data}|${m.valorCentavos}`
+}
+
+/**
  * Chave de agrupamento/resolução da contraparte: código do cadastro quando existe;
  * senão o nome cru do movimento (Nibo grava o nome no lançamento e código nulo); senão 'SEM'.
  */
