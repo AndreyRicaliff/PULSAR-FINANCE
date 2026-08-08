@@ -1,18 +1,24 @@
 /** @file Tipos e catálogo (leve) dos slides da apresentação: seções de dado + slides livres. */
 
-/** Seções do app que podem virar slide (exclui o catálogo 'visao' e a própria 'apresentacao'). */
+/**
+ * Seções do app que podem virar slide (exclui o catálogo 'visao' e a própria 'apresentacao').
+ * PARIDADE COM RelatoriosPanel é contrato (report 07/08: CAPEX faltava e os rótulos ficaram
+ * para trás na nomenclatura técnica do #78): aba nova de relatório = slide novo AQUI + case
+ * no ConteudoSecao, com o MESMO rótulo da aba. O id é identidade salva nos decks — nunca muda.
+ */
 export const SECOES_SLIDE = [
   { id: 'dashboard', rotulo: 'Indicadores' },
-  { id: 'dre', rotulo: 'DRE — Resultado' },
-  { id: 'dfc', rotulo: 'DFC — Fluxo de Caixa' },
-  { id: 'evolucao', rotulo: 'Evolução Mensal' },
-  { id: 'comparativo', rotulo: 'Comparativo' },
-  { id: 'custos', rotulo: 'Custos' },
-  { id: 'receita', rotulo: 'Receita' },
+  { id: 'dre', rotulo: 'DRE' },
+  { id: 'dfc', rotulo: 'DFC' },
+  { id: 'evolucao', rotulo: 'Evolução & Tendência' },
+  { id: 'comparativo', rotulo: 'Comparativo AV/AH' },
+  { id: 'custos', rotulo: 'Custos & Despesas' },
+  { id: 'receita', rotulo: 'Receita Líquida' },
   { id: 'giro', rotulo: 'Capital de Giro' },
-  { id: 'previsto', rotulo: 'Projeção (Previsto × Realizado)' },
-  { id: 'filiais', rotulo: 'Filiais / Centro de Custo' },
-  { id: 'neutros', rotulo: 'Movimentos Neutros' },
+  { id: 'previsto', rotulo: 'Execução Orçamentária' },
+  { id: 'capex', rotulo: 'CAPEX' },
+  { id: 'filiais', rotulo: 'Centros de Resultado' },
+  { id: 'neutros', rotulo: 'Partidas Neutras' },
 ] as const
 
 export type SecaoSlideId = (typeof SECOES_SLIDE)[number]['id']
