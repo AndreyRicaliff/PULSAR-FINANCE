@@ -10,6 +10,7 @@ import { RelatorioCustos } from '../relatorios/RelatorioCustos.tsx'
 import { RelatorioReceita } from '../relatorios/RelatorioReceita.tsx'
 import { RelatorioCapitalGiro } from '../relatorios/RelatorioCapitalGiro.tsx'
 import { RelatorioEvolucao } from '../relatorios/RelatorioEvolucao.tsx'
+import { RelatorioCapex } from '../relatorios/RelatorioCapex.tsx'
 import { RelatorioFiliais } from '../relatorios/RelatorioFiliais.tsx'
 import { RelatorioNeutros } from '../relatorios/RelatorioNeutros.tsx'
 import { ProjecaoPanel } from '../ProjecaoPanel.tsx'
@@ -38,6 +39,11 @@ export function ConteudoSecao({ secao }: { secao: SecaoSlideId }) {
       return <RelatorioCapitalGiro />
     case 'previsto':
       return <ProjecaoPanel />
+    case 'capex':
+      // CAPEX completo: expansão × reposição + orçado × realizado (anel e barras mensais).
+      // Autocontido via hooks — no modo apresentação lê o snapshot; sem orçamento, o próprio
+      // relatório mostra o estado vazio honesto em vez de gráfico zerado.
+      return <RelatorioCapex />
     case 'filiais':
       return <RelatorioFiliais />
     case 'neutros':
